@@ -1,6 +1,6 @@
-# Implementation Plan - Pakt Lemiesza (PL) Management Center & Internal Second Brain
+# Implementation Plan - Przymierze Lemiesza (PL) Management Center & Internal Second Brain
 
-A secure, lightweight internal web application for the core team of **Pakt Lemiesza (PL)** (*The Plowshare Pact*). The platform combines an **Ideological Repository**, an AI-powered **Rhetorical Shield** for debate defense, and a **Content Engine** for social media & press generation, backed by a zero-infra SQLite database and an in-memory TypeScript RAG vector search mechanism.
+A secure, lightweight internal web application for the core team of **Przymierze Lemiesza (PL)** (*The Plowshare Covenant*). The platform combines an **Ideological Repository**, an AI-powered **Rhetorical Shield** for debate defense, and a **Content Engine** for social media & press generation, backed by a zero-infra SQLite database and an in-memory TypeScript RAG vector search mechanism.
 
 ## Architectural Overview
 

@@ -1,0 +1,14 @@
+{
+	"app_title": "Pakt Lemiesza — Centrum Zarządzania",
+	"nav_dashboard": "Pulpit",
+	"nav_repository": "Repozytorium Źródeł",
+	"nav_shield": "Tarcza Retoryczna",
+	"nav_content": "Generator Treści",
+	"nav_review": "Kolejka Weryfikacji",
+	"nav_settings": "Ustawienia",
+	"status_draft": "Szkic",
+	"status_ai_verified": "Zweryfikowany przez AI",
+	"status_human_approved": "Zatwierdzony przez człowieka",
+	"status_flagged": "Wymaga weryfikacji",
+	"status_stale": "Zdezaktualizowany"
+}

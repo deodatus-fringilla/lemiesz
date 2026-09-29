@@ -1,0 +1,46 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lemiesz-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DATABASE_PATH=/data/lemiesz.db
+    volumes:
+      # Persistent local disk volume for SQLite WAL database
+      - lemiesz-data:/data
+    ports:
+      # Mode B (Local / Tailscale): Accessible locally or via Tailscale IP
+      - "3000:3000"
+
+  # Optional reverse proxy for Mode A (VPS with automatic HTTPS)
+  # Run with: docker compose --profile vps up -d
+  caddy:
+    image: caddy:alpine
+    container_name: lemiesz-caddy
+    restart: unless-stopped
+    profiles:
+      - vps
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  lemiesz-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local

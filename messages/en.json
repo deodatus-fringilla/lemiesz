@@ -1,0 +1,14 @@
+{
+	"app_title": "The Plowshare Pact — Management Center",
+	"nav_dashboard": "Dashboard",
+	"nav_repository": "Repository",
+	"nav_shield": "Rhetorical Shield",
+	"nav_content": "Content Engine",
+	"nav_review": "Review Queue",
+	"nav_settings": "Settings",
+	"status_draft": "Draft",
+	"status_ai_verified": "AI-Verified",
+	"status_human_approved": "Human-Approved",
+	"status_flagged": "Flagged for Review",
+	"status_stale": "Stale"
+}
