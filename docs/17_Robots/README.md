@@ -1,7 +1,7 @@
 # 17 · The Robot Fleet
 
 > **Doc type: DURABLE RULING + MEASURED INDEX.**
-> **STATUS: OPEN FOR DISCUSSION & CONSULTATION.**
+> **STATUS: ROBOTS 01–08 IMPLEMENTED (2026-10-01); 09–10 PROPOSED for Phase 6.**
 > One document per robot, each describing *why that robot exists, what it guards, and how it proves it can fail*.
 > Live pass/fail status lives in [10_Harness/02_Harness_Ledger.md](../10_Harness/02_Harness_Ledger.md).
 
@@ -20,7 +20,19 @@ In Pakt Lemiesza, rules written only in prose or agreed upon in chat sessions wi
 Every robot in the fleet must have:
 1. **A specification document in this folder:** `ROBOT-XX-<name>.md` detailing its rationale, guarded invariants, and failure proof.
 2. **A status row in the ledger:** [10_Harness/02_Harness_Ledger.md](../10_Harness/02_Harness_Ledger.md) carrying a real measured date.
-3. **An executable test/script:** in `scripts/robots/` or `tests/robots/`.
+3. **An executable test/script:** in `scripts/robots/` or `tests/robots/`, named in an `Executable` row of the spec's attribute table (ROBOT-08 checks that it exists).
+
+---
+
+## Running the Fleet
+
+| Command | What it does |
+|---|---|
+| `pnpm robots` | Runs every robot that needs no network, model or key: the static gates (each preceded by its own `--self-test`) and one Vitest file per backend robot. About 5 seconds. Exit code 1 if any robot fails. |
+| `pnpm robots:sabotage` | Canon 03 D4: breaks one guarded line at a time, requires the guarding robot to turn red, restores the file. Run it whenever a robot or its guarded code changes. |
+| `pnpm eval` | The model-dependent halves of ROBOT-03 (needs `LLM_AUDITOR_*`) and ROBOT-04 (real local embedder, downloads the model once). |
+
+Gate strictness (decided 2026-10-01): robots run through `pnpm robots` and in CI. The two static gates (05, 08) are cheap enough to add to a pre-commit hook later; nothing that needs the embedder or an LLM ever runs there.
 
 ---
 
@@ -28,7 +40,7 @@ Every robot in the fleet must have:
 
 Before numbering a new robot, check the table below and claim the next available sequential number. Do not assign numbers from memory.
 
-Highest number currently claimed: **ROBOT-08**.
+Highest number currently claimed: **ROBOT-10**.
 
 ---
 
@@ -49,14 +61,22 @@ Highest number currently claimed: **ROBOT-08**.
 
 | # | Robot Document | Tier | Primary Guard / Invariant | Proof It Can Fail |
 |---|---|---|---|---|
-| **01** | [The Verbatim Quotation Gate](ROBOT-01-verbatim-quotation-gate.md) | Backend | Invariant: Every quote in an argument card or shield output must be an exact substring of stored DB text. | Sabotage: 1-character altered quote fixture. |
-| **02** | [The Trust-Tier Write Boundary](ROBOT-02-trust-tier-write-boundary.md) | Backend | Invariant: Unapproved (`draft`, `flagged`, `stale`) cards are mathematically barred from public export by default. | Negative controls: export attempt without approval flag. |
-| **03** | [The Auditor Trap (Canary Gate)](ROBOT-03-auditor-trap-canary.md) | Eval | Invariant: The Auditor model must catch 100% of planted bad cards (fabricated quotes, fallacies). | Negative controls: 5 planted synthetic failure cards. |
-| **04** | [The Golden Set Retrieval Gate](ROBOT-04-golden-set-retrieval.md) | Eval | Invariant: Retrieval recall@5 on golden attack lines must remain $\ge 95\%$; off-topic rejection must be 100%. | Negative controls: out-of-domain query evaluation. |
-| **05** | [The Locale Parity Gate](ROBOT-05-locale-parity-gate.md) | Static Gate | Invariant: Key parity between `messages/pl.json` and `messages/en.json` must be 1:1. | `--self-test`: synthetic missing key detection. |
-| **06** | [The SQLite Disk Assertion Gate](ROBOT-06-sqlite-disk-assertion.md) | Backend | Invariant: Database startup must abort if running on network mount/UNC share, or if WAL/busy timeout are disabled. | Simulated network mount rejection. |
-| **07** | [The License & Cleared-to-Store Gate](ROBOT-07-license-and-storage-gate.md) | Backend | Invariant: Cannot seed or store full text when `cleared_to_store=0`, or without explicit reviewer/license attribution. | Negative control: unreviewed full-text ingest attempt. |
-| **08** | [The Fleet Census & Doc-Rot Gate](ROBOT-08-doc-rot-and-census-gate.md) | Static Gate | Invariant: Every `ROBOT-*.md` document must match a row in the ledger and have an existing script/test. | `--self-test`: missing row detection. |
+| **01** | [The Verbatim Quotation Gate](ROBOT-01-verbatim-quotation-gate.md) | Backend | Every quote in a card or Shield answer is verbatim stored text; citations outside the retrieved set are stripped. | Mutation proof (3) + one-word-altered fixture. |
+| **02** | [The Trust-Tier Write Boundary](ROBOT-02-trust-tier-write-boundary.md) | Backend | Public output sees only `human_approved` cards; only a human approves, only the pipeline verifies; source edits stale AI-verified cards. | Mutation proof (4). |
+| **03** | [The Auditor Trap (Canary Gate)](ROBOT-03-auditor-trap-canary.md) | Eval | The Auditor must catch every planted bad card in `eval/bad-cards.json` and verify the sound controls (model half not yet run). | Rubber-stamp and paranoid fake auditors exposed. |
+| **04** | [The Golden Set Retrieval Gate](ROBOT-04-golden-set-retrieval.md) | Eval | Recall@5 on `eval/golden.json` stays at least 95%; off-topic lines return "no strong source". | Wrong expectation reported as miss; on-topic line as false positive. |
+| **05** | [The Locale Parity Gate](ROBOT-05-locale-parity-gate.md) | Static Gate | `messages/*.json` have identical keys and parameters; no empty or TODO strings. | `--self-test` (6 sabotage cases). |
+| **06** | [The SQLite Disk Assertion Gate](ROBOT-06-sqlite-disk-assertion.md) | Backend | Startup refuses UNC/network paths; WAL, foreign keys and busy timeout are on. | Mutation proof (2). |
+| **07** | [The License & Cleared-to-Store Gate](ROBOT-07-license-and-storage-gate.md) | Backend | No source enters the repository without licence terms, a named reviewer and an explicit storage decision. | Mutation proof (2). |
+| **08** | [The Fleet Census & Doc-Rot Gate](ROBOT-08-doc-rot-and-census-gate.md) | Static Gate | Every robot has spec, ledger row and existing executable; all docs links resolve; no local paths. | `--self-test` (8 defects). |
+| **09** | [The Media Link & Privacy Embed Gate](ROBOT-09-media-link-privacy-gate.md) | Backend | External media links must not 404; embeds must use privacy-friendly domains (youtube-nocookie). | Negative control: dead link fixture rejected. |
+| **10** | [The Lyrics Substring & Attribution Gate](ROBOT-10-lyrics-attribution-gate.md) | Backend | Lyrics must be verbatim transcriptions; AI generation credit (e.g. Suno AI) must be declared. | Sabotage: altered lyrics fixture rejected. |
+
+---
+
+## Numbering policy
+
+One continuous sequence (decided 2026-10-01). No reserved blocks.
 
 ---
 
@@ -65,5 +85,5 @@ Highest number currently claimed: **ROBOT-08**.
 1. Take the next free number from the index above.
 2. Draft its specification document (`ROBOT-XX-...md`) following the standard template.
 3. Implement the script or test.
-4. **Prove it can fail** by running negative controls or sabotaging application code. Record the proof in the robot document.
-5. Add the status row with the date and measurement to [10_Harness/02_Harness_Ledger.md](../10_Harness/02_Harness_Ledger.md).
+4. **Prove it can fail** by running negative controls or sabotaging application code (add a mutation to `scripts/robots/sabotage.mjs`). Record the proof in the robot document.
+5. Add the executable to `scripts/robots/run.mjs` and name it in the spec's `Executable` row, then add the status row with the date and measurement to [10_Harness/02_Harness_Ledger.md](../10_Harness/02_Harness_Ledger.md).

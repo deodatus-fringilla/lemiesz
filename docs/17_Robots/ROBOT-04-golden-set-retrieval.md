@@ -1,38 +1,39 @@
 # ROBOT 04 — The Golden Set Retrieval Gate
 
 > **Doc type: DURABLE RULING + MEASURED FACTS.**
-> **STATUS: OPEN FOR DISCUSSION & CONSULTATION.**
-> Fleet Index: [README](README.md) · Live Status: [10_Harness/02_Harness_Ledger.md](../10_Harness/02_Harness_Ledger.md)
+> **STATUS: IMPLEMENTED (2026-10-01).** The offline half runs in `pnpm robots`; the real-embedder half runs in `pnpm eval`. Live status lives in the [Harness Ledger](../10_Harness/02_Harness_Ledger.md).
+> Fleet Index: [README](README.md)
 
 | Attribute | Specification |
 |---|---|
 | **Number** | 04 |
-| **Tier** | Eval / Search |
-| **Source** | `src/lib/server/search/hybrid.ts` & `scripts/eval-retrieval.ts` |
-| **Guards** | Cross-lingual recall regression, vector calibration, off-topic rejection |
-| **Proves it can fail** | Out-of-domain queries assert "no strong source" fallback |
+| **Tier** | Eval / Search (offline half: Vitest; real embedder: `pnpm eval`) |
+| **Guarded code** | `src/lib/server/rag/` (FTS5, vectors, RRF, thresholds) and `src/lib/server/eval/harness.ts` (`evaluateRetrieval`) |
+| **Executable** | `tests/robots/robot-04-golden-set.robot.ts` (offline) and `src/lib/server/eval/quality.eval.ts` (real local embedder) |
+| **Data** | `eval/golden.json` |
+| **Guards** | Cross-lingual recall regression, vector-threshold calibration, off-topic rejection |
+| **Proves it can fail** | The harness reports a wrong expectation as a miss and an on-topic line posing as off-topic as a false positive, see §3 |
 
 ---
 
 ## 1. Why This Exists
 
-The Rhetorical Shield and Repository rely on a hybrid search engine combining SQLite FTS5 (BM25 lexical matching) and multilingual vector embeddings (`bge-m3` / `multilingual-e5`).
-In past tests, lexical-only search failed on 100% of Polish colloquial attack lines, and setting the similarity threshold too high (e.g. 0.86) caused legitimate Polish queries to falsely report *"no strong source"*. Conversely, lowering the threshold too far causes off-topic political attacks to pull irrelevant religious texts.
-
-ROBOT-04 executes the golden attack evaluation suite to ensure that neither lexical drift nor embedding calibration destroys retrieval recall or hallucination guards.
+The Shield and Repository rely on hybrid search: SQLite FTS5 (BM25) plus multilingual vector embeddings. Measured earlier: lexical search alone finds 8/10 English→English and 0/6 Polish→English attack lines, and a threshold set too high returns "no strong source" for legitimate Polish queries, while one set too low drags irrelevant texts into off-topic debates. ROBOT-04 keeps both failure modes visible.
 
 ---
 
 ## 2. Invariant Rules
 
-1. **Golden Set Size & Balance:** At least 20 attack lines (split evenly between Polish and English colloquial debating styles, covering the Swiss Shield, Double Distance, and Plowshare Paradox arguments) + 4 out-of-domain negative controls.
-2. **Recall Invariant:** Recall@5 across all on-topic attack lines must remain $\ge 95\%$ (currently 16/16 = 100%).
-3. **Negative Control Invariant:** 100% of off-topic queries (e.g. *"What is the tax rate on electric cars?"*) must return `no_strong_source` fallback, preventing the model from improvising an answer.
-4. **Local Execution:** Must run completely offline using local in-process ONNX embeddings (`EMBEDDER=local`) without external API calls.
+1. **Golden set.** At least 20 entries in both languages with at least 4 off-topic negatives. Currently 16 positives (10 en, 6 pl) plus 4 negatives. The target is 30–50 real attack lines; the set is a starter, and `RAG_VECTOR_MIN=0.79` is calibrated on it with a thin margin (worst positive 0.806, best negative 0.772).
+2. **Every expected source exists** in the seed corpus (offline half).
+3. **Recall.** With the real embedder, hybrid recall@5 and end-to-end recall (real thresholds) must be at least 95% (`pnpm eval`).
+4. **Off-topic rejection.** Every negative must return tier `none` ("no strong source"): the model never improvises an answer.
+5. **Local.** Runs with the in-process ONNX embedder; the only network use is the first model download.
 
 ---
 
 ## 3. Proof It Can Fail
 
-- **Negative Control:** Run the 4 off-topic attack lines against the evaluation harness.
-- **Assertion:** Best off-topic similarity score must remain strictly below the calibrated fallback threshold (currently max off-topic score is 0.772; threshold is 0.790). If an off-topic score crosses 0.790, the test fails.
+Offline half, in the test file: an entry that expects the wrong source appears in `missed`, and an on-topic query listed as a negative appears in `falsePositives`. The real-embedder half fails if any threshold change makes a negative score cross the threshold.
+
+Measured: offline half passes on 2026-10-01 (`pnpm robots`). Real-embedder numbers (hybrid recall@5 16/16, negatives 4/4) were measured before Phases 3–5 and are re-run by `pnpm eval`; see the ledger for the date.

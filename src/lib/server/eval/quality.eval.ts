@@ -23,6 +23,12 @@ describe('retrieval quality (real embedder)', () => {
 		publish(formatRetrievalReport(report));
 		// The deterministic floor: English->English lexical retrieval must work with no model at all.
 		expect(report.methods.lexical!.byPair.find((p) => p.pair === 'en->en')!.recall).toBeGreaterThanOrEqual(0.6);
+		// ROBOT-04: with the real embedder, recall@5 stays >= 95% and every off-topic line gets "no strong source".
+		if (embedder) {
+			expect(report.methods.hybrid!.recallAt5, 'hybrid recall@5').toBeGreaterThanOrEqual(0.95);
+			expect(report.endToEnd!.recall, 'end-to-end recall with real thresholds').toBeGreaterThanOrEqual(0.95);
+			expect(report.negatives.falsePositives, 'off-topic lines that found a "source"').toEqual([]);
+		}
 	});
 });
 
@@ -37,5 +43,8 @@ describe('auditor quality (real auditor model)', () => {
 		publish(formatAuditorReport(report));
 		// Fabricated quotes and misattributions are stopped by code, whatever the model does.
 		expect(report.deterministicCatchRate).toBe(1);
+		// ROBOT-03: the model-dependent traps must be caught too, and the sound controls verified.
+		expect(report.llmCatchRate, 'model-dependent traps caught').toBe(1);
+		expect(report.controlPassRate, 'sound controls verified').toBe(1);
 	});
 });

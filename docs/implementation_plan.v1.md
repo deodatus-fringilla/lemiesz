@@ -1,3 +1,5 @@
+> **Doc type: ARCHIVE (superseded).** Kept as history only; the current plan is [implementation_plan.md](implementation_plan.md). Links and file paths below are not maintained, and the Fleet Census gate skips this file.
+
 # Implementation Plan - Przymierze Lemiesza (PL) Management Center & Internal Second Brain
 
 A secure, lightweight internal web application for the core team of **Przymierze Lemiesza (PL)** (*The Plowshare Covenant*). The platform combines an **Ideological Repository**, an AI-powered **Rhetorical Shield** for debate defense, and a **Content Engine** for social media & press generation, backed by a zero-infra SQLite database and an in-memory TypeScript RAG vector search mechanism.
