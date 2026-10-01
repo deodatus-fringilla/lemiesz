@@ -6,7 +6,7 @@ import { spanInText } from '$lib/server/pipeline/spancheck';
  * sources that were actually retrieved, drops unknown ones, and replaces valid ones. The quotation text is
  * always the database text, never model output.
  */
-const TOKEN = /\[\[\s*(src|quote)\s*:\s*(\d+)\s*\]\]/gi;
+const TOKEN = /\[\[\s*(src|quote|media)\s*:\s*(\d+)\s*\]\]/gi;
 // Longest possible unfinished token we may need to hold back while streaming, e.g. "[[quote: 123456 ]"
 const MAX_PENDING = 24;
 
@@ -15,6 +15,8 @@ export interface CitationOptions {
 	marker?: (sourceId: number, n: number) => string;
 	/** Texts that may be quoted verbatim with `[[quote:ID]]` (e.g. only short ones). Others fall back to a plain citation. */
 	quotable?: ReadonlyMap<number, string>;
+	/** Approved media the model may reference with `[[media:ID]]`: id -> the exact text to put in the output (database fields only). */
+	media?: ReadonlyMap<number, string>;
 	/** Wraps a verbatim quotation (default: straight double quotes). */
 	quote?: (text: string, sourceId: number) => string;
 }
@@ -24,6 +26,10 @@ export class CitationStreamer {
 	readonly order: number[] = [];
 	/** Ids the model cited that were not in the retrieved set (stripped). */
 	readonly rejected: number[] = [];
+	/** Media ids the model referenced that were not in the approved set (stripped). */
+	readonly rejectedMedia: number[] = [];
+	/** Media ids that were expanded. */
+	readonly mediaUsed: number[] = [];
 	/** Ids that were expanded into a verbatim quotation. */
 	readonly quoted: number[] = [];
 	private buffer = '';
@@ -45,6 +51,15 @@ export class CitationStreamer {
 	private resolve(text: string): string {
 		return text.replace(TOKEN, (_all, kind: string, raw: string) => {
 			const id = Number(raw);
+			if (kind.toLowerCase() === 'media') {
+				const text = this.options.media?.get(id);
+				if (text === undefined) {
+					this.rejectedMedia.push(id);
+					return '';
+				}
+				if (!this.mediaUsed.includes(id)) this.mediaUsed.push(id);
+				return text;
+			}
 			if (!this.allowed.has(id)) {
 				this.rejected.push(id);
 				return '';

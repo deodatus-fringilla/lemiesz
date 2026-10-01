@@ -16,3 +16,7 @@ export type { MessageKey };
 export const platformLabel = (p: string) => call(`content_platform_${p}`);
 export const toneLabel = (t: string) => call(`content_tone_${t}`);
 export const checkLabel = (id: string) => call(`content_check_${id}`);
+
+export const genreLabel = (g: string) => call(`genre_${g}`);
+export const mediaTypeLabel = (t: string) => call(`media_type_${t}`);
+export const mediaStatusLabel = (s: string) => call(`media_status_${s}`);

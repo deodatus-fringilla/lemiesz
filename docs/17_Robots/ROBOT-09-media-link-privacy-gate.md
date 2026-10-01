@@ -1,45 +1,48 @@
 # ROBOT 09 — The Media Link & Privacy Embed Gate
 
 > **Doc type: DURABLE RULING + MEASURED FACTS.**
-> **STATUS: PROPOSED (2026-10-01).** Not implemented: ships with Phase 6.
-> Fleet Index: [README](README.md) · Live Status: [10_Harness/02_Harness_Ledger.md](../10_Harness/02_Harness_Ledger.md)
+> **STATUS: IMPLEMENTED, offline half (2026-10-01).** The live link check needs the network and is not written. Live status lives in the [Harness Ledger](../10_Harness/02_Harness_Ledger.md).
+> Fleet Index: [README](README.md)
 
 | Attribute | Specification |
 |---|---|
 | **Number** | 09 |
-| **Tier** | Backend / Media Ingestion |
-| **Executable** | — (not yet written; Phase 6) |
-| **Planned source** | `src/lib/server/media/checks.ts` |
-| **Guards** | Dead external media links, CSP tracking leaks, insecure third-party iframes |
-| **Proves it can fail** | Negative control: rejected on 404 URL or tracking domain embed |
+| **Tier** | Backend (Vitest, offline) |
+| **Guarded code** | `src/lib/server/media.ts` (`parseMediaUrl`, `isAllowedEmbed`, `EMBED_HOSTS`), the `embed_url` CHECK in `src/lib/server/migrations/005_media.sql`, the `frame-src` directive in `vite.config.ts`, the `<iframe>` in `src/routes/media/+page.svelte` |
+| **Executable** | `tests/robots/robot-09-media-embed.robot.ts` |
+| **Run** | `pnpm robots` · sabotage proof: `pnpm robots:sabotage` |
+| **Guards** | Visitor privacy (no third-party cookie or IP leak through embeds), CSP and code agreeing |
+| **Proves it can fail** | Mutation proof (4 mutations) and look-alike-host fixtures, see §3 |
 
 ---
 
 ## 1. Why This Exists
 
-If a user attaches an external music track or YouTube debate clip to a public campaign thread, that link must not be dead, broken, or geo-blocked. Furthermore, embedding external video players can leak user IPs and track visitors unless strictly isolated.
-
-ROBOT-09 verifies during ingestion and periodic health sweeps that:
-1. Every external video/audio URL returns HTTP 200 OK.
-2. YouTube embeds strictly use `https://www.youtube-nocookie.com/embed/...`.
-3. The platform's Content-Security-Policy (CSP) `frame-src` directive permits only authorized media domains (`youtube-nocookie.com`, `open.spotify.com`).
+Embedding a YouTube or Spotify player lets that company set cookies and see the visitor's IP. YouTube's `youtube-nocookie.com` host avoids the cookies, and the app's Content-Security-Policy must permit exactly the hosts it uses, no more. Links pasted by people are untrusted input: a look-alike domain or a non-http scheme must never reach an `<iframe>`.
 
 ---
 
 ## 2. Invariant Rules
 
-1. **Privacy-Safe Embed Enforcement:** No iframe src may point to `youtube.com/watch` or `youtube.com/embed`; it must transform automatically to `youtube-nocookie.com/embed`.
-2. **Liveness Verification:** An automated link health check re-queries canonical URLs periodically. If a media link returns 404 or 410, it is flagged as `unreachable` and hidden from the Content Engine selector.
+1. **Only two embed hosts:** `www.youtube-nocookie.com` and `open.spotify.com`, https, path `/embed/…`. `isAllowedEmbed` encodes it; the cookie-setting `www.youtube.com/embed` is refused.
+2. **Derived, not accepted.** The embed URL is computed from the parsed platform and id; look-alikes (`youtube.com.evil.example`), other hosts and schemes make `parseMediaUrl` return null. Tracking parameters (`list`, `si`, `utm_*`) are dropped from the stored URL.
+3. **Second lock:** the database CHECK rejects any other `embed_url`.
+4. **CSP equals code:** the production `frame-src` hosts are exactly `EMBED_HOSTS`. The smoke test also checks the header on the built server.
+5. **One iframe, one source:** every `<iframe>` in the app takes its `src` from a record's `embed_url`.
+6. **Seeds are canonical:** every seed link parses to itself.
+
+### Not covered
+* **Link liveness (HTTP 200) and uploader-disabled embedding.** Needs the network. Observed 2026-10-01: the *Rota* seed's embedding is disabled by the uploader, which no offline check can see. A future on-demand script (`oEmbed` request per approved asset) could; it is not part of `pnpm robots`.
 
 ---
 
 ## 3. Proof It Can Fail
 
-- **Negative Control:** Attempt to save a media asset with `embed_url = 'https://youtube.com/embed/123'`.
-- **Assertion:** Validation throws `InsecureEmbedError: Must use youtube-nocookie.com`.
+Mutation proof, measured 2026-10-01 with `pnpm robots:sabotage`:
 
-## Agreed requirements (architect consensus, 2026-10-01; implemented with Phase 6)
-
-1. Embeds only from `youtube-nocookie.com` and `open.spotify.com`; the production CSP gains `frame-src https://www.youtube-nocookie.com https://open.spotify.com` in `vite.config.ts`, and this robot asserts the CSP and the stored `embed_url` hosts agree.
-2. Only `human_approved` media can be offered to the Content Engine, and the model may reference media only through `[[media:ID]]` tokens validated against the approved set and expanded from database fields (title, artist, cue); it never writes a title or timestamp itself.
-3. Link liveness (HTTP 200) needs the network, so it is an on-demand check, not part of the offline `pnpm robots`.
+| Mutation | Result |
+|---|---|
+| YouTube embeds use `www.youtube.com` instead of the no-cookie host | caught: 2 tests failed |
+| The code allows a host the CSP does not | caught: 2 tests failed |
+| The CSP allows a third-party frame host | caught: 1 test failed |
+| The database CHECK accepts any host | caught: 1 test failed |

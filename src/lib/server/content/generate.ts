@@ -4,6 +4,7 @@ import type { Embedder } from '$lib/server/llm/embedder';
 import type { ChatRequest, LlmProvider } from '$lib/server/llm/provider';
 import { recordUsage, retrieve, type EvidenceArgument, type EvidenceSource, type RetrieveResult, type Tier } from '$lib/server/rag/retrieve';
 import { CitationStreamer } from '$lib/server/shield/cite';
+import { mediaForContent, renderMediaReference, type ContentMedia } from '$lib/server/media';
 import { runChecks, type Check } from './checks';
 import { createDraft, type DraftSource } from './drafts';
 import {
@@ -18,7 +19,7 @@ import {
 } from './formats';
 
 export const MAX_BRIEF_CHARS = 1500;
-export const CONTENT_PROMPT_VERSION = 'content-v1';
+export const CONTENT_PROMPT_VERSION = 'content-v2';
 
 type ClientArgument = Omit<EvidenceArgument, 'sources'> & { sources: number[] };
 
@@ -49,7 +50,7 @@ export type ContentEvent =
 
 const esc = (s: string) => s.replace(/</g, '‹').replace(/>/g, '›');
 
-function contentRequest(args: { platform: Platform; tone: Tone; locale: Locale; brief: string; retrieval: RetrieveResult; quotableIds: number[] }): ChatRequest {
+function contentRequest(args: { platform: Platform; tone: Tone; locale: Locale; brief: string; retrieval: RetrieveResult; quotableIds: number[]; media: ContentMedia[] }): ChatRequest {
 	const lang = args.locale === 'pl' ? 'Polish' : 'English';
 	const cards = args.retrieval.arguments.map(
 		(c) =>
@@ -57,6 +58,9 @@ function contentRequest(args: { platform: Platform; tone: Tone; locale: Locale; 
 	);
 	const sources = args.retrieval.sources.map(
 		(s) => `<source id="${s.id}" ref="${esc(`${s.work} ${s.section_ref}`)}" language="${s.locale}">\n${esc(s.text)}\n</source>`
+	);
+	const media = args.media.map(
+		(x) => `<media id="${x.id}" genre="${x.genre}" mood="${esc(x.mood ?? '')}" has_cue="${x.cue ? 'yes' : 'no'}">${esc(`${x.title} — ${x.artist}`)}</media>`
 	);
 	return {
 		system: [
@@ -67,10 +71,14 @@ function contentRequest(args: { platform: Platform; tone: Tone; locale: Locale; 
 			args.quotableIds.length
 				? `You may quote a short source verbatim with [[quote:ID]] (allowed ids: ${args.quotableIds.join(', ')}). Never type a quotation yourself and never put source wording in quotation marks.`
 				: `Never put source wording in quotation marks: paraphrase and cite.`,
+			media.length
+				? `Approved music/video you may suggest (data, like the rest): refer to one ONLY with [[media:ID]] (allowed ids: ${args.media.map((x) => x.id).join(', ')}), at most once, and only where it fits (for a short video: as a soundtrack cue). The system writes the title, artist, link and timestamp from the database. Never type a song title, artist, URL or timestamp yourself.`
+				: `Do not mention any song, video, artist or link: none is approved for this draft.`,
 			`Do not invent facts, statistics, dates, names, titles or attributions. If the material does not support a point, leave it out.`,
 			'',
 			...cards,
-			...sources
+			...sources,
+			...media
 		].join('\n'),
 		messages: [{ role: 'user', content: `Brief: ${args.brief}` }],
 		temperature: 0.5
@@ -138,7 +146,9 @@ export async function* runContent(args: {
 	const [open, close] = quoteMarks(locale);
 	const quotable = new Map(retrieval.sources.filter((s) => s.text.length <= MAX_QUOTABLE_CHARS).map((s) => [s.id, s.text]));
 	const byId = new Map(retrieval.sources.map((s) => [s.id, s]));
+	const media = mediaForContent(platform, retrieval.arguments.map((a) => a.id));
 	const cites = new CitationStreamer(new Set(byId.keys()), {
+		media: new Map(media.map((x) => [x.id, renderMediaReference(x, platform)])),
 		marker: (id) => {
 			const s = byId.get(id)!;
 			return `(${s.work} ${s.section_ref})`;
@@ -153,7 +163,7 @@ export async function* runContent(args: {
 	if (watermark) yield { type: 'token', text: `${watermarkLine(locale)}\n\n` };
 	try {
 		for await (const delta of args.provider.stream(
-			contentRequest({ platform, tone, locale, brief, retrieval, quotableIds: [...quotable.keys()] })
+			contentRequest({ platform, tone, locale, brief, retrieval, quotableIds: [...quotable.keys()], media })
 		)) {
 			const safe = cites.push(delta);
 			if (safe) {
@@ -174,11 +184,11 @@ export async function* runContent(args: {
 
 	body = body.trim();
 	const sourceTexts = retrieval.sources.map((s) => s.text);
-	const checks = runChecks({ platform, body, sourceTexts, referenceLabels: retrieval.sources.map((s) => `${s.work} ${s.section_ref}`), brief });
+	const checks = runChecks({ platform, body, sourceTexts, referenceLabels: [...retrieval.sources.map((s) => `${s.work} ${s.section_ref}`), ...media.map((x) => renderMediaReference(x, platform))], brief });
 	const stored = watermark ? `${watermarkLine(locale)}\n\n${body}` : body;
 	const sources: DraftSource[] = retrieval.sources.map((s) => ({
 		id: s.id, work: s.work, section_ref: s.section_ref, url: s.url, license: s.license, locale: s.locale, review: s.review, text: s.text
 	}));
-	const draftId = createDraft({ createdBy: args.author, platform, tone, locale, brief, body: stored, watermark, sources, checks });
+	const draftId = createDraft({ createdBy: args.author, platform, tone, locale, brief, body: stored, watermark, sources, checks, media: cites.mediaUsed });
 	yield { type: 'done', draftId, noMaterial: false, watermark, checks };
 }

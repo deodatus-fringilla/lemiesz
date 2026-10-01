@@ -48,8 +48,13 @@ const MUTATIONS = [
 	},
 	{
 		robot: '02', file: 'src/lib/server/review.ts',
-		needle: "AND at.review = 'ai_verified'`", replacement: "AND at.review = 'never'`",
-		why: 'editing a source no longer makes dependent AI-verified cards stale'
+		needle: "AND at.review IN ('ai_verified', 'human_approved')`", replacement: "AND at.review IN ('ai_verified')`",
+		why: 'editing a source no longer makes dependent human-approved cards stale'
+	},
+	{
+		robot: '02', file: 'src/lib/server/review.ts',
+		needle: "AND at.review IN ('ai_verified', 'human_approved')`", replacement: "AND at.review IN ('never')`",
+		why: 'editing a source no longer makes any dependent card stale'
 	},
 	{
 		robot: '06', file: 'src/lib/server/db.ts',
@@ -58,8 +63,13 @@ const MUTATIONS = [
 	},
 	{
 		robot: '06', file: 'src/lib/server/db.ts',
-		needle: "db.pragma('busy_timeout = 5000');", replacement: "db.pragma('busy_timeout = 0');",
-		why: 'concurrent writers fail instantly with SQLITE_BUSY'
+		needle: 'if (busyTimeout !== 5000 || foreignKeys !== 1) {', replacement: 'if (false) {',
+		why: 'startup continues without busy_timeout / foreign_keys'
+	},
+	{
+		robot: '06', file: 'src/lib/server/db.ts',
+		needle: "if (dbPath !== ':memory:' && journalMode !== 'wal') {", replacement: 'if (false) {',
+		why: 'startup continues when SQLite refuses WAL'
 	},
 	{
 		robot: '07', file: 'src/lib/server/seed/checklist.ts',
@@ -70,6 +80,46 @@ const MUTATIONS = [
 		robot: '07', file: 'src/lib/server/seed/checklist.ts',
 		needle: "} else if (!item.cleared_to_store && item.origin && !['paraphrase', 'ai_drafted'].includes(item.origin)) {", replacement: '} else if (false) {',
 		why: 'full text can be stored without clearance'
+	},
+	{
+		robot: '09', file: 'src/lib/server/media.ts',
+		needle: "embed_url: `https://www.youtube-nocookie.com/embed/${ytId}`", replacement: "embed_url: `https://www.youtube.com/embed/${ytId}`",
+		why: 'YouTube embeds use the cookie-setting domain'
+	},
+	{
+		robot: '09', file: 'src/lib/server/media.ts',
+		needle: "export const EMBED_HOSTS = ['www.youtube-nocookie.com', 'open.spotify.com'] as const;", replacement: "export const EMBED_HOSTS = ['www.youtube-nocookie.com', 'open.spotify.com', 'www.youtube.com'] as const;",
+		why: 'the code allows a host the CSP does not'
+	},
+	{
+		robot: '09', file: 'vite.config.ts',
+		needle: "'frame-src': ['https://www.youtube-nocookie.com', 'https://open.spotify.com'],", replacement: "'frame-src': ['https://www.youtube-nocookie.com', 'https://open.spotify.com', 'https://tracker.example'],",
+		why: 'the CSP allows a third-party frame host'
+	},
+	{
+		robot: '09', file: 'src/lib/server/migrations/005_media.sql',
+		needle: "embed_url LIKE 'https://www.youtube-nocookie.com/embed/%' OR embed_url LIKE 'https://open.spotify.com/embed/%'", replacement: '1 = 1',
+		why: 'the database accepts any embed host'
+	},
+	{
+		robot: '10', file: 'src/lib/server/media.ts',
+		needle: 'if (input.ai_assisted && blank(input.production_credits)) {', replacement: 'if (false) {',
+		why: 'AI-assisted works need no credit'
+	},
+	{
+		robot: '10', file: 'src/lib/server/media.ts',
+		needle: 'if (!input.lyrics_cleared_to_store) errors.push(', replacement: 'if (false) errors.push(',
+		why: 'lyrics can be stored without a clearance decision'
+	},
+	{
+		robot: '10', file: 'src/lib/server/media.ts',
+		needle: "if (actor.kind !== 'human') throw new MediaError(`${actor.kind} \"${actor.name}\" may not change the review state of media`);", replacement: '',
+		why: 'the pipeline can approve media'
+	},
+	{
+		robot: '10', file: 'src/lib/server/media.ts',
+		needle: "const reset = publicChanged && current.status !== 'draft';", replacement: 'const reset = false;',
+		why: 'editing credits or lyrics keeps an approved asset approved'
 	}
 ];
 
@@ -77,7 +127,9 @@ const ROBOT_FILES = {
 	'01': 'robot-01-verbatim-quotation.robot.ts',
 	'02': 'robot-02-trust-tier-boundary.robot.ts',
 	'06': 'robot-06-sqlite-disk.robot.ts',
-	'07': 'robot-07-license-storage.robot.ts'
+	'07': 'robot-07-license-storage.robot.ts',
+	'09': 'robot-09-media-embed.robot.ts',
+	'10': 'robot-10-media-attribution.robot.ts'
 };
 
 function runRobot(robot) {

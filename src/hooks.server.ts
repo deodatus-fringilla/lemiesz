@@ -12,12 +12,14 @@ import {
 } from '$lib/server/auth';
 import { startBackupScheduler } from '$lib/server/backup';
 import { runSeed } from '$lib/server/seed/seed';
+import { seedMedia } from '$lib/server/seed/mediaSeed';
 
 // ---- startup -------------------------------------------------------------
 ensureBootstrapAdmin();
 purgeExpiredSessions();
 try {
 	runSeed();
+	seedMedia();
 } catch (e) {
 	console.error('[hooks] Startup seed error:', e);
 }

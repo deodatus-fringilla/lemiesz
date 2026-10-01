@@ -27,19 +27,22 @@ export interface DraftRecord {
 	reviewed_at: string | null;
 	sources: DraftSource[];
 	checks: Check[];
+	/** Ids of the approved media assets the draft references (the body holds their expanded text). */
+	media: number[];
 	created_at: string;
 	updated_at: string;
 }
 
-type Row = Omit<DraftRecord, 'watermark' | 'sources' | 'checks'> & {
+type Row = Omit<DraftRecord, 'watermark' | 'sources' | 'checks' | 'media'> & {
+	media_json: string;
 	watermark: number;
 	sources_json: string;
 	checks_json: string;
 };
 
 const fromRow = (r: Row): DraftRecord => {
-	const { sources_json, checks_json, watermark, ...rest } = r;
-	return { ...rest, watermark: !!watermark, sources: JSON.parse(sources_json), checks: JSON.parse(checks_json) };
+	const { sources_json, checks_json, media_json, watermark, ...rest } = r;
+	return { ...rest, watermark: !!watermark, sources: JSON.parse(sources_json), checks: JSON.parse(checks_json), media: JSON.parse(media_json ?? '[]') };
 };
 
 export class DraftError extends Error {}
@@ -54,11 +57,12 @@ export function createDraft(input: {
 	watermark: boolean;
 	sources: DraftSource[];
 	checks: Check[];
+	media?: number[];
 }): number {
 	const res = db
 		.prepare(
-			`INSERT INTO content_drafts (created_by, platform, tone, locale, brief, body, watermark, sources_json, checks_json)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+			`INSERT INTO content_drafts (created_by, platform, tone, locale, brief, body, watermark, sources_json, checks_json, media_json)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		)
 		.run(
 			input.createdBy,
@@ -69,7 +73,8 @@ export function createDraft(input: {
 			input.body,
 			input.watermark ? 1 : 0,
 			JSON.stringify(input.sources),
-			JSON.stringify(input.checks)
+			JSON.stringify(input.checks),
+			JSON.stringify(input.media ?? [])
 		);
 	return Number(res.lastInsertRowid);
 }

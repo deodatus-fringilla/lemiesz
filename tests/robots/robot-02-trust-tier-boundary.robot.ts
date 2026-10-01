@@ -75,11 +75,15 @@ describe('ROBOT-02 · only a signed-in human grants approval; only the pipeline 
 		expect(ev.actor).toBe('human:alice');
 	});
 
-	it('editing a source text resets it to draft and turns dependent ai_verified cards stale', () => {
+	it('editing a source text resets it to draft and turns dependent ai_verified AND human_approved cards stale', () => {
 		const src = makeSource({ text: 'Original wording of the treaty article, long enough to be a span.' }, 'human_approved');
 		const ai = makeArgument({ source_ids: [src] }, 'ai_verified');
+		const approved = makeArgument({ source_ids: [src] }, 'human_approved');
+		const draft = makeArgument({ source_ids: [src] }, 'draft');
 		upsertSourceText(src, 'en', { text: 'Edited wording of the treaty article, long enough to be a span.' }, human('alice'));
 		expect(reviewOf('source', src)).toBe('draft');
 		expect(reviewOf('argument', ai)).toBe('stale');
+		expect(reviewOf('argument', approved)).toBe('stale');
+		expect(reviewOf('argument', draft)).toBe('draft'); // nothing to invalidate
 	});
 });

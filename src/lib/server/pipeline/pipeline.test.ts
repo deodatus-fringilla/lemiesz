@@ -84,11 +84,11 @@ describe('arguments: review rules', () => {
 		expect(getArgument(a)!.texts.en.review).toBe('stale');
 	});
 
-	it('leaves human-approved cards alone when a source is edited', () => {
+	it('marks human-approved cards stale too when a source is edited (architect decision 2026-10-01)', () => {
 		const s = makeSource();
 		const a = makeArgument({ source_ids: [s] }, 'human_approved');
-		upsertSourceText(s, 'en', { text: 'Edited source text, still fine for a human.' }, alice);
-		expect(getArgument(a)!.texts.en.review).toBe('human_approved');
+		upsertSourceText(s, 'en', { text: 'Edited source text that the approval never saw.' }, alice);
+		expect(getArgument(a)!.texts.en.review).toBe('stale');
 	});
 });
 

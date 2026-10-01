@@ -79,7 +79,7 @@ try {
 	}
 
 	// ---- 3. full-text indexes agree with stored texts -----------------------------
-	for (const fts of [...tables].filter((t) => /^fts_[a-z]+$/.test(t))) {
+	for (const fts of [...tables].filter((t) => /^fts_[a-z]+$/.test(t) && t !== 'fts_media')) {
 		const locale = fts.slice(4);
 		const indexed = one(`SELECT COUNT(*) AS c FROM ${fts} WHERE owner_type = 'source'`).c;
 		const stored = one('SELECT COUNT(*) AS c FROM source_texts WHERE locale = ?', locale).c;
@@ -92,8 +92,15 @@ try {
 		}
 	}
 
+	// The media index is an external-content table: its docsize shadow table holds one row per indexed asset.
+	if (tables.has('fts_media') && tables.has('fts_media_docsize')) {
+		const indexed = one('SELECT COUNT(*) AS c FROM fts_media_docsize').c;
+		const stored = one('SELECT COUNT(*) AS c FROM media_assets').c;
+		check(`fts_media: ${indexed} indexed media = ${stored} stored`, indexed === stored);
+	}
+
 	const counts = {};
-	for (const t of ['sources', 'source_texts', 'arguments', 'argument_texts', 'users', 'review_events']) {
+	for (const t of ['sources', 'source_texts', 'arguments', 'argument_texts', 'users', 'review_events', 'media_assets']) {
 		if (tables.has(t)) counts[t] = one(`SELECT COUNT(*) AS c FROM ${t}`).c;
 	}
 	console.log('      row counts:', JSON.stringify(counts));

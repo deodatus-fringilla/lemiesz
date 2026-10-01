@@ -1,7 +1,7 @@
 # 17 · The Robot Fleet
 
 > **Doc type: DURABLE RULING + MEASURED INDEX.**
-> **STATUS: ROBOTS 01–08 IMPLEMENTED (2026-10-01); 09–10 PROPOSED for Phase 6.**
+> **STATUS: ROBOTS 01–10 IMPLEMENTED (2026-10-01); model-dependent halves of 03/04 and the live link check of 09 are not run here.**
 > One document per robot, each describing *why that robot exists, what it guards, and how it proves it can fail*.
 > Live pass/fail status lives in [10_Harness/02_Harness_Ledger.md](../10_Harness/02_Harness_Ledger.md).
 
@@ -69,8 +69,8 @@ Highest number currently claimed: **ROBOT-10**.
 | **06** | [The SQLite Disk Assertion Gate](ROBOT-06-sqlite-disk-assertion.md) | Backend | Startup refuses UNC/network paths; WAL, foreign keys and busy timeout are on. | Mutation proof (2). |
 | **07** | [The License & Cleared-to-Store Gate](ROBOT-07-license-and-storage-gate.md) | Backend | No source enters the repository without licence terms, a named reviewer and an explicit storage decision. | Mutation proof (2). |
 | **08** | [The Fleet Census & Doc-Rot Gate](ROBOT-08-doc-rot-and-census-gate.md) | Static Gate | Every robot has spec, ledger row and existing executable; all docs links resolve; no local paths. | `--self-test` (8 defects). |
-| **09** | [The Media Link & Privacy Embed Gate](ROBOT-09-media-link-privacy-gate.md) | Backend | External media links must not 404; embeds must use privacy-friendly domains (youtube-nocookie). | Negative control: dead link fixture rejected. |
-| **10** | [The Lyrics Substring & Attribution Gate](ROBOT-10-lyrics-attribution-gate.md) | Backend | Lyrics must be verbatim transcriptions; AI generation credit (e.g. Suno AI) must be declared. | Sabotage: altered lyrics fixture rejected. |
+| **09** | [The Media Link & Privacy Embed Gate](ROBOT-09-media-link-privacy-gate.md) | Backend | Media embed only from `youtube-nocookie.com` / `open.spotify.com`, derived by code, CSP and code agree. (Link liveness: not run.) | Mutation proof (4). |
+| **10** | [The Lyrics & Attribution Gate](ROBOT-10-lyrics-attribution-gate.md) | Backend | AI-assisted media name their tools; lyrics only when cleared and licensed; only a human approves; edits withdraw approval. | Mutation proof (4). |
 
 ---
 

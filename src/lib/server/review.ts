@@ -41,7 +41,7 @@ export function canTransition(actor: Actor, from: Review, to: Review): boolean {
 	// System: may verify only content that still needs checking, and may mark verified content stale.
 	if (!SYSTEM_TARGETS.includes(to)) return false;
 	if (to === 'ai_verified') return from === 'draft' || from === 'stale' || from === 'flagged';
-	if (to === 'stale') return from === 'ai_verified';
+	if (to === 'stale') return from === 'ai_verified' || from === 'human_approved';
 	return true;
 }
 
@@ -91,8 +91,9 @@ export function setReview(
 }
 
 /**
- * Called when a canonical source text changes: every AI-verified argument card that depends on it
- * becomes `stale` and must be re-audited (plan §3.3).
+ * Called when a canonical source text changes: every AI-verified or human-approved argument card that
+ * depends on it becomes `stale` and must be re-audited and re-approved (plan §3.3; extended to approved
+ * cards on 2026-10-01 because their quoted spans may no longer match the edited source).
  */
 export function markDependentsStale(sourceId: number, reason: string): number {
 	const rows = db
@@ -100,7 +101,7 @@ export function markDependentsStale(sourceId: number, reason: string): number {
 			`SELECT at.argument_id AS id, at.locale AS locale
 			 FROM argument_texts at
 			 JOIN argument_sources ars ON ars.argument_id = at.argument_id
-			 WHERE ars.source_id = ? AND at.review = 'ai_verified'`
+			 WHERE ars.source_id = ? AND at.review IN ('ai_verified', 'human_approved')`
 		)
 		.all(sourceId) as { id: number; locale: string }[];
 	for (const r of rows) setReview('argument', r.id, r.locale, 'stale', system('source-change'), reason);

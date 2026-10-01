@@ -201,6 +201,19 @@ try {
 	check('dashboard renders its health sections', r.status === 200 && html.includes('Kopie zapasowe'), String(r.status));
 	check('security headers are set', r.headers.get('x-content-type-options') === 'nosniff' && r.headers.get('x-frame-options') === 'DENY' && !!r.headers.get('referrer-policy'));
 	check('a Content-Security-Policy restricts scripts to self', /script-src[^;]*'self'/.test(r.headers.get('content-security-policy') ?? ''), r.headers.get('content-security-policy') ?? 'none');
+	const csp = r.headers.get('content-security-policy') ?? '';
+	check('the CSP allows exactly the two privacy-respecting embed hosts', /frame-src https:\/\/www\.youtube-nocookie\.com https:\/\/open\.spotify\.com(;|$)/.test(csp), csp);
+
+	// ---- Phase 6: media library ----
+	r = await fetch(`${BASE}/media`, authed);
+	const mediaHtml = await r.text();
+	check('page /media renders the seeded media as unapproved drafts', r.status === 200 && mediaHtml.includes('Iluzja Wolności') && /Wersja robocza|Draft/.test(mediaHtml), String(r.status));
+	r = await fetch(`${BASE}/media?m=1`, authed);
+	const player = await r.text();
+	check('a selected item plays through the no-cookie embed only', r.status === 200 && /<iframe[^>]+src="https:\/\/(www\.youtube-nocookie\.com|open\.spotify\.com)\/embed\//.test(player) && !/<iframe[^>]+src="https:\/\/www\.youtube\.com/.test(player));
+	r = await fetch(`${BASE}/media`, noRedirect);
+	check('page /media requires sign-in', r.status === 303 || r.status === 302 || r.status === 401, String(r.status));
+
 	r = await fetch(`${BASE}/settings`, authed);
 	check('settings page renders', r.status === 200, String(r.status));
 

@@ -43,6 +43,8 @@ export default defineConfig({
 						'img-src': ['self', 'data:'],
 						'connect-src': ['self'],
 						'base-uri': ['self'],
+						// Media embeds (Phase 6): privacy-respecting hosts only. Must equal EMBED_HOSTS in src/lib/server/media.ts (ROBOT-09).
+						'frame-src': ['https://www.youtube-nocookie.com', 'https://open.spotify.com'],
 						'form-action': ['self'],
 						'frame-ancestors': ['none']
 					}

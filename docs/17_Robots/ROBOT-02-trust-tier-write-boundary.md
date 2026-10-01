@@ -12,7 +12,7 @@
 | **Executable** | `tests/robots/robot-02-trust-tier-boundary.robot.ts` |
 | **Run** | `pnpm robots` · sabotage proof: `pnpm robots:sabotage` |
 | **Guards** | Trust-tier integrity, stale cascade on source edit, human authority |
-| **Proves it can fail** | Mutation proof (4 mutations), see §3 |
+| **Proves it can fail** | Mutation proof (5 mutations), see §3 |
 
 ---
 
@@ -32,11 +32,11 @@ If an unapproved or stale card leaks into a press release or thread, the movemen
 1. **Content Engine default.** `allowedReviews('content')` is exactly `['human_approved']`. Retrieval enforces it inside `retrieve()`, so no UI bug can leak a card. Fixture: one `human_approved`, one `ai_verified`, one `draft` card on the same topic return only the approved one.
 2. **Override is never silent.** `allowAiVerifiedInContent` adds `ai_verified` (never draft, flagged or stale, whatever other options are set) and sets `watermark = true`; output is then watermarked (`needsWatermark`).
 3. **Authority split.** A `system` actor cannot set `human_approved`; a `human` actor cannot set `ai_verified` or `stale` (`ReviewTransitionError`). Actors are built from the validated session or from pipeline code, never from a request body, and every transition is written to `review_events` with `human:<name>` or `system:<name>`.
-4. **Edit resets.** Editing a source text resets that text to `draft`, and every dependent `ai_verified` argument card becomes `stale` (`markDependentsStale`).
+4. **Edit resets.** Editing a source text resets that text to `draft`, and every dependent `ai_verified` **or `human_approved`** argument card becomes `stale` (`markDependentsStale`). Draft cards are left alone (nothing to invalidate).
 
-### Open finding (not yet enforced): approved cards are not staled
+### Decision (architect, 2026-10-01)
 
-The previous version of this spec said `human_approved` cards also become `stale` when a source is edited. The code does not do that: `markDependentsStale` and `canTransition` handle `ai_verified` only. A `human_approved` card whose source was later edited stays approved, and its quoted span may no longer be verbatim. Decision for the architect: either extend the cascade to `human_approved` (the card then needs re-approval), or accept it and rely on the source falling back to `draft` and on re-running the span check. Until decided, this robot asserts only what the code does.
+The cascade covers `human_approved` cards too. An earlier version left approved cards untouched, so a card could stay approved after its source was edited and its quoted span no longer matched. Now the card becomes `stale` and needs the pipeline's re-audit and a human's re-approval. `human_approved` → `stale` is permitted only to the system actor (`canTransition`); a human still cannot set `stale`.
 
 ---
 
@@ -49,4 +49,5 @@ Mutation proof, measured 2026-10-01 with `pnpm robots:sabotage`:
 | Content policy allows `ai_verified` and `draft` | caught: 2 tests failed |
 | A human may set any state | caught: 1 test failed |
 | The pipeline may set any state | caught: 1 test failed |
-| Source edits no longer stale AI-verified cards | caught: 1 test failed |
+| Source edits no longer stale human-approved cards | caught: 1 test failed |
+| Source edits no longer stale any card | caught: 1 test failed |

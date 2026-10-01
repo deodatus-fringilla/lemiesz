@@ -486,3 +486,16 @@ Implemented: `POST /api/content` (SSE), the `/content` page, draft storage (migr
 arm64: the image was built with `docker build --platform linux/arm64` (QEMU emulation on an amd64 host) and run: better-sqlite3 with FTS5 and onnxruntime-node load and the app reports healthy and serves the login page. Real arm64 hardware (e.g. a Hetzner CAX server) has not been tried.
 
 Known limits: the CSP allows inline *styles* (Svelte writes style attributes). Backups protect against corruption and mistakes; surviving loss of the machine needs `BACKUP_DIR` on another disk or an off-machine copy, which the app cannot do for you. There is still no real-LLM run, no automated login lockout beyond the per-IP rate limit, and the shared draft list shows every author's drafts to every signed-in user (intentional for a small team).
+
+## 21. Phase 6 status — media library (2026-10-01)
+
+Design: [docs/02_Platform_Modules/05_Media_and_Culture.md](02_Platform_Modules/05_Media_and_Culture.md). Built: migration `005_media.sql` (separate `media_assets`, `fts_media` with sync triggers, `argument_media_links`, `content_drafts.media_json`), `media.ts`, the `/media` page, `[[media:ID]]` tokens in the Content Engine (prompt `content-v2`), production CSP `frame-src` for the two privacy-respecting hosts, two draft seed rows, ROBOT-09 and ROBOT-10. Measured figures live in the [Harness Ledger](10_Harness/02_Harness_Ledger.md).
+
+| Decision | What was done and why |
+|---|---|
+| Embeds | Derived from platform + id by code; DB CHECK on the host; no cover images (`img-src 'self'`); no local audio in v1. |
+| Trust | New media and seeds are drafts; only a human approves; edits to public fields reset approval; only approved media are offered to the model. |
+| Hallucination | The model writes `[[media:ID]]` only; title, link and human-written cue come from the database. |
+| Seeds | Verified against YouTube: *Rota* is a power-metal arrangement whose uploader disabled embedding; *Iluzja Wolności* matches. Credits and release facts for it are the owner's, unverified. |
+| Side effects | The stale cascade now covers `human_approved` cards (architect decision); startup aborts if SQLite refuses WAL or the pragmas; `restore-drill.mjs` checks `fts_media` and skips it in the per-locale loop. |
+

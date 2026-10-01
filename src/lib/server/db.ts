@@ -58,6 +58,16 @@ export function assertLocalFilesystem(dbPath: string): void {
 	}
 }
 
+/** ROBOT-06: refuse to run on a database that did not accept the safety pragmas (":memory:" cannot use WAL). */
+export function assertDatabaseSafety(journalMode: unknown, busyTimeout: unknown, foreignKeys: unknown, dbPath: string): void {
+	if (dbPath !== ':memory:' && journalMode !== 'wal') {
+		throw new Error(`[FATAL] SQLite refused WAL mode (journal_mode is "${journalMode}") for "${dbPath}". WAL needs a local disk.`);
+	}
+	if (busyTimeout !== 5000 || foreignKeys !== 1) {
+		throw new Error('[FATAL] SQLite did not apply busy_timeout=5000 / foreign_keys=ON.');
+	}
+}
+
 const DB_PATH = process.env.DATABASE_PATH || './data/lemiesz.db';
 assertLocalFilesystem(DB_PATH);
 
@@ -72,10 +82,17 @@ export const DB_FILE = DB_PATH;
 export const db = new Database(DB_PATH);
 
 // Concurrency & safety pragmas (plan §3.4)
-db.pragma('journal_mode = WAL');
+const journalMode = db.pragma('journal_mode = WAL', { simple: true });
 db.pragma('synchronous = NORMAL');
 db.pragma('busy_timeout = 5000');
 db.pragma('foreign_keys = ON');
+
+assertDatabaseSafety(
+	journalMode,
+	db.pragma('busy_timeout', { simple: true }),
+	db.pragma('foreign_keys', { simple: true }),
+	DB_PATH
+);
 
 // Migration runner using Vite raw imports
 const migrationModules = import.meta.glob<string>('./migrations/*.sql', {

@@ -1,6 +1,6 @@
 // `pnpm robots` — runs the whole Robot Fleet that needs no network, model or LLM key (docs/17_Robots/README.md).
 //   Static gates (ROBOT-05, ROBOT-08): run their --self-test first (the gate must be able to fail), then the real check.
-//   Backend/offline gates (ROBOT-01, 02, 03, 04, 06, 07): one Vitest file each in tests/robots.
+//   Backend/offline gates (ROBOT-01, 02, 03, 04, 06, 07, 09, 10): one Vitest file each in tests/robots.
 // ROBOT-03 and ROBOT-04 also have a model-dependent half in `pnpm eval`; ROBOT-01/02/06/07 sabotage proofs run in
 // `pnpm robots:sabotage`. Exit code is non-zero if any robot fails.
 import { spawnSync } from 'node:child_process';
@@ -53,7 +53,9 @@ const NAMES = {
 	'03': 'Auditor Trap (offline half)',
 	'04': 'Golden Set (offline half)',
 	'06': 'SQLite Disk & WAL',
-	'07': 'Licence & Cleared-to-Store'
+	'07': 'Licence & Cleared-to-Store',
+	'09': 'Media Embed & Privacy (offline half)',
+	'10': 'Media Attribution & Lyrics'
 };
 const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'robots-')), 'vitest.json');
 const vitest = spawnSync(
@@ -97,5 +99,5 @@ for (const r of results) console.log(`  ${r.ok ? 'PASS' : 'FAIL'}  ROBOT-${r.rob
 const failed = results.filter((r) => !r.ok);
 for (const r of failed) console.error(`\nROBOT-${r.robot} ${r.name}:\n${r.detail}`);
 console.log(`\n${results.length - failed.length}/${results.length} robots green` + (failed.length ? ` — ${failed.length} FAILED` : ''));
-console.log('Not run here (need network/LLM): ROBOT-03/04 model halves -> `pnpm eval`; ROBOT-09/10 are proposed.');
+console.log('Not run here (need network/LLM): ROBOT-03/04 model halves -> `pnpm eval`; ROBOT-09 live link check (network) is not implemented.');
 process.exit(failed.length ? 1 : 0);
