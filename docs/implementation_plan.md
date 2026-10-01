@@ -412,3 +412,41 @@ Within every phase: **complete and evaluate Polish first, then English.**
 3. Per-text `cleared_to_store` decisions (needed before Phase 1 ingestion).
 4. Provider selection, with current pricing and terms verified.
 5. Final Auditor pass-rate and sampling-disagreement thresholds, to be set from the first evaluation runs.
+
+---
+
+## 17. Implementation status (2026-09-30)
+
+Phases 0–2 are implemented and verified; see the README for commands. Where the build deliberately differs from the text above:
+
+| Area | Plan text | As built, and why |
+| :-- | :-- | :-- |
+| Seed corpus (§9) | Pacem in Terris and Gaudium et Spes in Polish; Swiss FDFA documents; movement texts; Bastiat paraphrase | The Holy See does not publish these in Polish, and the earlier seed's paragraph numbers, quotations and URLs were wrong (it cited Gaudium et Spes §79 for a passage that is §78). The seed is now **verbatim English** text from vatican.va (Pacem in Terris §112, §127; Gaudium et Spes §78, §79) plus **Hague Convention V (1907) Art. 1, 2, 5**, which is the treaty text behind Swiss neutrality. Movement texts and the Bastiat paraphrase are clearly labelled AI placeholders. Everything is seeded as `draft`. `pnpm eval` re-fetches each cited page and checks the quote is verbatim. Polish texts are an editorial to-do (licence of opoka.org.pl etc. still to be checked) |
+| `origin` values (§3.3) | 5 values | Added `paraphrase` for sources that may not be stored in full |
+| FTS tables (§3.2) | Created by migration | Created from the locale registry at startup and back-filled, so a new language needs no migration |
+| Auth (§8) | Passphrase or per-user login | Per-user login (scrypt hashes, hashed session tokens); roles `admin` / `member`; deleting and running the AI pipeline are admin-only; the actor of every review event comes from the session, never from a request field |
+| Proxy config (§8.1) | Caddy profile | `ORIGIN` is mandatory in both modes: adapter-node assumes https without it and SvelteKit's CSRF check rejects all form POSTs (found by the smoke test) |
+| Retrieval strength (§4) | "score threshold" | A hit is "strong" if it is a vector match at cosine ≥ `RAG_VECTOR_MIN` **or** a lexical match covering ≥ 2 and ≥ 50% of the query's content words with at least one substantive word. **`RAG_VECTOR_MIN=0.79`** was calibrated by `pnpm eval` on multilingual-e5-small (worst positive 0.806, best negative 0.772). The margin is thin and the golden set has only 16 attack lines + 4 negatives: **grow it to 30–50 real lines and re-run before trusting the threshold** |
+| Measured quality (starter set) | recall@5 per locale pair | Lexical alone: en→en 8/10, pl→en 0/6. Vector and hybrid: 10/10 and 6/6. End to end with real thresholds: 100%; off-topic queries correctly return "no strong source" 4/4 |
+| Doctrine text (§7.2) | Tenets named in the plan | `pipeline/doctrine.ts` holds a **working summary**, not the movement's wording. Set `DOCTRINE_FILE` to the movement's own text |
+| LLM (§5) | Config-selected providers | One OpenAI-compatible implementation (plain `fetch`) covers OpenAI, Gemini's compatibility API, DeepSeek etc. Nothing has been run against a real LLM yet: the drafter and auditor are tested with scripted fakes, and `pnpm eval` measures the auditor as soon as `LLM_AUDITOR_*` is set |
+| Snippets | FTS `snippet()` returned HTML | Uses `[[ ]]` markers, so no HTML is ever rendered from stored text |
+
+Verified: `pnpm check` (0 errors), `pnpm test` (109 tests), `pnpm smoke` (20 HTTP checks on the built server), `pnpm eval` (real embedder), Docker image built and run on amd64 (healthy, login, data persists across restart, SQLite FTS5 and the local embedder work inside the container). **Not verified:** an arm64 image; anything against a real LLM.
+
+## 18. Phase 3 status — Shield (2026-10-01)
+
+Implemented: `POST /api/chat` (SSE) and the `/shield` page.
+
+| Item | As built |
+| :-- | :-- |
+| SSE contract (§6.2) | `sources` first, then `token`*, then `done` or `error` (`src/lib/server/shield/shield.ts`, typed `ShieldEvent`). `done` carries the citations with their database text, any unverified quotations, and the watermark flag |
+| Citations (§4) | The model writes `[[src:ID]]`. `CitationStreamer` validates each token against the sources retrieved for that turn (also when a token is split across stream chunks), strips unknown ids, and emits numbered markers `[n]`. The quotation shown for `[n]` is the stored database text in the answer language, or a labelled fallback; it is never model output |
+| Invented quotations | The prompt forbids quoting. Any quoted passage of 40+ characters in the answer that matches no retrieved source is reported in `done.unverifiedQuotes` and the UI shows a warning. This is a detector, not a prevention: users must still read the answer |
+| No strong source | Retrieval returns nothing strong → the model is **not called**; a localized fixed message is returned (`llm:false`, `noSource:true`) |
+| No chat model configured | The Shield still works as an evidence browser (cards and sources) with an explanatory message |
+| Trust tiers | `human_approved` and `ai_verified` are used (badged); drafts/flagged/stale only with the explicit "include drafts" toggle, which shows a warning banner |
+| Conversations | Stored per user (`conversations.user_id`, migration 003); another user's conversation id returns "not found" and cannot be read or continued |
+| Presets | Three starter attacks named after the plan's strategies (Swiss Shield, Double Distance, Plowshare Paradox); their wording is a placeholder for the team to edit in `messages/*.json` |
+| Verified | 20 new unit tests (streaming validator, no-source path, trust filter, ownership, usage counting); 8 new smoke checks over real HTTP; a manual browser run against `scripts/mock-llm.mjs` showing a split citation token resolved, an invented source id stripped, an invented quotation flagged, and the verbatim quote displayed |
+| Not yet verified | A real LLM. Run `scripts/mock-llm.mjs` for a UI check without one; set `LLM_CHAT_*` for the real thing. The `pnpm check` script now runs `paraglide-js compile` first so message types exist on a fresh checkout |

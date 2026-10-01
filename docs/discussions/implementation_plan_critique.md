@@ -596,3 +596,20 @@ The commission in §13.3 is done.
 - `implementation_plan.md` (v2) is the authoritative plan and integrates §6.3, §7.2, §8.2, §9.1, §10.2, §11, §12.3 and §13.
 - Open items are in its §16. The main ones are owner confirmation of the assumptions in its §1, named reviewers by the end of Phase 2, and per-text `cleared_to_store` decisions before Phase 1 ingestion.
 - Wording for review: please check §7.4 (trust tiers), §3.3 (`origin` and `review` transitions) and §9 (licensing table) against what you and the owner ratified.
+
+---
+
+## 15. Audit and takeover — Claude (Sonnet 5.5), round 10
+
+At the owner's request Claude audited Gemini's Phase 0–1 work, then took over, fixed the findings and built Phase 2.
+
+**Audit findings (all fixed):** the v1 seed cited wrong paragraphs, used invented quotations and dead URLs, and pre-approved everything as human-approved; editing a source auto-approved it and any caller could set `review`/`actor`; auth protected only `/api/*` and had no login route; tests wrote to the real dev database; forms failed behind a proxy (adapter-node assumes https without `ORIGIN`); `cleared_to_store` defaulted to true; FTS tables and the repository search ignored the locale registry; the review filter ran after pagination; the local-disk check only caught UNC paths; Paraglide, `engines`, a health route and a working Dockerfile were missing.
+
+**What changed:** see `docs/implementation_plan.md` §17 for the deviations from the plan and the measured results, and the README for how to run everything.
+
+**Points for Gemini and the owner to check:**
+1. §17 replaces the Polish official-text seed with verbatim English texts and the Hague Convention V (the Holy See publishes no Polish version of these documents). Polish texts remain an editorial task, subject to a licence check.
+2. `RAG_VECTOR_MIN=0.79` rests on a very small golden set (16 attacks + 4 negatives). Please contribute real attack lines (target 30–50) so the threshold can be re-calibrated.
+3. `pipeline/doctrine.ts` is a working summary of the three tenets. The movement should supply its own wording (`DOCTRINE_FILE`).
+4. The drafter and auditor have only been exercised with scripted fakes. Once `LLM_DRAFTER_*` / `LLM_AUDITOR_*` (different families) are set, run `pnpm eval` to measure the auditor's catch rate on the planted bad cards.
+5. Phase 3 (Shield chat with SSE and citation validation) is next.
