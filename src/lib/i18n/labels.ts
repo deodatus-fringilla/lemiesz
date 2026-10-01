@@ -12,3 +12,7 @@ export const categoryLabel = (category: string) => call(`cat_${category}`);
 export const languageLabel = (code: string) => call(`lang_${code}`);
 
 export type { MessageKey };
+
+export const platformLabel = (p: string) => call(`content_platform_${p}`);
+export const toneLabel = (t: string) => call(`content_tone_${t}`);
+export const checkLabel = (id: string) => call(`content_check_${id}`);

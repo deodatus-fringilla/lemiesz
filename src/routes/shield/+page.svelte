@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ExternalLink, Send, TriangleAlert } from 'lucide-svelte';
+	import { replaceState } from '$app/navigation';
 	import { m } from '$lib/paraglide/messages.js';
 	import ReviewBadge from '$lib/components/ReviewBadge.svelte';
 	import { languageLabel } from '$lib/i18n/labels';
@@ -106,7 +107,7 @@
 		messages = [];
 		evidence = null;
 		conversationId = null;
-		history.replaceState(null, '', '/shield');
+		replaceState('/shield', {});
 	}
 </script>
 

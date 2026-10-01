@@ -450,3 +450,19 @@ Implemented: `POST /api/chat` (SSE) and the `/shield` page.
 | Presets | Three starter attacks named after the plan's strategies (Swiss Shield, Double Distance, Plowshare Paradox); their wording is a placeholder for the team to edit in `messages/*.json` |
 | Verified | 20 new unit tests (streaming validator, no-source path, trust filter, ownership, usage counting); 8 new smoke checks over real HTTP; a manual browser run against `scripts/mock-llm.mjs` showing a split citation token resolved, an invented source id stripped, an invented quotation flagged, and the verbatim quote displayed |
 | Not yet verified | A real LLM. Run `scripts/mock-llm.mjs` for a UI check without one; set `LLM_CHAT_*` for the real thing. The `pnpm check` script now runs `paraglide-js compile` first so message types exist on a fresh checkout |
+
+## 19. Phase 4 status — Content Engine (2026-10-01)
+
+Implemented: `POST /api/content` (SSE), the `/content` page, draft storage (migration 004) and a markdown export endpoint (`GET /content/export/:id`).
+
+| Item | As built |
+| :-- | :-- |
+| Platforms (§6.1) | X thread (posts separated by `---`, 280-character limit per post), Facebook, Shorts/TikTok script (75-150 spoken words, `[cues]` not counted), press statement (headline, dateline, `[CONTACT]` placeholders; the model is told not to invent names or dates). Templates and four tone presets are **data keyed by locale** (`content/formats.ts`); an unknown locale falls back to the default |
+| Trust tier (§7.4) | Public output uses `human_approved` material only. Tick "allow AI-verified" and the draft gets a watermark line (`⚠ …`) that is streamed first and stored in the body, so it travels with every copy and export. Draft / flagged / stale material is never used, whatever the options say. With no usable material nothing is generated and the model is not called |
+| Citations and quotes | `[[src:ID]]` becomes a printed reference "(Work §ref)". `[[quote:ID]]` becomes the **verbatim database text** in the language's quotation marks, allowed only for sources of 300 characters or fewer; longer sources fall back to a plain reference. Unknown ids are stripped |
+| Checks (shown next to the draft, never blocking) | X post length and count; Shorts length; press headline; unresolved tokens; quotations that match no source; **numbers/years not present in the material, the brief or the printed reference labels** (a model inventing a statistic is the commonest silent failure). Re-run on every edit |
+| Review | A human edits freely; any edit clears "reviewed". "I have reviewed this and take responsibility" saves the text on screen, removes the watermark and records the reviewer. `CONTENT_REQUIRE_SECOND_REVIEWER=true` demands a reviewer other than the author |
+| Copy / export | Copy button (falls back to `execCommand` because `navigator.clipboard` needs a secure context and Mode B runs over plain http), and a `.md` download whose header records status, whether material is unreviewed, reviewer and sources. **No publishing integrations**, as decided |
+| Verified | 24 new unit tests (checks, quotes, trust tiers, watermark lifecycle, second reviewer, export); 5 more smoke checks; a browser run against `scripts/mock-llm.mjs` covering generate, invented-quote detection, edit-and-save with re-run checks, mark-reviewed, and the watermark path with an AI-verified source |
+| Bugs found by that run | The invented-number check flagged the year in a printed reference ("Hague … (1907)") — fixed with a regression test; raw `history.replaceState` conflicted with the SvelteKit router — now uses `replaceState` from `$app/navigation` (also fixed in the Shield) |
+| Not yet verified | A real LLM (the mock always writes one invented quotation, so the happy path with a well-behaved model is only unit-tested). Preset and platform prompt wording is first-draft and should be tuned by the team with real output |

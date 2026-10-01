@@ -7,7 +7,7 @@ infrastructure.
 The authoritative design is [docs/implementation_plan.md](docs/implementation_plan.md); the
 decisions behind it are in [docs/discussions/implementation_plan_critique.md](docs/discussions/implementation_plan_critique.md).
 
-## What works today (Phases 0–3)
+## What works today (Phases 0–4)
 
 - **Repository** — canonical sources per language, with licence/provenance checklist, translation coverage, human review.
 - **Arguments** — opponent claim → counter-punch → sources, per language.
@@ -15,9 +15,10 @@ decisions behind it are in [docs/discussions/implementation_plan_critique.md](do
 - **Retrieval engine** — FTS5 + multilingual vectors fused with RRF, two-tier (arguments → sources → "no strong source"), trust-tier filtering.
 - **Drafter + Auditor pipeline** — AI drafts cards with exact quotes; code verifies the quotes are verbatim in the source; an independent model audits. Only a human can approve.
 - **Shield** — paste an attack; evidence is retrieved first (trust-filtered), the answer streams over SSE, every citation is validated against what was retrieved and the quotation shown is database text. With no strong source the model is not called. Works without a chat model as an evidence browser.
+- **Content Engine** — drafts for X threads, Facebook, Shorts/TikTok scripts and press statements in Polish or English, built only from human-approved material (an explicit override allows AI-verified cards and watermarks the draft). Deterministic checks, human review step, copy and markdown export. Nothing is published automatically.
 - Login, rate limiting, Docker (VPS or Tailscale).
 
-Not built yet: the Content Engine (Phase 4), dashboard polish and backups (Phase 5).
+Not built yet: dashboard polish, backups and restore drill (Phase 5).
 
 ## Trust rules in one paragraph
 

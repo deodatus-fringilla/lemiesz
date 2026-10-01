@@ -168,6 +168,33 @@ try {
 	check('approved source is retrieved; evidence is sent before any token', c.events[0].data.tier === 'sources' && c.events[0].data.sources[0].id === pit.id, JSON.stringify(c.events[0].data).slice(0, 160));
 	check('without a chat model the stream still completes with done (llm:false)', c.events.at(-1).type === 'done' && c.events.at(-1).data.llm === false);
 
+	// ---- Content Engine (SSE) ----
+	const content = async (brief, headers = authed.headers) => {
+		const res = await fetch(`${BASE}/api/content`, {
+			method: 'POST',
+			headers: { ...headers, 'content-type': 'application/json' },
+			body: JSON.stringify({ platform: 'facebook', brief, locale: 'en' })
+		});
+		const events = (await res.text())
+			.split('\n\n')
+			.filter(Boolean)
+			.map((block) => ({
+				type: /^event: (.+)$/m.exec(block)?.[1],
+				data: JSON.parse(/^data: (.+)$/m.exec(block)?.[1] ?? 'null')
+			}));
+		return { res, events };
+	};
+	let ct = await content('anything', {});
+	check('content without a session is 401', ct.res.status === 401, String(ct.res.status));
+	ct = await content('best recipe for pierogi with mushrooms');
+	check('content with no approved material generates nothing', ct.events.at(-1)?.type === 'done' && ct.events.at(-1).data.noMaterial === true && ct.events.at(-1).data.draftId === null);
+	ct = await content('war is no longer a fit instrument with which to repair the violation of justice');
+	check('content shows approved evidence first, then reports the missing chat model', ct.events[0]?.type === 'sources' && ct.events[0].data.tier === 'sources' && ct.events.at(-1)?.data.code === 'llm_not_configured', JSON.stringify(ct.events.at(-1)).slice(0, 120));
+	r = await fetch(`${BASE}/content`, authed);
+	check('page /content renders', r.status === 200, String(r.status));
+	r = await fetch(`${BASE}/content/export/99999`, authed);
+	check('export of a missing draft is 404', r.status === 404, String(r.status));
+
 	// Cross-site form post must be rejected by SvelteKit's origin check
 	r = await fetch(`${BASE}/logout`, {
 		method: 'POST',

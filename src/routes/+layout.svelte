@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
-	import { Shield, LayoutDashboard, BookOpen, Swords, CheckSquare, LogOut, MessageSquareQuote } from 'lucide-svelte';
+	import { Shield, LayoutDashboard, BookOpen, Swords, CheckSquare, LogOut, MessageSquareQuote, PenLine } from 'lucide-svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { locales, setLocale } from '$lib/paraglide/runtime.js';
 
@@ -11,6 +11,7 @@
 	const nav = $derived([
 		{ href: '/', label: m.nav_dashboard(), icon: LayoutDashboard },
 		{ href: '/shield', label: m.nav_shield(), icon: MessageSquareQuote },
+		{ href: '/content', label: m.nav_content(), icon: PenLine },
 		{ href: '/repository', label: m.nav_repository(), icon: BookOpen },
 		{ href: '/arguments', label: m.nav_arguments(), icon: Swords },
 		{ href: '/review', label: m.nav_review(), icon: CheckSquare }

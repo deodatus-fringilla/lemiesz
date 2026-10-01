@@ -1,39 +1,63 @@
 import { spanInText } from '$lib/server/pipeline/spancheck';
 
 /**
- * Citation guardrail (plan §4, §7.1): the model never writes quotations. It writes `[[src:42]]` tokens;
- * this module checks every token against the set of sources that were actually retrieved, drops unknown
- * ones, and turns valid ones into numbered markers `[n]`. The quotation text itself is shown from the
- * database (the `citations` list in the `done` event), never from model output.
+ * Citation guardrail (plan §4, §7.1): the model never writes quotations. It writes `[[src:42]]` tokens
+ * (cite) or `[[quote:42]]` tokens (quote a short source); this module checks every token against the set of
+ * sources that were actually retrieved, drops unknown ones, and replaces valid ones. The quotation text is
+ * always the database text, never model output.
  */
-const TOKEN = /\[\[\s*src\s*:\s*(\d+)\s*\]\]/gi;
-// Longest possible unfinished token we may need to hold back while streaming, e.g. "[[src: 123456 ]"
+const TOKEN = /\[\[\s*(src|quote)\s*:\s*(\d+)\s*\]\]/gi;
+// Longest possible unfinished token we may need to hold back while streaming, e.g. "[[quote: 123456 ]"
 const MAX_PENDING = 24;
+
+export interface CitationOptions {
+	/** Replacement for a citation. Default: a numbered marker "[n]" (Shield). Content uses a readable reference. */
+	marker?: (sourceId: number, n: number) => string;
+	/** Texts that may be quoted verbatim with `[[quote:ID]]` (e.g. only short ones). Others fall back to a plain citation. */
+	quotable?: ReadonlyMap<number, string>;
+	/** Wraps a verbatim quotation (default: straight double quotes). */
+	quote?: (text: string, sourceId: number) => string;
+}
 
 export class CitationStreamer {
 	/** Source ids in order of first valid citation; the marker number is index + 1. */
 	readonly order: number[] = [];
 	/** Ids the model cited that were not in the retrieved set (stripped). */
 	readonly rejected: number[] = [];
+	/** Ids that were expanded into a verbatim quotation. */
+	readonly quoted: number[] = [];
 	private buffer = '';
 
-	constructor(private readonly allowed: ReadonlySet<number>) {}
+	constructor(
+		private readonly allowed: ReadonlySet<number>,
+		private readonly options: CitationOptions = {}
+	) {}
 
-	private marker(id: number): string {
+	private numberFor(id: number): number {
 		let i = this.order.indexOf(id);
 		if (i === -1) {
 			this.order.push(id);
 			i = this.order.length - 1;
 		}
-		return `[${i + 1}]`;
+		return i + 1;
 	}
 
 	private resolve(text: string): string {
-		return text.replace(TOKEN, (_all, raw: string) => {
+		return text.replace(TOKEN, (_all, kind: string, raw: string) => {
 			const id = Number(raw);
-			if (this.allowed.has(id)) return this.marker(id);
-			this.rejected.push(id);
-			return '';
+			if (!this.allowed.has(id)) {
+				this.rejected.push(id);
+				return '';
+			}
+			const n = this.numberFor(id);
+			if (kind.toLowerCase() === 'quote') {
+				const t = this.options.quotable?.get(id);
+				if (t !== undefined) {
+					this.quoted.push(id);
+					return this.options.quote ? this.options.quote(t, id) : `"${t}"`;
+				}
+			}
+			return this.options.marker ? this.options.marker(id, n) : `[${n}]`;
 		});
 	}
 
