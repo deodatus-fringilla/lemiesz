@@ -8,9 +8,14 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check": "pnpm paraglide && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"test": "vitest run"
+		"test": "vitest run",
+		"start": "node build/index.js",
+		"test:watch": "vitest",
+		"smoke": "node scripts/smoke.mjs",
+		"eval": "vitest run --config vitest.eval.config.ts",
+		"paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy cookie baseLocale --silent"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.7",
@@ -26,9 +31,15 @@
 		"vitest": "^5.0.2"
 	},
 	"dependencies": {
+		"@huggingface/transformers": "^4.3.0",
+		"@inlang/paraglide-js": "^2.25.4",
 		"better-sqlite3": "^13.0.3",
 		"clsx": "^2.1.1",
 		"lucide-svelte": "^1.0.1",
 		"tailwind-merge": "^3.7.0"
-	}
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"packageManager": "pnpm@10.12.1"
 }

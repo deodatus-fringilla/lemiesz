@@ -1,44 +1,47 @@
 import { describe, it, expect } from 'vitest';
-import { db } from './db';
+import { db, assertLocalFilesystem } from './db';
+import { LOCALE_CODES } from '$lib/i18n/locales';
 
-describe('SQLite Database & Pragmas', () => {
-	it('enables WAL mode and foreign keys', () => {
-		const journalMode = db.pragma('journal_mode', { simple: true });
-		expect(journalMode).toBe('wal');
-
-		const foreignKeys = db.pragma('foreign_keys', { simple: true });
-		expect(foreignKeys).toBe(1);
-
-		const busyTimeout = db.pragma('busy_timeout', { simple: true });
-		expect(busyTimeout).toBe(5000);
+describe('database', () => {
+	it('uses an isolated test database, never ./data', () => {
+		const file = (db.pragma('database_list') as { file: string }[])[0].file;
+		expect(file).not.toMatch(/[\\/]data[\\/]lemiesz\.db$/);
 	});
 
-	it('creates all core tables via migrations', () => {
-		const tables = db
-			.prepare("SELECT name FROM sqlite_master WHERE type='table'")
-			.all()
-			.map((r: any) => r.name);
-
-		expect(tables).toContain('sources');
-		expect(tables).toContain('source_texts');
-		expect(tables).toContain('arguments');
-		expect(tables).toContain('argument_texts');
-		expect(tables).toContain('argument_sources');
-		expect(tables).toContain('embeddings');
-		expect(tables).toContain('conversations');
-		expect(tables).toContain('messages');
-		expect(tables).toContain('users');
-		expect(tables).toContain('sessions');
-		expect(tables).toContain('review_events');
+	it('enables WAL, foreign keys and busy timeout', () => {
+		expect(db.pragma('journal_mode', { simple: true })).toBe('wal');
+		expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
+		expect(db.pragma('busy_timeout', { simple: true })).toBe(5000);
 	});
 
-	it('creates FTS5 virtual tables for pl and en', () => {
-		const tables = db
-			.prepare("SELECT name FROM sqlite_master WHERE type='table'")
-			.all()
-			.map((r: any) => r.name);
+	it('creates the schema via migrations', () => {
+		const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map(
+			(r) => r.name
+		);
+		for (const t of [
+			'sources', 'source_texts', 'arguments', 'argument_texts', 'argument_sources', 'embeddings',
+			'conversations', 'messages', 'users', 'sessions', 'review_events'
+		]) {
+			expect(tables).toContain(t);
+		}
+	});
 
-		expect(tables).toContain('fts_pl');
-		expect(tables).toContain('fts_en');
+	it('creates one FTS table per registered locale', () => {
+		const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map(
+			(r) => r.name
+		);
+		for (const code of LOCALE_CODES) expect(tables).toContain(`fts_${code}`);
+	});
+
+	it('rejects UNC network paths', () => {
+		expect(() => assertLocalFilesystem('\\\\server\\share\\lemiesz.db')).toThrow(/UNC/);
+		expect(() => assertLocalFilesystem('C:\\data\\lemiesz.db')).not.toThrow();
+	});
+
+	it('defaults cleared_to_store to 0 (no implicit clearance)', () => {
+		const col = (db.prepare("PRAGMA table_info('sources')").all() as { name: string; dflt_value: string }[]).find(
+			(c) => c.name === 'cleared_to_store'
+		);
+		expect(col?.dflt_value).toBe('0');
 	});
 });

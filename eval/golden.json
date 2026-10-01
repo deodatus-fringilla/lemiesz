@@ -1,0 +1,27 @@
+{
+	"_note": "Starter golden set (20 lines). Plan §10 asks for 30-50: extend it with real attack lines from the team. 'expect' lists the sources (work + section_ref) that a good answer must cite; an empty list means the correct behaviour is 'no strong source'.",
+	"entries": [
+		{ "id": "en-01", "locale": "en", "query": "So you think we should just disarm and let anyone invade us?", "expect": ["Gaudium et Spes (Vatican II, 1965) §79 (para. 4)"] },
+		{ "id": "en-02", "locale": "en", "query": "Neutrality means letting foreign armies march through our country", "expect": ["Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 2", "Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 1"] },
+		{ "id": "en-03", "locale": "en", "query": "Peace is just the absence of war and a balance of power keeps it", "expect": ["Gaudium et Spes (Vatican II, 1965) §78"] },
+		{ "id": "en-04", "locale": "en", "query": "Your own church says defending yourself is legitimate, so war is fine", "expect": ["Gaudium et Spes (Vatican II, 1965) §79 (para. 4)"] },
+		{ "id": "en-05", "locale": "en", "query": "Nuclear weapons keep the peace, disarmament is naive", "expect": ["Pacem in Terris (John XXIII, 1963) §112", "Pacem in Terris (John XXIII, 1963) §127"] },
+		{ "id": "en-06", "locale": "en", "query": "Neutral countries have no duties, they just profit from other people's wars", "expect": ["Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 5"] },
+		{ "id": "en-07", "locale": "en", "query": "War is the only way to repair an injustice between nations", "expect": ["Pacem in Terris (John XXIII, 1963) §127"] },
+		{ "id": "en-08", "locale": "en", "query": "Neutral territory can be used by any belligerent for its troops and convoys", "expect": ["Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 2", "Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 1"] },
+		{ "id": "en-09", "locale": "en", "query": "The arms race and stockpiles of weapons are what keep us safe", "expect": ["Pacem in Terris (John XXIII, 1963) §112"] },
+		{ "id": "en-10", "locale": "en", "query": "A strong dictator guarantees stability and peace", "expect": ["Gaudium et Spes (Vatican II, 1965) §78"] },
+
+		{ "id": "pl-01", "locale": "pl", "query": "Chcecie rozbroić kraj i oddać go każdemu agresorowi?", "expect": ["Gaudium et Spes (Vatican II, 1965) §79 (para. 4)", "Pacem in Terris (John XXIII, 1963) §112"] },
+		{ "id": "pl-02", "locale": "pl", "query": "Neutralność to przepuszczanie obcych wojsk przez nasze terytorium", "expect": ["Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 2", "Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 5", "Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 1"] },
+		{ "id": "pl-03", "locale": "pl", "query": "Pokój to tylko brak wojny, wystarczy równowaga sił", "expect": ["Gaudium et Spes (Vatican II, 1965) §78"] },
+		{ "id": "pl-04", "locale": "pl", "query": "Kościół sam uznaje prawo do obrony, więc wojna jest w porządku", "expect": ["Gaudium et Spes (Vatican II, 1965) §79 (para. 4)"] },
+		{ "id": "pl-05", "locale": "pl", "query": "Broń atomowa gwarantuje nam bezpieczeństwo", "expect": ["Pacem in Terris (John XXIII, 1963) §112", "Pacem in Terris (John XXIII, 1963) §127"] },
+		{ "id": "pl-06", "locale": "pl", "query": "Wojna jest dobrym narzędziem naprawiania niesprawiedliwości", "expect": ["Pacem in Terris (John XXIII, 1963) §127"] },
+
+		{ "id": "neg-en-01", "locale": "en", "query": "What is the best recipe for tomato soup?", "expect": [] },
+		{ "id": "neg-en-02", "locale": "en", "query": "Who won the football world cup in 2018?", "expect": [] },
+		{ "id": "neg-pl-01", "locale": "pl", "query": "Jak upiec chleb na zakwasie w domu?", "expect": [] },
+		{ "id": "neg-pl-02", "locale": "pl", "query": "Jaka będzie jutro pogoda w Krakowie?", "expect": [] }
+	]
+}

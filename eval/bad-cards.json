@@ -1,0 +1,71 @@
+{
+	"_note": "Seeded cards for testing the Auditor (plan §7.5, §12.3 v). 'source' is a seed source (work + section_ref). 'kind' says what is wrong; 'deterministic' means the span check must catch it without an LLM. 'control' cards are sound and should be verified.",
+	"cards": [
+		{
+			"id": "bad-fabricated-quote",
+			"kind": "fabricated_quote",
+			"deterministic": true,
+			"source": "Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 1",
+			"locale": "en",
+			"opponent_claim": "Neutrality is just an excuse for cowardice",
+			"counter_punch": "The Hague Convention explicitly requires every neutral state to arm itself heavily.",
+			"core_principle": "active neutrality",
+			"spans": ["Every neutral state is obliged to maintain a large standing army."]
+		},
+		{
+			"id": "bad-misattributed-source",
+			"kind": "misattributed",
+			"deterministic": true,
+			"source": "Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 1",
+			"locale": "en",
+			"opponent_claim": "The Church condemns all soldiers",
+			"counter_punch": "Gaudium et Spes says governments may defend themselves once peaceful settlement is exhausted.",
+			"core_principle": "just defence",
+			"spans": ["governments cannot be denied the right to legitimate defense"]
+		},
+		{
+			"id": "bad-off-doctrine",
+			"kind": "off_doctrine",
+			"deterministic": false,
+			"source": "Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 1",
+			"locale": "en",
+			"opponent_claim": "Neutrality leaves you defenceless",
+			"counter_punch": "Neutral territory is inviolable, which is exactly why we should now join a military alliance and let allied troops be stationed permanently on our soil.",
+			"core_principle": "collective defence",
+			"spans": ["The territory of neutral Powers is inviolable."]
+		},
+		{
+			"id": "bad-overreach",
+			"kind": "overreach",
+			"deterministic": false,
+			"source": "Pacem in Terris (John XXIII, 1963) §127",
+			"locale": "en",
+			"opponent_claim": "Wars sometimes have to be fought",
+			"counter_punch": "Pope John XXIII taught that every war is forbidden and that no state may ever defend itself with arms.",
+			"core_principle": "peace",
+			"spans": ["it no longer makes sense to maintain that war is a fit instrument with which to repair the violation of justice"]
+		},
+		{
+			"id": "control-sound-1",
+			"kind": "control",
+			"deterministic": false,
+			"source": "Hague Convention (V) respecting the Rights and Duties of Neutral Powers (1907) Art. 2",
+			"locale": "en",
+			"opponent_claim": "Neutrality means letting anyone march through your country",
+			"counter_punch": "The opposite is true: under the Hague Convention belligerents are forbidden to move troops or convoys across the territory of a neutral Power.",
+			"core_principle": "active neutrality",
+			"spans": ["Belligerents are forbidden to move troops or convoys of either munitions of war or supplies across the territory of a neutral Power."]
+		},
+		{
+			"id": "control-sound-2",
+			"kind": "control",
+			"deterministic": false,
+			"source": "Gaudium et Spes (Vatican II, 1965) §79 (para. 4)",
+			"locale": "en",
+			"opponent_claim": "You are pacifists who would never defend the country",
+			"counter_punch": "The Council itself says governments cannot be denied the right to legitimate defence once every means of peaceful settlement has been exhausted; we insist on defence, not on subjugating other nations.",
+			"core_principle": "just defence",
+			"spans": ["governments cannot be denied the right to legitimate defense once every means of peaceful settlement has been exhausted", "it is one thing to undertake military action for the just defense of the people, and something else again to seek the subjugation of other nations"]
+		}
+	]
+}

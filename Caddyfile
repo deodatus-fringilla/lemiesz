@@ -1,21 +1,14 @@
-# Caddyfile for Pakt Lemiesza (VPS Mode A)
-# Replace with your actual domain name
+# Caddyfile for Pakt Lemiesza — VPS mode (docker compose --profile vps up -d)
+# Caddy sets X-Forwarded-For / X-Forwarded-Proto itself; the app reads them via ADDRESS_HEADER / ORIGIN.
 {$DOMAIN:lemiesz.local} {
-    reverse_proxy app:3000 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
+	encode gzip zstd
 
-    # Security headers
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "DENY"
-        Referrer-Policy "strict-origin-when-cross-origin"
-    }
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
 
-    # Enable compression
-    encode gzip zstd
+	reverse_proxy app:3000
 }

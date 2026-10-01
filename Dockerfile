@@ -1,62 +1,48 @@
 # ==========================================
-# Multi-stage Dockerfile for Pakt Lemiesza
-# Supports AMD64 and ARM64 architectures
+# Pakt Lemiesza — multi-stage image (linux/amd64 and linux/arm64)
+# Build the image ON the architecture you deploy to, or use `docker buildx --platform`.
 # ==========================================
 
-# Stage 1: Build & Dependencies
+# ---- Stage 1: build --------------------------------------------------------
 FROM node:22-slim AS builder
-
 WORKDIR /app
 
-# Install build dependencies for better-sqlite3 native bindings
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    make \
-    g++ \
+# Toolchain fallback in case a native module has no prebuilt binary for this architecture
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
-
-# Install all dependencies (including devDependencies for build)
+# pnpm version is pinned by "packageManager" in package.json
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN corepack enable && corepack install
 RUN pnpm install --frozen-lockfile
 
-# Copy source code and config
 COPY . .
-
-# Run production build via @sveltejs/adapter-node
+# Note: the Paraglide plugin fetches the inlang message-format plugin from a CDN at build time.
 RUN pnpm build
-
-# Prune devDependencies to keep image lean
 RUN pnpm prune --prod
 
-# ==========================================
-# Stage 2: Production Runner
-# ==========================================
+# ---- Stage 2: runtime ------------------------------------------------------
 FROM node:22-slim AS runner
-
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOST=0.0.0.0
-ENV DATABASE_PATH=/data/lemiesz.db
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOST=0.0.0.0 \
+    DATABASE_PATH=/data/lemiesz.db \
+    MODEL_CACHE_DIR=/data/models
 
-# Ensure persistent directory exists for SQLite WAL database
+# /data must be a LOCAL volume: SQLite WAL does not work on network filesystems
 RUN mkdir -p /data && chown -R node:node /data
 
-# Copy built application and production dependencies
 COPY --from=builder --chown=node:node /app/build ./build
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 
 USER node
-
 EXPOSE 3000
-
 VOLUME ["/data"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "build/index.js"]

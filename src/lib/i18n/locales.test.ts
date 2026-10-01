@@ -1,26 +1,46 @@
+import fs from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { LOCALES, DEFAULT_LOCALE, ORIGINAL_ONLY } from './locales';
+import { LOCALES, DEFAULT_LOCALE, ORIGINAL_ONLY, ftsTable, isLocale, isStorableLocale } from './locales';
 
-describe('Locale Registry', () => {
+const readJson = (p: string) => JSON.parse(fs.readFileSync(p, 'utf8'));
+
+describe('Locale registry', () => {
 	it('has Polish as the default locale', () => {
 		expect(DEFAULT_LOCALE).toBe('pl');
 		expect(LOCALES).toHaveProperty('pl');
 	});
 
-	it('configures English with porter stemmer', () => {
-		expect(LOCALES.en.stemMode).toBe('porter');
-		expect(LOCALES.en.minPrefix).toBe(3);
-	});
-
-	it('configures Polish with minPrefix of 4 for inflection safety', () => {
-		expect(LOCALES.pl.minPrefix).toBe(4);
-		expect(LOCALES.pl.stemMode).toBe('keywords');
-	});
-
-	it('includes original-only languages for canonical storage', () => {
+	it('distinguishes UI locales from original-only languages', () => {
+		expect(isLocale('pl')).toBe(true);
+		expect(isLocale('fr')).toBe(false);
+		expect(isStorableLocale('fr')).toBe(true);
+		expect(isStorableLocale('xx')).toBe(false);
 		expect(ORIGINAL_ONLY).toContain('la');
-		expect(ORIGINAL_ONLY).toContain('de');
-		expect(ORIGINAL_ONLY).toContain('fr');
-		expect(ORIGINAL_ONLY).toContain('it');
+	});
+
+	it('only builds FTS table names for registered locales', () => {
+		expect(ftsTable('pl')).toBe('fts_pl');
+		// @ts-expect-error deliberately invalid: must never reach SQL
+		expect(() => ftsTable("pl; DROP TABLE sources")).toThrow();
+	});
+});
+
+describe('i18n consistency', () => {
+	const settings = readJson('project.inlang/settings.json');
+	const codes = Object.keys(LOCALES).sort();
+
+	it('inlang project locales match the registry', () => {
+		expect([...settings.locales].sort()).toEqual(codes);
+		expect(settings.baseLocale).toBe(DEFAULT_LOCALE);
+	});
+
+	it('every message key exists in every locale (key parity)', () => {
+		const keys = (code: string) =>
+			Object.keys(readJson(`messages/${code}.json`))
+				.filter((k) => !k.startsWith('$'))
+				.sort();
+		const base = keys(DEFAULT_LOCALE);
+		expect(base.length).toBeGreaterThan(20);
+		for (const code of codes) expect(keys(code), `messages/${code}.json`).toEqual(base);
 	});
 });

@@ -1,3 +1,13 @@
+# One image, two deployment modes (see docs/implementation_plan.md §8.1).
+#
+# Mode B (local machine / Tailscale):  docker compose up -d
+#   Set ORIGIN=http://<tailscale-ip>:3000 and APP_BIND to the machine's Tailscale IP (or 0.0.0.0 on a trusted LAN) in .env.
+#   The default binds to 127.0.0.1 only.
+#
+# Mode A (VPS, automatic HTTPS):        docker compose --profile vps up -d
+#   Keep APP_BIND=127.0.0.1, set DOMAIN, ORIGIN=https://<domain>,
+#   ADDRESS_HEADER=X-Forwarded-For and XFF_DEPTH=1 in .env.
+
 services:
   app:
     build:
@@ -6,27 +16,32 @@ services:
     container_name: lemiesz-app
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - HOST=0.0.0.0
-      - DATABASE_PATH=/data/lemiesz.db
+      NODE_ENV: production
+      PORT: "3000"
+      HOST: 0.0.0.0
+      DATABASE_PATH: /data/lemiesz.db
+      # Required behind a reverse proxy so SvelteKit's CSRF origin check and client IPs work
+      ORIGIN: ${ORIGIN:-}
+      ADDRESS_HEADER: ${ADDRESS_HEADER:-}
+      XFF_DEPTH: ${XFF_DEPTH:-1}
     volumes:
-      # Persistent local disk volume for SQLite WAL database
+      # Persistent LOCAL volume for the SQLite WAL database
       - lemiesz-data:/data
     ports:
-      # Mode B (Local / Tailscale): Accessible locally or via Tailscale IP
-      - "3000:3000"
+      - "${APP_BIND:-127.0.0.1}:3000:3000"
 
-  # Optional reverse proxy for Mode A (VPS with automatic HTTPS)
-  # Run with: docker compose --profile vps up -d
+  # Reverse proxy for Mode A only
   caddy:
-    image: caddy:alpine
+    image: caddy:2-alpine
     container_name: lemiesz-caddy
     restart: unless-stopped
     profiles:
       - vps
+    environment:
+      DOMAIN: ${DOMAIN:-lemiesz.local}
     ports:
       - "80:80"
       - "443:443"
@@ -39,8 +54,5 @@ services:
 
 volumes:
   lemiesz-data:
-    driver: local
   caddy-data:
-    driver: local
   caddy-config:
-    driver: local

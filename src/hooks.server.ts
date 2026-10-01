@@ -1,60 +1,78 @@
-import type { Handle } from '@sveltejs/kit';
-import { DEFAULT_LOCALE, LOCALES, type Locale } from '$lib/i18n/locales';
+import { redirect, type Handle } from '@sveltejs/kit';
+import { sequence } from '@sveltejs/kit/hooks';
+import { paraglideMiddleware } from '$lib/paraglide/server';
+import { RateLimiter } from '$lib/server/rateLimit';
+import {
+	SESSION_COOKIE,
+	authDisabled,
+	ensureBootstrapAdmin,
+	getSessionUser,
+	purgeExpiredSessions,
+	type SessionUser
+} from '$lib/server/auth';
+import { runSeed } from '$lib/server/seed/seed';
 
-// Simple in-memory sliding-window rate limiter to protect LLM budget
-interface RateLimitRecord {
-	count: number;
-	resetAt: number;
+// ---- startup -------------------------------------------------------------
+ensureBootstrapAdmin();
+purgeExpiredSessions();
+try {
+	runSeed();
+} catch (e) {
+	console.error('[hooks] Startup seed error:', e);
 }
-const rateLimits = new Map<string, RateLimitRecord>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 60; // 60 requests per minute per IP
+if (process.env.NODE_ENV === 'production' && !process.env.ORIGIN && !process.env.PROTOCOL_HEADER) {
+	console.warn(
+		'[config] ORIGIN is not set: adapter-node assumes https, so form POSTs over plain http will be rejected. Set ORIGIN to the public URL.'
+	);
+}
+if (authDisabled()) console.warn('[auth] AUTH_DISABLED=true: every request is treated as the dev user.');
 
-function isRateLimited(clientIp: string): boolean {
-	const now = Date.now();
-	const record = rateLimits.get(clientIp);
+// ---- rate limits (per client IP) ---------------------------------------------
+const apiLimiter = new RateLimiter(60, 60_000);
+const loginLimiter = new RateLimiter(10, 60_000);
 
-	if (!record || now > record.resetAt) {
-		rateLimits.set(clientIp, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-		return false;
-	}
+const DEV_USER: SessionUser = { id: 'dev', username: 'dev', role: 'admin' };
+const PUBLIC_PATHS = ['/login', '/api/health'];
 
-	record.count++;
-	return record.count > MAX_REQUESTS_PER_WINDOW;
+function jsonError(status: number, error: string) {
+	return new Response(JSON.stringify({ error }), {
+		status,
+		headers: { 'Content-Type': 'application/json' }
+	});
 }
 
-export const handle: Handle = async ({ event, resolve }) => {
-	const clientIp = event.getClientAddress();
-
-	// 1. Rate limiting on API routes
-	if (event.url.pathname.startsWith('/api/') && isRateLimited(clientIp)) {
-		return new Response(JSON.stringify({ error: 'Too many requests. Please slow down.' }), {
-			status: 429,
-			headers: { 'Content-Type': 'application/json' }
-		});
+const authHandle: Handle = async ({ event, resolve }) => {
+	const path = event.url.pathname;
+	let ip = 'unknown';
+	try {
+		ip = event.getClientAddress();
+	} catch {
+		// no address available (e.g. prerender)
 	}
 
-	// 2. Locale resolution from cookie or header
-	const cookieLocale = event.cookies.get('locale') as Locale | undefined;
-	const resolvedLocale: Locale =
-		cookieLocale && cookieLocale in LOCALES ? cookieLocale : DEFAULT_LOCALE;
-
-	event.locals.locale = resolvedLocale;
-
-	// 3. Simple auth protection for internal routes (when AUTH_SECRET is set)
-	const authSecret = process.env.AUTH_SECRET;
-	if (authSecret && !event.url.pathname.startsWith('/auth') && !event.url.pathname.startsWith('/api/health')) {
-		const sessionCookie = event.cookies.get('session');
-		if (!sessionCookie || sessionCookie !== authSecret) {
-			// Redirect or require auth if enabled
-			if (event.url.pathname.startsWith('/api/')) {
-				return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-					status: 401,
-					headers: { 'Content-Type': 'application/json' }
-				});
-			}
-		}
+	if (path === '/login' && event.request.method === 'POST' && loginLimiter.limited(ip)) {
+		return jsonError(429, 'Too many login attempts. Try again in a minute.');
+	}
+	if (path.startsWith('/api/') && path !== '/api/health' && apiLimiter.limited(ip)) {
+		return jsonError(429, 'Too many requests. Please slow down.');
 	}
 
+	event.locals.user = authDisabled() ? DEV_USER : getSessionUser(event.cookies.get(SESSION_COOKIE));
+
+	if (!event.locals.user && !PUBLIC_PATHS.includes(path)) {
+		if (path.startsWith('/api/')) return jsonError(401, 'Unauthorized');
+		redirect(303, '/login');
+	}
 	return resolve(event);
 };
+
+const i18nHandle: Handle = ({ event, resolve }) =>
+	paraglideMiddleware(event.request, ({ request, locale }) => {
+		event.request = request;
+		event.locals.locale = locale;
+		return resolve(event, {
+			transformPageChunk: ({ html }) => html.replace('%paraglide.lang%', locale)
+		});
+	});
+
+export const handle: Handle = sequence(authHandle, i18nHandle);

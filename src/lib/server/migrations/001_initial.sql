@@ -1,9 +1,3 @@
-CREATE TABLE IF NOT EXISTS _migrations (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL,
-  applied_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
 CREATE TABLE IF NOT EXISTS sources (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   work TEXT NOT NULL,
@@ -24,7 +18,7 @@ CREATE TABLE IF NOT EXISTS source_texts (
   locale TEXT NOT NULL,
   text TEXT NOT NULL,
   keywords TEXT,
-  origin TEXT NOT NULL CHECK(origin IN ('original', 'official_translation', 'human_translation', 'machine_translation', 'ai_drafted')),
+  origin TEXT NOT NULL CHECK(origin IN ('original', 'official_translation', 'human_translation', 'machine_translation', 'ai_drafted', 'paraphrase')),
   review TEXT NOT NULL CHECK(review IN ('draft', 'flagged', 'ai_verified', 'human_approved', 'stale')),
   translator TEXT,
   audit_json TEXT,
@@ -52,7 +46,7 @@ CREATE TABLE IF NOT EXISTS argument_texts (
   opponent_claim TEXT NOT NULL,
   counter_punch TEXT NOT NULL,
   keywords TEXT,
-  origin TEXT NOT NULL CHECK(origin IN ('original', 'official_translation', 'human_translation', 'machine_translation', 'ai_drafted')),
+  origin TEXT NOT NULL CHECK(origin IN ('original', 'official_translation', 'human_translation', 'machine_translation', 'ai_drafted', 'paraphrase')),
   review TEXT NOT NULL CHECK(review IN ('draft', 'flagged', 'ai_verified', 'human_approved', 'stale')),
   supporting_spans_json TEXT,
   audit_json TEXT,
@@ -106,7 +100,7 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'member',
+  role TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('admin', 'member')),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -129,20 +123,10 @@ CREATE TABLE IF NOT EXISTS review_events (
   at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE VIRTUAL TABLE IF NOT EXISTS fts_pl USING fts5(
-  owner_type,
-  owner_id UNINDEXED,
-  title,
-  content,
-  keywords,
-  tokenize = 'unicode61 remove_diacritics 2'
-);
+CREATE INDEX IF NOT EXISTS idx_source_texts_review ON source_texts(locale, review);
+CREATE INDEX IF NOT EXISTS idx_argument_texts_review ON argument_texts(locale, review);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_review_events_owner ON review_events(owner_type, owner_id, locale);
 
-CREATE VIRTUAL TABLE IF NOT EXISTS fts_en USING fts5(
-  owner_type,
-  owner_id UNINDEXED,
-  title,
-  content,
-  keywords,
-  tokenize = 'porter unicode61 remove_diacritics 2'
-);
+-- Full-text tables (fts_<locale>) are NOT defined here: they are created from the locale registry in db.ts.

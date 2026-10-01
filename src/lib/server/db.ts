@@ -1,29 +1,74 @@
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
+import { LOCALES, LOCALE_CODES, ftsTable } from '$lib/i18n/locales';
 
-// Local disk verification: SQLite WAL requires POSIX/Win32 local file locking
-function assertLocalFilesystem(dbPath: string): void {
+const NETWORK_FS_TYPES = new Set([
+	'nfs',
+	'nfs4',
+	'cifs',
+	'smb',
+	'smb3',
+	'smbfs',
+	'9p',
+	'afs',
+	'ncpfs',
+	'fuse.sshfs',
+	'fuse.glusterfs'
+]);
+
+/**
+ * SQLite WAL needs a local filesystem with real file locking and shared memory (plan §3.4, §8).
+ * Refuses UNC paths everywhere, and network mounts on Linux (checked via /proc/mounts).
+ */
+export function assertLocalFilesystem(dbPath: string): void {
+	if (dbPath === ':memory:') return;
 	const resolved = path.resolve(dbPath);
-	if (resolved.startsWith('\\\\') || resolved.startsWith('//')) {
+	const fail = (why: string) => {
 		throw new Error(
-			`[FATAL] Database path "${resolved}" is on a UNC network share. SQLite WAL mode requires a local filesystem with POSIX/Win32 file locking to prevent data corruption. Please set DATABASE_PATH to a local disk.`
+			`[FATAL] Database path "${resolved}" ${why}. SQLite WAL requires a local disk. Set DATABASE_PATH to a local path (in Docker: the /data volume).`
 		);
+	};
+
+	if (resolved.startsWith('\\\\') || resolved.startsWith('//')) fail('is on a UNC network share');
+
+	if (process.platform === 'linux') {
+		try {
+			const mounts = fs
+				.readFileSync('/proc/mounts', 'utf8')
+				.split('\n')
+				.map((line) => line.split(' '))
+				.filter((p) => p.length >= 3)
+				.map(([, mountPoint, type]) => ({ mountPoint: mountPoint.replace(/\\040/g, ' '), type }));
+			let best: { mountPoint: string; type: string } | null = null;
+			for (const m of mounts) {
+				const prefix = m.mountPoint.endsWith('/') ? m.mountPoint : m.mountPoint + '/';
+				if (
+					(resolved === m.mountPoint || resolved.startsWith(prefix)) &&
+					(!best || m.mountPoint.length > best.mountPoint.length)
+				) {
+					best = m;
+				}
+			}
+			if (best && NETWORK_FS_TYPES.has(best.type)) fail(`is on a network filesystem (${best.type})`);
+		} catch (e) {
+			if ((e as Error).message?.startsWith('[FATAL]')) throw e;
+			// /proc/mounts unreadable: nothing more we can check.
+		}
 	}
 }
 
 const DB_PATH = process.env.DATABASE_PATH || './data/lemiesz.db';
 assertLocalFilesystem(DB_PATH);
 
-// Ensure directory exists
-const dir = path.dirname(DB_PATH);
-if (!fs.existsSync(dir)) {
-	fs.mkdirSync(dir, { recursive: true });
+if (DB_PATH !== ':memory:') {
+	const dir = path.dirname(DB_PATH);
+	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
 export const db = new Database(DB_PATH);
 
-// Configure concurrency & safety pragmas
+// Concurrency & safety pragmas (plan §3.4)
 db.pragma('journal_mode = WAL');
 db.pragma('synchronous = NORMAL');
 db.pragma('busy_timeout = 5000');
@@ -46,12 +91,10 @@ export function runMigrations(): void {
 	`);
 
 	const applied = new Set(
-		db.prepare('SELECT name FROM _migrations').all().map((r: any) => r.name)
+		(db.prepare('SELECT name FROM _migrations').all() as { name: string }[]).map((r) => r.name)
 	);
 
-	const sortedMigrations = Object.entries(migrationModules).sort(([a], [b]) =>
-		a.localeCompare(b)
-	);
+	const sortedMigrations = Object.entries(migrationModules).sort(([a], [b]) => a.localeCompare(b));
 
 	for (const [filepath, sql] of sortedMigrations) {
 		const name = path.basename(filepath);
@@ -65,5 +108,46 @@ export function runMigrations(): void {
 	}
 }
 
-// Auto-run migrations on startup
+/**
+ * Creates one FTS5 table per registered locale from the registry's tokenizer string and
+ * back-fills it from stored texts when it is newly created (plan §3.2: adding a language
+ * needs a registry entry, not a migration).
+ */
+export function ensureFtsTables(): void {
+	for (const locale of LOCALE_CODES) {
+		const table = ftsTable(locale);
+		const exists = db
+			.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+			.get(table);
+		if (exists) continue;
+
+		const tokenizer = LOCALES[locale].fts.replace(/'/g, '');
+		db.transaction(() => {
+			db.exec(`
+				CREATE VIRTUAL TABLE ${table} USING fts5(
+					owner_type,
+					owner_id UNINDEXED,
+					title,
+					content,
+					keywords,
+					tokenize = '${tokenizer}'
+				);
+			`);
+			db.prepare(
+				`INSERT INTO ${table} (owner_type, owner_id, title, content, keywords)
+				 SELECT 'source', st.source_id, s.work || ' ' || s.section_ref, st.text, COALESCE(st.keywords, '')
+				 FROM source_texts st JOIN sources s ON s.id = st.source_id
+				 WHERE st.locale = ?`
+			).run(locale);
+			db.prepare(
+				`INSERT INTO ${table} (owner_type, owner_id, title, content, keywords)
+				 SELECT 'argument', at.argument_id, at.opponent_claim, at.counter_punch, COALESCE(at.keywords, '')
+				 FROM argument_texts at WHERE at.locale = ?`
+			).run(locale);
+		})();
+		console.log(`[db] Created FTS table ${table}`);
+	}
+}
+
 runMigrations();
+ensureFtsTables();
