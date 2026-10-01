@@ -37,6 +37,8 @@ RUN mkdir -p /data && chown -R node:node /data
 COPY --from=builder --chown=node:node /app/build ./build
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/package.json ./package.json
+# Operator tool: docker compose exec app node scripts/restore-drill.mjs /data/backups --boot
+COPY --chown=node:node scripts/restore-drill.mjs ./scripts/restore-drill.mjs
 
 USER node
 EXPOSE 3000

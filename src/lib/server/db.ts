@@ -66,6 +66,9 @@ if (DB_PATH !== ':memory:') {
 	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
+/** Path of the live database file (":memory:" in special cases). */
+export const DB_FILE = DB_PATH;
+
 export const db = new Database(DB_PATH);
 
 // Concurrency & safety pragmas (plan §3.4)
@@ -151,3 +154,14 @@ export function ensureFtsTables(): void {
 
 runMigrations();
 ensureFtsTables();
+
+// Clean shutdown: adapter-node emits 'sveltekit:shutdown' after the HTTP server has drained (SIGTERM /
+// SIGINT, e.g. docker stop). Closing the database checkpoints the WAL so the main file is complete.
+process.once('sveltekit:shutdown' as never, () => {
+	try {
+		db.pragma('wal_checkpoint(TRUNCATE)');
+		db.close();
+	} catch (e) {
+		console.error('[db] error while closing:', (e as Error).message);
+	}
+});

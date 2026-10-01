@@ -1,7 +1,7 @@
 // Smoke test for the BUILT server (run `pnpm build` first): pnpm smoke
 // Starts build/index.js on a temporary database, then checks health, auth and the review rules
 // over real HTTP.
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -194,6 +194,50 @@ try {
 	check('page /content renders', r.status === 200, String(r.status));
 	r = await fetch(`${BASE}/content/export/99999`, authed);
 	check('export of a missing draft is 404', r.status === 404, String(r.status));
+
+	// ---- Phase 5: headers, dashboard, backup + restore drill, password change ----
+	r = await fetch(`${BASE}/`, authed);
+	const html = await r.text();
+	check('dashboard renders its health sections', r.status === 200 && html.includes('Kopie zapasowe'), String(r.status));
+	check('security headers are set', r.headers.get('x-content-type-options') === 'nosniff' && r.headers.get('x-frame-options') === 'DENY' && !!r.headers.get('referrer-policy'));
+	check('a Content-Security-Policy restricts scripts to self', /script-src[^;]*'self'/.test(r.headers.get('content-security-policy') ?? ''), r.headers.get('content-security-policy') ?? 'none');
+	r = await fetch(`${BASE}/settings`, authed);
+	check('settings page renders', r.status === 200, String(r.status));
+
+	r = await fetch(`${BASE}/?/backup`, {
+		method: 'POST',
+		headers: { ...authed.headers, accept: 'text/html', 'content-type': 'application/x-www-form-urlencoded', origin: BASE },
+		body: '',
+		...noRedirect
+	});
+	const backupDir = path.join(dir, 'backups');
+	const backups = fs.existsSync(backupDir) ? fs.readdirSync(backupDir).filter((f) => /^lemiesz-.*\.db$/.test(f)) : [];
+	check('"Back up now" writes a backup file', backups.length === 1, `${r.status} ${backups.join(',')}`);
+	const drill = spawnSync(process.execPath, ['scripts/restore-drill.mjs', backupDir, '--live', path.join(dir, 'smoke.db'), '--boot'], { encoding: 'utf8' });
+	check('restore drill passes, including booting the built app on the restored copy', drill.status === 0, (drill.stdout + drill.stderr).split('\n').filter((l) => /FAIL/.test(l)).join(' | '));
+
+	// Password change signs out the user's other sessions but keeps this one
+	const loginAgain = async (password) => {
+		const res = await fetch(`${BASE}/login`, {
+			method: 'POST',
+			headers: { accept: 'text/html', 'content-type': 'application/x-www-form-urlencoded', origin: BASE },
+			body: `username=smoke&password=${encodeURIComponent(password)}`,
+			...noRedirect
+		});
+		return (res.headers.get('set-cookie') ?? '').split(';')[0];
+	};
+	const otherSession = await loginAgain(PASSWORD);
+	const NEW_PASSWORD = 'a-brand-new-passphrase-2026';
+	r = await fetch(`${BASE}/settings?/changePassword`, {
+		method: 'POST',
+		headers: { ...authed.headers, accept: 'text/html', 'content-type': 'application/x-www-form-urlencoded', origin: BASE },
+		body: `current=${encodeURIComponent(PASSWORD)}&next=${NEW_PASSWORD}&confirm=${NEW_PASSWORD}`,
+		...noRedirect
+	});
+	check('password change succeeds', r.status === 200 || r.status === 303, String(r.status));
+	check('another session of the same user is signed out', (await fetch(`${BASE}/api/sources`, { headers: { cookie: otherSession } })).status === 401);
+	check('the session that changed the password stays signed in', (await fetch(`${BASE}/api/sources`, authed)).status === 200);
+	check('the old password no longer works, the new one does', !(await loginAgain(PASSWORD)) && !!(await loginAgain(NEW_PASSWORD)));
 
 	// Cross-site form post must be rejected by SvelteKit's origin check
 	r = await fetch(`${BASE}/logout`, {

@@ -432,7 +432,7 @@ Phases 0–2 are implemented and verified; see the README for commands. Where th
 | LLM (§5) | Config-selected providers | One OpenAI-compatible implementation (plain `fetch`) covers OpenAI, Gemini's compatibility API, DeepSeek etc. Nothing has been run against a real LLM yet: the drafter and auditor are tested with scripted fakes, and `pnpm eval` measures the auditor as soon as `LLM_AUDITOR_*` is set |
 | Snippets | FTS `snippet()` returned HTML | Uses `[[ ]]` markers, so no HTML is ever rendered from stored text |
 
-Verified: `pnpm check` (0 errors), `pnpm test` (109 tests), `pnpm smoke` (20 HTTP checks on the built server), `pnpm eval` (real embedder), Docker image built and run on amd64 (healthy, login, data persists across restart, SQLite FTS5 and the local embedder work inside the container). **Not verified:** an arm64 image; anything against a real LLM.
+Verified: `pnpm check` (0 errors), `pnpm test` (109 tests), `pnpm smoke` (20 HTTP checks on the built server), `pnpm eval` (real embedder), Docker image built and run on amd64 (healthy, login, data persists across restart, SQLite FTS5 and the local embedder work inside the container). **Not verified:** anything against a real LLM. (The arm64 image was verified in Phase 5, see section 20.)
 
 ## 18. Phase 3 status — Shield (2026-10-01)
 
@@ -466,3 +466,23 @@ Implemented: `POST /api/content` (SSE), the `/content` page, draft storage (migr
 | Verified | 24 new unit tests (checks, quotes, trust tiers, watermark lifecycle, second reviewer, export); 5 more smoke checks; a browser run against `scripts/mock-llm.mjs` covering generate, invented-quote detection, edit-and-save with re-run checks, mark-reviewed, and the watermark path with an AI-verified source |
 | Bugs found by that run | The invented-number check flagged the year in a printed reference ("Hague … (1907)") — fixed with a regression test; raw `history.replaceState` conflicted with the SvelteKit router — now uses `replaceState` from `$app/navigation` (also fixed in the Shield) |
 | Not yet verified | A real LLM (the mock always writes one invented quotation, so the happy path with a well-behaved model is only unit-tested). Preset and platform prompt wording is first-draft and should be tuned by the team with real output |
+
+## 20. Phase 5 status — dashboard, backups, polish (2026-10-01)
+
+| Item (§13 Phase 5) | As built |
+| :-- | :-- |
+| Pipeline health | The dashboard shows the queue by reason, the AI pipeline over 30 days (runs, cards stored, **share rejected by the verbatim-quote check**, AI-verified, flagged, last run with both model ids), translation coverage, most-used cards, recent review decisions and configuration status |
+| Sampling disagreement rate | Shown on the dashboard and the review queue; above `REVIEW_DISAGREEMENT_ALERT` (default 20%, at least 5 samples) it raises a red alert |
+| Warnings | 13 operator warnings (missing `ORIGIN`, login disabled, `ADMIN_PASSWORD` left in the environment, no/stale backup, backups on the same disk, drafter and auditor of one family, no chat model, embeddings off, auditor overturned too often, stale cards, nothing approved) |
+| Backups | SQLite online-backup API, scheduled (24 h default, newest 14 kept), verified after writing (integrity check), written as a single self-contained file (rollback journal, no `-wal`), admin "Back up now" button, `BACKUP_DIR` for another disk |
+| Restore drill (exit criterion) | `scripts/restore-drill.mjs` restores into a scratch folder and checks integrity, foreign keys, that full-text indexes match stored texts, that a user exists, and with `--boot` starts the built app on the restored copy. It is tested against a good backup, a truncated one and a tampered index, in unit tests, in `pnpm smoke`, and inside the Docker image. The script ships in the image |
+| Clean shutdown | On SIGTERM (`docker stop`) the HTTP server drains, then the database is checkpointed and closed; verified in Docker (exit 0, no `-wal`/`-shm` left) |
+| Users (added) | Settings page: change own password (needs the current one, signs out other devices), admin creates users, resets passwords, deletes users; cannot delete yourself or the last admin |
+| Hardening (added) | Baseline security headers on every response; a production Content-Security-Policy (`script-src 'self'` with nonces), checked in a real browser with no violations; per-user daily cap on LLM requests (`LLM_DAILY_REQUESTS`, default 300) |
+| Dev convenience (added) | `vite dev` now loads `.env` into `process.env` (it did not before, so a developer's `.env` was ignored in dev) |
+| Docs | `docs/OPERATIONS.md` (deploy, backups, restore, upgrade, security, troubleshooting), README |
+| Verified | 175 unit tests; 41 smoke checks on the built server (includes backup → drill with `--boot`, password change, headers and CSP); a browser run of the production build under the CSP; Docker run on amd64: scheduled backup written, drill passed in the container, graceful shutdown, restart without reseeding |
+
+arm64: the image was built with `docker build --platform linux/arm64` (QEMU emulation on an amd64 host) and run: better-sqlite3 with FTS5 and onnxruntime-node load and the app reports healthy and serves the login page. Real arm64 hardware (e.g. a Hetzner CAX server) has not been tried.
+
+Known limits: the CSP allows inline *styles* (Svelte writes style attributes). Backups protect against corruption and mistakes; surviving loss of the machine needs `BACKUP_DIR` on another disk or an off-machine copy, which the app cannot do for you. There is still no real-LLM run, no automated login lockout beyond the per-IP rate limit, and the shared draft list shows every author's drafts to every signed-in user (intentional for a small team).

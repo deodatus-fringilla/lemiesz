@@ -30,3 +30,9 @@ export class RateLimiter {
 		return this.hits.size;
 	}
 }
+
+/** Requests that can spend LLM budget: chat, content generation, and the AI card pipeline (a form action on /arguments). */
+export function spendsLlm(path: string, method: string, search: string): boolean {
+	if (method !== 'POST') return false;
+	return path === '/api/chat' || path === '/api/content' || (path === '/arguments' && search.startsWith('?/draft'));
+}

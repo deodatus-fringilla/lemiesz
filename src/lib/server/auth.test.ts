@@ -10,7 +10,7 @@ import {
 	verifyPassword
 } from './auth';
 import { db } from './db';
-import { RateLimiter } from './rateLimit';
+import { RateLimiter, spendsLlm } from './rateLimit';
 
 describe('passwords', () => {
 	it('hashes with a random salt and verifies', () => {
@@ -72,5 +72,22 @@ describe('rate limiter', () => {
 		expect(rl.limited('ip', 1500)).toBe(false);
 		rl.prune(10_000);
 		expect(rl.size).toBe(0);
+	});
+});
+
+describe('LLM spend guard', () => {
+	it('covers exactly the requests that call a model', () => {
+		expect(spendsLlm('/api/chat', 'POST', '')).toBe(true);
+		expect(spendsLlm('/api/content', 'POST', '')).toBe(true);
+		expect(spendsLlm('/arguments', 'POST', '?/draft')).toBe(true);
+		expect(spendsLlm('/arguments', 'POST', '?/review')).toBe(false);
+		expect(spendsLlm('/api/chat', 'GET', '')).toBe(false);
+		expect(spendsLlm('/api/sources', 'POST', '')).toBe(false);
+	});
+
+	it('caps one user per window without affecting another', () => {
+		const budget = new RateLimiter(3, 86_400_000);
+		expect([1, 2, 3, 4].map(() => budget.limited('alice', 0))).toEqual([false, false, false, true]);
+		expect(budget.limited('bob', 0)).toBe(false);
 	});
 });

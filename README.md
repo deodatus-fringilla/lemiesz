@@ -7,7 +7,7 @@ infrastructure.
 The authoritative design is [docs/implementation_plan.md](docs/implementation_plan.md); the
 decisions behind it are in [docs/discussions/implementation_plan_critique.md](docs/discussions/implementation_plan_critique.md).
 
-## What works today (Phases 0–4)
+## What works today (Phases 0–5)
 
 - **Repository** — canonical sources per language, with licence/provenance checklist, translation coverage, human review.
 - **Arguments** — opponent claim → counter-punch → sources, per language.
@@ -18,7 +18,9 @@ decisions behind it are in [docs/discussions/implementation_plan_critique.md](do
 - **Content Engine** — drafts for X threads, Facebook, Shorts/TikTok scripts and press statements in Polish or English, built only from human-approved material (an explicit override allows AI-verified cards and watermarks the draft). Deterministic checks, human review step, copy and markdown export. Nothing is published automatically.
 - Login, rate limiting, Docker (VPS or Tailscale).
 
-Not built yet: dashboard polish, backups and restore drill (Phase 5).
+- **Operations** — dashboard with system health and operator warnings, scheduled verified backups with a restore drill, user management and password change, security headers and CSP. See [docs/OPERATIONS.md](docs/OPERATIONS.md).
+
+All five planned phases are implemented. Open items are owner decisions and content (see the plan, §16 and §17-§20): real LLM access, reviewers, Polish source texts, the movement's own texts and doctrine wording, a larger golden set.
 
 ## Trust rules in one paragraph
 
@@ -51,6 +53,7 @@ first start, or use `AUTH_DISABLED=true` for local development only (ignored in 
 | `pnpm test` | unit + integration tests (offline, throw-away database) |
 | `pnpm build && pnpm smoke` | starts the built server and tests auth, review rules and pages over real HTTP |
 | `node scripts/mock-llm.mjs 4901` | a fake OpenAI-compatible model for trying the Shield UI without an API key (set `LLM_CHAT_BASE_URL=http://127.0.0.1:4901/v1`, `LLM_CHAT_API_KEY=x`, `LLM_CHAT_MODEL=mock`) |
+| `node scripts/restore-drill.mjs <backup> --live <db> --boot` | proves a backup can be restored (also runs inside the container) |
 | `pnpm eval` | quality run with the **real** local embedder: recall@5 per method and language pair, threshold calibration, and a network check that every seed quote is verbatim on its cited page. Writes `data/eval-report.txt`. Also evaluates the auditor if `LLM_AUDITOR_*` is set. First run downloads the embedding model (~100 MB). |
 
 ## Deploy

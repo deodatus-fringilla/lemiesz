@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
-	import { Shield, LayoutDashboard, BookOpen, Swords, CheckSquare, LogOut, MessageSquareQuote, PenLine } from 'lucide-svelte';
+	import { Shield, LayoutDashboard, BookOpen, Swords, CheckSquare, LogOut, MessageSquareQuote, PenLine, Settings } from 'lucide-svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { locales, setLocale } from '$lib/paraglide/runtime.js';
 
@@ -68,6 +68,9 @@
 							</button>
 						{/each}
 					</div>
+					<a href="/settings" class="flex items-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 py-1 text-zinc-400 hover:text-zinc-100" title={m.nav_settings()}>
+						<Settings class="h-3.5 w-3.5" /><span class="sr-only">{m.nav_settings()}</span>
+					</a>
 					<form method="POST" action="/logout">
 						<button
 							type="submit"

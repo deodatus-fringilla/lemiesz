@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
 import { db } from '$lib/server/db';
-import { env } from '$env/dynamic/private';
 
 export interface SessionUser {
 	id: string;
@@ -14,10 +13,8 @@ const PLACEHOLDER_PASSWORDS = new Set(['change_me_to_a_secure_passphrase', 'chan
 
 /** Local-development escape hatch. Ignored (and logged) in production. */
 export function authDisabled(): boolean {
-	const val = env.AUTH_DISABLED || process.env.AUTH_DISABLED;
-	if (val !== 'true') return false;
-	const nodeEnv = env.NODE_ENV || process.env.NODE_ENV;
-	if (nodeEnv === 'production') {
+	if (process.env.AUTH_DISABLED !== 'true') return false;
+	if (process.env.NODE_ENV === 'production') {
 		console.error('[auth] AUTH_DISABLED is ignored in production.');
 		return false;
 	}
@@ -140,4 +137,56 @@ export function deleteSession(token: string): void {
 
 export function purgeExpiredSessions(): void {
 	db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(new Date().toISOString());
+}
+
+// ---- user management (Settings page) -------------------------------------------------
+
+export interface UserRow {
+	id: string;
+	username: string;
+	role: 'admin' | 'member';
+	created_at: string;
+}
+
+export class UserError extends Error {}
+
+export function listUsers(): UserRow[] {
+	return db.prepare('SELECT id, username, role, created_at FROM users ORDER BY username').all() as UserRow[];
+}
+
+/** Ends every session of a user, optionally keeping one (the browser that just changed the password). */
+export function deleteSessionsFor(userId: string, exceptToken?: string): void {
+	if (exceptToken) {
+		db.prepare('DELETE FROM sessions WHERE user_id = ? AND id != ?').run(userId, sha256(exceptToken));
+	} else {
+		db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+	}
+}
+
+/** Sets a new password and signs the user out everywhere else. */
+export function setPassword(userId: string, newPassword: string, keepToken?: string): void {
+	const problem = validatePasswordStrength(newPassword);
+	if (problem) throw new UserError(problem);
+	const res = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), userId);
+	if (res.changes === 0) throw new UserError('User not found');
+	deleteSessionsFor(userId, keepToken);
+}
+
+/** A user changing their own password must prove they know the current one. */
+export function changeOwnPassword(userId: string, current: string, next: string, keepToken?: string): void {
+	const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(userId) as { password_hash: string } | undefined;
+	if (!row || !verifyPassword(current, row.password_hash)) throw new UserError('Current password is incorrect');
+	setPassword(userId, next, keepToken);
+}
+
+/** Deleting a user is refused for yourself and for the last remaining admin (nobody could manage users afterwards). */
+export function deleteUser(userId: string, actingUserId: string): void {
+	if (userId === actingUserId) throw new UserError('You cannot delete your own account');
+	const target = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role: string } | undefined;
+	if (!target) throw new UserError('User not found');
+	if (target.role === 'admin') {
+		const admins = (db.prepare("SELECT COUNT(*) AS c FROM users WHERE role = 'admin'").get() as { c: number }).c;
+		if (admins <= 1) throw new UserError('Cannot delete the last admin');
+	}
+	db.prepare('DELETE FROM users WHERE id = ?').run(userId);
 }
