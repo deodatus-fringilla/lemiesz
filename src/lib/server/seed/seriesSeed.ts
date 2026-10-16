@@ -10,8 +10,8 @@ export const HEDGEHOG_SERIES_SEEDS: SeriesPosterSeedDef[] = [
 	// 0. Planeta / Hero
 	{
 		title: 'Doktryna Jeża — Oaza Pokoju i Niestrawność Terytorialna',
-		artist_or_author: 'Przymierze Lemiesza Studio (styl Józefa Chełmońskiego & Jacka Malczewskiego)',
-		image_path: '/images/doktryna-jeza/hedgehog_planet_hero.svg',
+		artist_or_author: 'Przymierze Lemiesza Studio (malarstwo olejne, styl Józefa Chełmońskiego)',
+		image_path: '/images/doktryna-jeza/hedgehog_planet_hero.jpg',
 		theme: 'sovereignty_peace',
 		series_slug: 'doktryna-jeza',
 		series_order: 0,
@@ -20,11 +20,11 @@ export const HEDGEHOG_SERIES_SEEDS: SeriesPosterSeedDef[] = [
 		pair_key: null,
 		caption_pl: 'Doktryna Jeża (Canon 04): Odstraszanie asymetryczne, zbrojna neutralność i suwerenność Rzeczypospolitej.',
 		caption_en: 'The Hedgehog Doctrine (Canon 04): Asymmetric deterrence, armed neutrality, and Polish sovereignty.',
-		symbolism_notes: 'Nadrzędny obraz-planeta: najeżony, stalowy jeż w polskim krajobrazie, którego żaden imperialny drapieżnik nie jest w stanie połknąć.',
+		symbolism_notes: 'Nadrzędny obraz-planeta: najeżony jeż pod prastarym dębem w polskim lesie; z lewej (Zachód) czyha wilk, z prawej (Wschód) w gęstwinie czai się niedźwiedź. Styl polskiego realizmu XIX w.',
 		moral_quote_pl: 'Nie jesteśmy drapieżnikiem, by napadać innych; jesteśmy jeżem, którego nikt nie zdoła połknąć.',
 		moral_quote_en: 'We are not a predator to attack others; we are a hedgehog that no one can swallow.',
 		ai_assisted: true,
-		production_credits: 'Koncept: Bogdan Zięba (Przymierze Lemiesza); grafika wektorowa SVG oparta o Canon 04.',
+		production_credits: 'Koncept: Bogdan Zięba (Przymierze Lemiesza); obraz olejny w stylu polskiego realizmu XIX w. (Józef Chełmoński) wspomagany AI (static/images/doktryna-jeza/hedgehog_planet_hero.jpg).',
 		linkPrinciples: [
 			'Doktryna Jeża i Teoria Gier: Neutralność Zbrojna to asymetryczny koszt inwazji przewyższający zysk agresora',
 			'Distinguo Tomistyczne: Oaza Pokoju (Zbrojna Neutralność Terytorialna) to nie Oaza Bezbronności'
@@ -195,6 +195,15 @@ export const HEDGEHOG_SERIES_SEEDS: SeriesPosterSeedDef[] = [
 export function seedPosterSeries(): { postersAdded: number } {
 	const actor = system('seed:series-corpus');
 	let postersAdded = 0;
+
+	// Upgrade existing SVG planet hero to the authentic Polish realism oil painting
+	db.prepare(
+		`UPDATE campaign_posters
+		 SET image_path = '/images/doktryna-jeza/hedgehog_planet_hero.jpg',
+		     artist_or_author = 'Przymierze Lemiesza Studio (malarstwo olejne, styl Józefa Chełmońskiego)',
+		     production_credits = 'Koncept: Bogdan Zięba (Przymierze Lemiesza); obraz olejny w stylu polskiego realizmu XIX w. (Józef Chełmoński) wspomagany AI (static/images/doktryna-jeza/hedgehog_planet_hero.jpg).'
+		 WHERE image_path = '/images/doktryna-jeza/hedgehog_planet_hero.svg'`
+	).run();
 
 	for (const p of HEDGEHOG_SERIES_SEEDS) {
 		const existing = db.prepare('SELECT id FROM campaign_posters WHERE image_path = ?').get(p.image_path) as { id: number } | undefined;

@@ -121,7 +121,7 @@ describe('Campaign Posters & Series Architecture (Canon 04)', () => {
 
 		const series = getSeries('doktryna-jeza', true);
 		expect(series.planet).not.toBeNull();
-		expect(series.planet?.image_path).toBe('/images/doktryna-jeza/hedgehog_planet_hero.svg');
+		expect(series.planet?.image_path).toBe('/images/doktryna-jeza/hedgehog_planet_hero.jpg');
 		expect(series.satellites.length).toBe(8);
 		expect(series.pairs.length).toBe(4);
 
