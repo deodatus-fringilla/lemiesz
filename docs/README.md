@@ -17,7 +17,8 @@ docs/
 │   ├── 04_Hedgehog_Doctrine_Educational_Visual_Canon.md # Educational fable, dual-layer pairs, visual art direction
 │   ├── 05_Metodologia_Obronnosci_Polski.md # Organic defense, landscape hydro-barriers, DAS seismic grid, youth PO & scouting
 │   ├── 06_Dekonstrukcja_Mitu_Niepodleglosci_i_Prawdziwa_Suwerennosc.md # Deconstruction of the independence myth, four illusions, armed neutrality as authentic sovereignty
-│   └── 07_Pan_Pokoju_i_Dekonstrukcja_Maksymy_Wegecjusza.md # Dominus Pacis (Master of Peace), refutation of Vegetius, Luke 14:31-32 Royal Reckoning
+│   ├── 07_Pan_Pokoju_i_Dekonstrukcja_Maksymy_Wegecjusza.md # Dominus Pacis (Master of Peace), refutation of Vegetius, Luke 14:31-32 Royal Reckoning
+│   └── 08_Przelamanie_Augustynskiej_Iluzji.md # Overcoming the Augustinian illusion ("war for peace"), Tacitus unmasking, Isaiah 2:4 realism
 ├── 01_Architecture/                  # Chapter 1: Living technical blueprints and schema specifications
 │   ├── 01_System_Overview.md         # Component diagrams, trust tiers, data flows
 │   ├── 02_Database_Schema.md         # SQLite tables, FTS5 virtual tables, migrations
