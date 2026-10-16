@@ -18,6 +18,19 @@ import {
 	type MediaStatus,
 	type MediaType
 } from '$lib/server/media';
+import {
+	POSTER_THEMES,
+	createPoster,
+	deletePoster,
+	getPoster,
+	linkPosterToArgument,
+	linksForPoster,
+	listPosters,
+	listStaticImages,
+	setPosterStatus,
+	unlinkPosterFromArgument,
+	type PosterTheme
+} from '$lib/server/posters';
 import { listArguments } from '$lib/server/arguments';
 import { human } from '$lib/server/review';
 
@@ -50,15 +63,26 @@ export const load: PageServerLoad = ({ url, locals }) => {
 	const genreParam = url.searchParams.get('genre');
 	const genre = (GENRES as readonly string[]).includes(genreParam ?? '') ? (genreParam as Genre) : undefined;
 	const q = url.searchParams.get('q')?.trim() || undefined;
-	const selectedId = Number(url.searchParams.get('m'));
+	const selectedId = Number(url.searchParams.get('m') ?? url.searchParams.get('select'));
 	const selected = Number.isInteger(selectedId) && selectedId > 0 ? getMedia(selectedId) : null;
 	const locale = locals.locale === 'en' ? 'en' : 'pl';
+
+	const posters = listPosters(q).map((p) => ({
+		...p,
+		links: linksForPoster(p.id)
+	}));
 
 	return {
 		items: listMedia({ genre, q }),
 		selected,
 		links: selected ? linksForMedia(selected.id) : [],
-		arguments: listArguments({ locale, limit: 200 }).arguments.map((a) => ({ id: a.id, label: a.texts?.[locale]?.opponent_claim ?? a.texts?.en?.opponent_claim ?? `#${a.id}` })),
+		posters,
+		staticImages: listStaticImages(),
+		posterThemes: [...POSTER_THEMES],
+		arguments: listArguments({ locale, limit: 200 }).arguments.map((a) => ({
+			id: a.id,
+			label: a.texts?.[locale]?.opponent_claim ?? a.texts?.en?.opponent_claim ?? `#${a.id}`
+		})),
 		filters: { genre: genre ?? '', q: q ?? '' },
 		genres: [...GENRES],
 		types: [...MEDIA_TYPES],
@@ -133,5 +157,73 @@ export const actions: Actions = {
 		const argumentId = idOf(d, 'argumentId');
 		if (mediaId && argumentId) unlinkMedia(argumentId, mediaId);
 		return { action: 'unlink', mediaId };
+	},
+
+	createPoster: async ({ request, locals }) => {
+		const d = await request.formData();
+		try {
+			const id = createPoster(
+				{
+					title: str(d, 'title'),
+					artist_or_author: str(d, 'artist_or_author'),
+					image_path: str(d, 'image_path'),
+					theme: (str(d, 'theme') || 'sacred_life') as PosterTheme,
+					caption_pl: str(d, 'caption_pl'),
+					caption_en: str(d, 'caption_en'),
+					symbolism_notes: str(d, 'symbolism_notes'),
+					ai_assisted: d.get('ai_assisted') === 'on',
+					production_credits: str(d, 'production_credits')
+				},
+				human(locals.user!.username)
+			);
+			return { action: 'createPoster', posterId: id };
+		} catch (e) {
+			return fail(400, { action: 'createPoster', errors: [(e as Error).message] });
+		}
+	},
+
+	posterStatus: async ({ request, locals }) => {
+		const d = await request.formData();
+		const posterId = idOf(d, 'posterId');
+		if (!posterId) return fail(400, { action: 'posterStatus', errors: ['Missing poster'] });
+		try {
+			setPosterStatus(posterId, str(d, 'to') as MediaStatus, human(locals.user!.username));
+			return { action: 'posterStatus', posterId };
+		} catch (e) {
+			return fail(400, { action: 'posterStatus', errors: [(e as Error).message] });
+		}
+	},
+
+	deletePoster: async ({ request, locals }) => {
+		const d = await request.formData();
+		const posterId = idOf(d, 'posterId');
+		if (!posterId) return fail(400, { action: 'deletePoster', errors: ['Missing poster'] });
+		const poster = getPoster(posterId);
+		if (poster && locals.user?.role !== 'admin' && poster.created_by !== locals.user?.username) {
+			return fail(403, { action: 'deletePoster', errors: ['forbidden'] });
+		}
+		deletePoster(posterId);
+		return { action: 'deletePoster' };
+	},
+
+	linkPoster: async ({ request, locals }) => {
+		const d = await request.formData();
+		const posterId = idOf(d, 'posterId');
+		const argumentId = idOf(d, 'argumentId');
+		if (!posterId || !argumentId) return fail(400, { action: 'linkPoster', errors: ['Missing poster or argument'] });
+		try {
+			linkPosterToArgument(argumentId, posterId, human(locals.user!.username));
+			return { action: 'linkPoster', posterId };
+		} catch (e) {
+			return fail(400, { action: 'linkPoster', errors: [(e as Error).message] });
+		}
+	},
+
+	unlinkPoster: async ({ request }) => {
+		const d = await request.formData();
+		const posterId = idOf(d, 'posterId');
+		const argumentId = idOf(d, 'argumentId');
+		if (posterId && argumentId) unlinkPosterFromArgument(argumentId, posterId);
+		return { action: 'unlinkPoster', posterId };
 	}
 };

@@ -1,7 +1,7 @@
-# Pakt Lemiesza — Management Center & Second Brain
+# Przymierze Lemiesza — Management Center & Second Brain
 
 Internal, bilingual (Polish default, English second) knowledge base and debate-defence tool for the
-core team of Pakt Lemiesza. SvelteKit 5 + SQLite (FTS5) + in-RAM vector search, no external
+core team of Przymierze Lemiesza. SvelteKit 5 + SQLite (FTS5) + in-RAM vector search, no external
 infrastructure.
 
 The authoritative design is [docs/implementation_plan.md](docs/implementation_plan.md); the

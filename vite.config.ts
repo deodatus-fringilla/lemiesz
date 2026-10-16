@@ -16,6 +16,9 @@ if (process.argv.includes('dev') || process.argv.length <= 2) {
 }
 
 export default defineConfig({
+	server: {
+		port: Number(process.env.PORT || 3000)
+	},
 	plugins: [
 		tailwindcss(),
 		paraglideVitePlugin({

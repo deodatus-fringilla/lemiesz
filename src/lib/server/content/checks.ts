@@ -3,7 +3,7 @@ import { SHORTS_WORDS, X_MAX_POST_CHARS, type Platform } from './formats';
 
 export interface Check {
 	/** Stable id; the UI maps it to a localized label. */
-	id: 'x_post_length' | 'x_post_count' | 'shorts_length' | 'press_headline' | 'unresolved_tokens' | 'unverified_quotes' | 'unsupported_numbers';
+	id: 'x_post_length' | 'x_post_count' | 'shorts_length' | 'press_headline' | 'letter_structure' | 'unresolved_tokens' | 'unverified_quotes' | 'unsupported_numbers';
 	ok: boolean;
 	/** Machine-readable detail (numbers, post indexes); the UI formats it. */
 	detail?: string;
@@ -64,6 +64,10 @@ export function runChecks(args: {
 	if (platform === 'press') {
 		const headline = body.split('\n').find((l) => l.trim())?.trim() ?? '';
 		checks.push({ id: 'press_headline', ok: headline.length > 0 && headline.length <= 120, detail: String(headline.length) });
+	}
+	if (platform === 'letter') {
+		const paragraphs = body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+		checks.push({ id: 'letter_structure', ok: paragraphs.length >= 3, detail: `${paragraphs.length} §` });
 	}
 
 	checks.push({ id: 'unresolved_tokens', ok: !/\[\[/.test(body) });

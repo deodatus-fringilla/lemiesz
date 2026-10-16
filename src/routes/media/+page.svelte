@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ExternalLink, Music2, Search, TriangleAlert } from 'lucide-svelte';
+	import { ExternalLink, Image, Music2, Search, TriangleAlert } from 'lucide-svelte';
 	import { m } from '$lib/paraglide/messages.js';
-	import { genreLabel, mediaStatusLabel, mediaTypeLabel } from '$lib/i18n/labels';
+	import { genreLabel, mediaStatusLabel, mediaTypeLabel, posterThemeLabel } from '$lib/i18n/labels';
 
 	let { data, form } = $props();
 
@@ -23,35 +23,204 @@
 	const errors = $derived((form?.errors as string[] | undefined) ?? []);
 </script>
 
-<div class="space-y-5">
+<div class="space-y-8">
 	<div>
 		<h1 class="text-3xl font-bold tracking-tight">{m.media_title()}</h1>
 		<p class="mt-1 text-sm text-zinc-400">{m.media_intro()}</p>
 	</div>
 
+	{#if errors.length}
+		<div class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200" role="alert">
+			{#each errors as e (e)}<p>{e === 'forbidden' ? m.media_error_forbidden() : e}</p>{/each}
+		</div>
+	{/if}
+
+	<!-- Campaign Posters & Visual Assets Gallery (static/images/*) -->
+	<section class="space-y-4 rounded-xl border border-amber-500/30 bg-zinc-900/30 p-5">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<div>
+				<h2 class="flex items-center gap-2 text-xl font-bold text-zinc-100">
+					<Image class="h-5 w-5 text-amber-400" />
+					{m.posters_section_title()}
+				</h2>
+				<p class="mt-0.5 text-xs text-zinc-400">{m.posters_section_intro()}</p>
+			</div>
+		</div>
+
+		<div class="grid gap-5 md:grid-cols-2">
+			{#each data.posters as p (p.id)}
+				<article class="flex flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70">
+					<div class="relative aspect-[16/10] w-full overflow-hidden bg-zinc-900">
+						<img src={p.image_path} alt={p.title} class="h-full w-full object-cover" loading="lazy" />
+						<span class="absolute right-2.5 top-2.5 rounded-full border px-2.5 py-0.5 text-xs font-medium backdrop-blur {statusStyle[p.status]}">
+							{mediaStatusLabel(p.status)}
+						</span>
+					</div>
+					<div class="flex flex-1 flex-col justify-between space-y-3 p-4">
+						<div class="space-y-1.5">
+							<div class="flex flex-wrap items-center gap-2 text-xs text-amber-300">
+								<span class="rounded bg-amber-500/15 px-2 py-0.5 font-medium">{posterThemeLabel(p.theme)}</span>
+								<span class="font-mono text-zinc-500">{p.image_path}</span>
+							</div>
+							<h3 class="text-base font-bold text-zinc-100">{p.title}</h3>
+							{#if p.caption_pl}<p class="text-xs leading-relaxed text-zinc-300"><strong class="text-zinc-400">PL:</strong> {p.caption_pl}</p>{/if}
+							{#if p.caption_en}<p class="text-xs leading-relaxed text-zinc-400"><strong class="text-zinc-500">EN:</strong> {p.caption_en}</p>{/if}
+							{#if p.symbolism_notes}<p class="text-xs italic text-zinc-400">{p.symbolism_notes}</p>{/if}
+							{#if p.production_credits}<p class="text-[11px] text-zinc-500">{p.production_credits}</p>{/if}
+						</div>
+
+						<div class="space-y-2 border-t border-zinc-800/80 pt-3">
+							<div class="text-xs font-semibold text-zinc-400">{m.media_link_title()}:</div>
+							<ul class="space-y-1 text-xs">
+								{#each p.links as l (l.argument_id)}
+									<li class="flex items-center justify-between gap-2 rounded border border-zinc-800 bg-zinc-900/50 px-2.5 py-1">
+										<a href="/arguments?q={encodeURIComponent(l.opponent_claim ?? '')}" class="truncate text-zinc-300 hover:text-amber-300">
+											{l.opponent_claim ?? `#${l.argument_id}`}
+										</a>
+										<form method="POST" action="?/unlinkPoster" use:enhance>
+											<input type="hidden" name="posterId" value={p.id} />
+											<input type="hidden" name="argumentId" value={l.argument_id} />
+											<button class="text-[11px] text-zinc-500 hover:text-rose-300">{m.media_unlink()}</button>
+										</form>
+									</li>
+								{:else}
+									<li class="text-xs text-zinc-500">{m.media_no_links()}</li>
+								{/each}
+							</ul>
+
+							<form method="POST" action="?/linkPoster" use:enhance class="flex gap-2 pt-1">
+								<input type="hidden" name="posterId" value={p.id} />
+								<select name="argumentId" class="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-xs">
+									{#each data.arguments as a (a.id)}<option value={a.id}>{a.label}</option>{/each}
+								</select>
+								<button class="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs hover:bg-zinc-800">{m.media_link_add()}</button>
+							</form>
+
+							<div class="flex flex-wrap gap-2 pt-2 text-xs">
+								{#if p.status !== 'human_approved'}
+									<form method="POST" action="?/posterStatus" use:enhance>
+										<input type="hidden" name="posterId" value={p.id} />
+										<input type="hidden" name="to" value="human_approved" />
+										<button class="rounded bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-500">{m.media_approve()}</button>
+									</form>
+								{/if}
+								{#if p.status !== 'flagged'}
+									<form method="POST" action="?/posterStatus" use:enhance>
+										<input type="hidden" name="posterId" value={p.id} />
+										<input type="hidden" name="to" value="flagged" />
+										<button class="rounded border border-amber-500/40 px-2.5 py-1 text-amber-300 hover:bg-amber-500/10">{m.media_flag()}</button>
+									</form>
+								{/if}
+								{#if p.status !== 'draft'}
+									<form method="POST" action="?/posterStatus" use:enhance>
+										<input type="hidden" name="posterId" value={p.id} />
+										<input type="hidden" name="to" value="draft" />
+										<button class="rounded border border-zinc-700 px-2.5 py-1 hover:bg-zinc-900">{m.media_to_draft()}</button>
+									</form>
+								{/if}
+								{#if data.isAdmin || p.created_by === data.username}
+									<form method="POST" action="?/deletePoster" use:enhance>
+										<input type="hidden" name="posterId" value={p.id} />
+										<button class="rounded border border-rose-500/40 px-2.5 py-1 text-rose-300 hover:bg-rose-500/10">{m.media_delete()}</button>
+									</form>
+								{/if}
+							</div>
+						</div>
+					</div>
+				</article>
+			{/each}
+		</div>
+
+		<details class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+			<summary class="cursor-pointer text-sm font-semibold text-zinc-200">{m.posters_add_title()}</summary>
+			<form method="POST" action="?/createPoster" use:enhance class="mt-3 grid gap-3 sm:grid-cols-2">
+				<label class="space-y-1 text-xs text-zinc-400">
+					{m.media_f_title()}
+					<input name="title" required class={field} />
+				</label>
+				<label class="space-y-1 text-xs text-zinc-400">
+					{m.media_f_artist()}
+					<input name="artist_or_author" required value="Przymierze Lemiesza Studio" class={field} />
+				</label>
+				<label class="space-y-1 text-xs text-zinc-400">
+					{m.posters_f_path()}
+					<input name="image_path" list="static-image-paths" required placeholder="/images/two_crowns_hero.jpg" class={field} />
+					<datalist id="static-image-paths">
+						{#each data.staticImages as img (img)}<option value={img}></option>{/each}
+					</datalist>
+				</label>
+				<label class="space-y-1 text-xs text-zinc-400">
+					{m.posters_f_theme()}
+					<select name="theme" class={field}>
+						{#each data.posterThemes as th (th)}<option value={th}>{posterThemeLabel(th)}</option>{/each}
+					</select>
+				</label>
+				<label class="space-y-1 text-xs text-zinc-400 sm:col-span-2">
+					{m.posters_f_caption_pl()}
+					<textarea name="caption_pl" rows="2" class={field}></textarea>
+				</label>
+				<label class="space-y-1 text-xs text-zinc-400 sm:col-span-2">
+					{m.posters_f_caption_en()}
+					<textarea name="caption_en" rows="2" class={field}></textarea>
+				</label>
+				<label class="space-y-1 text-xs text-zinc-400 sm:col-span-2">
+					{m.posters_f_symbolism()}
+					<textarea name="symbolism_notes" rows="2" class={field}></textarea>
+				</label>
+				<label class="flex items-center gap-2 text-sm">
+					<input type="checkbox" name="ai_assisted" />
+					{m.media_f_ai()}
+				</label>
+				<label class="space-y-1 text-xs text-zinc-400 sm:col-span-2">
+					{m.media_f_credits()}
+					<input name="production_credits" class={field} />
+				</label>
+				<div class="sm:col-span-2">
+					<button class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400">{m.media_save()}</button>
+				</div>
+			</form>
+		</details>
+	</section>
+
+	<!-- Audio & Video Media Section -->
 	<nav class="flex flex-wrap gap-2 text-sm" aria-label={m.media_f_genre()}>
-		<a href={href({ genre: '', m: '' })} class="rounded-full border px-3 py-1 {data.filters.genre === '' ? 'border-amber-500/50 bg-amber-500/10 text-amber-300' : 'border-zinc-800 text-zinc-400 hover:text-zinc-100'}">{m.media_filter_all()}</a>
+		<a
+			href={href({ genre: '', m: '' })}
+			class="rounded-full border px-3 py-1 {data.filters.genre === ''
+				? 'border-amber-500/50 bg-amber-500/10 text-amber-300'
+				: 'border-zinc-800 text-zinc-400 hover:text-zinc-100'}"
+		>
+			{m.media_filter_all()}
+		</a>
 		{#each data.genres as g (g)}
-			<a href={href({ genre: g, m: '' })} class="rounded-full border px-3 py-1 {data.filters.genre === g ? 'border-amber-500/50 bg-amber-500/10 text-amber-300' : 'border-zinc-800 text-zinc-400 hover:text-zinc-100'}">{genreLabel(g)}</a>
+			<a
+				href={href({ genre: g, m: '' })}
+				class="rounded-full border px-3 py-1 {data.filters.genre === g
+					? 'border-amber-500/50 bg-amber-500/10 text-amber-300'
+					: 'border-zinc-800 text-zinc-400 hover:text-zinc-100'}"
+			>
+				{genreLabel(g)}
+			</a>
 		{/each}
 	</nav>
 
 	<form method="GET" class="flex gap-2">
 		{#if data.filters.genre}<input type="hidden" name="genre" value={data.filters.genre} />{/if}
 		<input name="q" value={data.filters.q} placeholder={m.media_search()} class={field} />
-		<button class="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 text-sm hover:bg-zinc-900"><Search class="h-4 w-4" />{m.media_search_btn()}</button>
+		<button class="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 text-sm hover:bg-zinc-900">
+			<Search class="h-4 w-4" />{m.media_search_btn()}
+		</button>
 	</form>
-
-	{#if errors.length}
-		<div class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200" role="alert">
-			{#each errors as e}<p>{e === 'forbidden' ? m.media_error_forbidden() : e}</p>{/each}
-		</div>
-	{/if}
 
 	<div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
 		<section class="space-y-2">
 			{#each data.items as item (item.id)}
-				<a href={href({ m: String(item.id) })} class="block rounded-xl border p-3 transition-colors {data.selected?.id === item.id ? 'border-amber-500/40 bg-zinc-900' : 'border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900'}">
+				<a
+					href={href({ m: String(item.id) })}
+					class="block rounded-xl border p-3 transition-colors {data.selected?.id === item.id
+						? 'border-amber-500/40 bg-zinc-900'
+						: 'border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900'}"
+				>
 					<div class="flex items-start justify-between gap-2">
 						<div class="min-w-0">
 							<p class="truncate font-medium">{item.title}</p>
@@ -100,7 +269,9 @@
 						></iframe>
 					</div>
 					<p class="flex items-center gap-2 text-xs text-zinc-400">
-						<a href={s.url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 text-amber-400 hover:underline"><ExternalLink class="h-3.5 w-3.5" />{m.media_open_external()}</a>
+						<a href={s.url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 text-amber-400 hover:underline">
+							<ExternalLink class="h-3.5 w-3.5" />{m.media_open_external()}
+						</a>
 						<span>· {m.media_embed_note()}</span>
 					</p>
 
@@ -123,16 +294,31 @@
 
 					<div class="flex flex-wrap gap-2 text-sm">
 						{#if s.status !== 'human_approved'}
-							<form method="POST" action="?/status" use:enhance><input type="hidden" name="mediaId" value={s.id} /><input type="hidden" name="to" value="human_approved" /><button class="rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white hover:bg-emerald-500">{m.media_approve()}</button></form>
+							<form method="POST" action="?/status" use:enhance>
+								<input type="hidden" name="mediaId" value={s.id} />
+								<input type="hidden" name="to" value="human_approved" />
+								<button class="rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white hover:bg-emerald-500">{m.media_approve()}</button>
+							</form>
 						{/if}
 						{#if s.status !== 'flagged'}
-							<form method="POST" action="?/status" use:enhance><input type="hidden" name="mediaId" value={s.id} /><input type="hidden" name="to" value="flagged" /><button class="rounded-lg border border-amber-500/40 px-3 py-1.5 text-amber-300 hover:bg-amber-500/10">{m.media_flag()}</button></form>
+							<form method="POST" action="?/status" use:enhance>
+								<input type="hidden" name="mediaId" value={s.id} />
+								<input type="hidden" name="to" value="flagged" />
+								<button class="rounded-lg border border-amber-500/40 px-3 py-1.5 text-amber-300 hover:bg-amber-500/10">{m.media_flag()}</button>
+							</form>
 						{/if}
 						{#if s.status !== 'draft'}
-							<form method="POST" action="?/status" use:enhance><input type="hidden" name="mediaId" value={s.id} /><input type="hidden" name="to" value="draft" /><button class="rounded-lg border border-zinc-700 px-3 py-1.5 hover:bg-zinc-900">{m.media_to_draft()}</button></form>
+							<form method="POST" action="?/status" use:enhance>
+								<input type="hidden" name="mediaId" value={s.id} />
+								<input type="hidden" name="to" value="draft" />
+								<button class="rounded-lg border border-zinc-700 px-3 py-1.5 hover:bg-zinc-900">{m.media_to_draft()}</button>
+							</form>
 						{/if}
 						{#if data.isAdmin || s.created_by === data.username}
-							<form method="POST" action="?/delete" use:enhance><input type="hidden" name="mediaId" value={s.id} /><button class="rounded-lg border border-rose-500/40 px-3 py-1.5 text-rose-300 hover:bg-rose-500/10">{m.media_delete()}</button></form>
+							<form method="POST" action="?/delete" use:enhance>
+								<input type="hidden" name="mediaId" value={s.id} />
+								<button class="rounded-lg border border-rose-500/40 px-3 py-1.5 text-rose-300 hover:bg-rose-500/10">{m.media_delete()}</button>
+							</form>
 						{/if}
 					</div>
 
@@ -141,8 +327,15 @@
 						<ul class="mt-2 space-y-1 text-sm">
 							{#each data.links as l (l.argument_id)}
 								<li class="flex items-center justify-between gap-2 rounded-lg border border-zinc-800 px-3 py-1.5">
-									<span class="min-w-0 truncate"><a href="/arguments?q={encodeURIComponent(l.opponent_claim ?? '')}" class="hover:underline">{l.opponent_claim ?? `#${l.argument_id}`}</a>{#if l.cue} <span class="text-xs text-zinc-400">· {m.media_cue_label()} {l.cue}</span>{/if}</span>
-									<form method="POST" action="?/unlink" use:enhance><input type="hidden" name="mediaId" value={s.id} /><input type="hidden" name="argumentId" value={l.argument_id} /><button class="text-xs text-zinc-400 hover:text-rose-300">{m.media_unlink()}</button></form>
+									<span class="min-w-0 truncate">
+										<a href="/arguments?q={encodeURIComponent(l.opponent_claim ?? '')}" class="hover:underline">{l.opponent_claim ?? `#${l.argument_id}`}</a>
+										{#if l.cue} <span class="text-xs text-zinc-400">· {m.media_cue_label()} {l.cue}</span>{/if}
+									</span>
+									<form method="POST" action="?/unlink" use:enhance>
+										<input type="hidden" name="mediaId" value={s.id} />
+										<input type="hidden" name="argumentId" value={l.argument_id} />
+										<button class="text-xs text-zinc-400 hover:text-rose-300">{m.media_unlink()}</button>
+									</form>
 								</li>
 							{:else}
 								<li class="text-zinc-500">{m.media_no_links()}</li>

@@ -2,7 +2,7 @@
 
 > **Doc type: MEASURED STATUS.**
 > **STATUS: OPEN FOR DISCUSSION & CONSULTATION.**
-> This file owns the live pass/fail status and measured performance figures of the Pakt Lemiesza platform and its Robot Fleet.
+> This file owns the live pass/fail status and measured performance figures of the Przymierze Lemiesza platform and its Robot Fleet.
 > Any measurement here must state the date it was taken and the command used to take it ([Canon 03 · D2](../00_Canon/03_Rules_of_Engagement.md)).
 
 ---
@@ -11,11 +11,11 @@
 
 | Suite | Runner | Test Count | Status | Measured Date | Command |
 |---|---|---:|---|---|---|
-| **Unit & Integration** | Vitest | 193 tests | ✅ PASS | 2026-10-01 | `pnpm test` |
+| **Unit & Integration** | Vitest | 197 tests | ✅ PASS | 2026-10-16 | `pnpm test` |
 | **HTTP Smoke Suite** | Node HTTP client | 45 checks | ✅ PASS | 2026-10-01 | `pnpm smoke` |
-| **Type Check & Lint** | svelte-check | 0 errors | ✅ PASS | 2026-10-01 | `pnpm check` |
+| **Type Check & Lint** | svelte-check | 0 errors | ✅ PASS | 2026-10-16 | `pnpm check` |
 | **Retrieval Evaluation** | Vitest, real local embedder | 16 attack lines + 4 off-topic negatives | ✅ PASS (hybrid recall@5 100%, negatives 4/4) | 2026-10-01 | `pnpm eval` |
-| **Robot Fleet** | Node + Vitest | ROBOT-01–10 | see §2 | 2026-10-01 | `pnpm robots` |
+| **Robot Fleet** | Node + Vitest | ROBOT-01–10 | see §2 | 2026-10-16 | `pnpm robots` |
 
 ---
 

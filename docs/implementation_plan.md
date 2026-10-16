@@ -1,9 +1,9 @@
-# Implementation Plan v2 — Pakt Lemiesza (PL) Management Center & Internal Second Brain
+# Implementation Plan v2 — Przymierze Lemiesza (PL) Management Center & Internal Second Brain
 
 **Status:** Authoritative. Supersedes `implementation_plan.v1.md`.
 **Basis:** Consensus in `docs/discussions/implementation_plan_critique.md` (§6–§13). References like *(§12.3 t)* point to that document.
 
-A secure, lightweight, **bilingual (Polish default, English second, open to more)** internal web application for the core team of **Pakt Lemiesza (PL)** (*The Plowshare Pact*). It combines:
+A secure, lightweight, **bilingual (Polish default, English second, open to more)** internal web application for the core team of **Przymierze Lemiesza (PL)** (*The Plowshare Pact*). It combines:
 
 - an **Ideological Repository** of canonical sources and a curated argument taxonomy;
 - a **Rhetorical Shield**: retrieval-grounded debate defence in which every citation is verifiable;

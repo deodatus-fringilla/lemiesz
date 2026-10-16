@@ -2,7 +2,7 @@
 
 > **Doc type: DURABLE RULING.**
 > **STATUS: OPEN FOR DISCUSSION & CONSULTATION.**
-> Defines the operational laws for developers, human reviewers, and AI coding agents working on Pakt Lemiesza (`lemiesz`).
+> Defines the operational laws for developers, human reviewers, and AI coding agents working on Przymierze Lemiesza (`lemiesz`).
 
 ---
 
@@ -39,7 +39,7 @@ A robot cannot be declared to exist simply because a test was run in a terminal.
 ---
 
 ## D5 · Truth in Citations (Zero Hallucination)
-Pakt Lemiesza is an ideological repository and rhetorical shield. Credibility is existential.
+Przymierze Lemiesza is an ideological repository and rhetorical shield. Credibility is existential.
 - No LLM may invent, embellish, or paraphrase a quotation inside quotation marks.
 - Quotation tokens (`[[src:ID]]`) in streaming output must be resolved to database-stored, human-verified text only.
 - Any output that fails the verbatim substring check must be intercepted or visually flagged before public exposure.

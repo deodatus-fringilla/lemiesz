@@ -1,7 +1,7 @@
 # Architectural Critique & Consultation: Implementation Plan
 
 **Target Document:** `implementation_plan.md`  
-**Project:** Pakt Lemiesza (PL) Management Center & Internal Second Brain  
+**Project:** Przymierze Lemiesza (PL) Management Center & Internal Second Brain  
 **Date:** September 2026  
 **Status:** Discussion / Consultation
 
@@ -103,7 +103,7 @@ At the time of this review, several packages referenced in `implementation_plan.
 
 ### 6.2 Gaps not yet covered by the critique
 
-1. **Language.** The movement is Polish ("Pakt Lemiesza"), but the plan and the critique both assume English. `bge-small-en-v1.5` and `all-MiniLM-L6-v2` are English-centric. If the corpus and queries are Polish, use a multilingual model (`multilingual-e5-small`, or the API embeddings). FTS5 also needs a tokenizer decision: `unicode61 remove_diacritics 2`, and Polish stemming is weak, so the taxonomy keywords have to carry recall. **Open question for the owner: which language is the UI, the corpus and the generated content in?**
+1. **Language.** The movement is Polish ("Przymierze Lemiesza"), but the plan and the critique both assume English. `bge-small-en-v1.5` and `all-MiniLM-L6-v2` are English-centric. If the corpus and queries are Polish, use a multilingual model (`multilingual-e5-small`, or the API embeddings). FTS5 also needs a tokenizer decision: `unicode61 remove_diacritics 2`, and Polish stemming is weak, so the taxonomy keywords have to carry recall. **Open question for the owner: which language is the UI, the corpus and the generated content in?**
 2. **No authentication or authorization.** This is an "internal" tool holding strategy and holding LLM API keys, and the plan has none. The minimum is a shared passphrase or a per-user login with a session cookie, checked in `hooks.server.ts`, plus rate limiting on `/api/chat` and `/api/content` so that a leaked URL can't burn the API budget.
 3. **Hallucinated or misattributed citations.** This is the largest product risk. A rhetorical shield that invents "Gaudium et Spes §79" is worse than none. Guardrails:
    - The model may cite only IDs of retrieved chunks. Return structured output (`{text, cites:[chunk_id]}`), and reject or strip any cite not in the retrieved set.
@@ -303,7 +303,7 @@ Below are the concrete answers and budget-optimized proposals addressing the own
   * **Estimated Total Monthly LLM Bill:** **$1.00 – $3.00/month** (or virtually free on Google AI Studio free tier).
 
 #### 3. Authorship of Arguments Taxonomy & Translation Review
-* **Authorship:** The core Pakt Lemiesza thinkers direct and curate the taxonomy, but the initial draft is **AI-bootstrapped**:
+* **Authorship:** The core Przymierze Lemiesza thinkers direct and curate the taxonomy, but the initial draft is **AI-bootstrapped**:
   * An offline script runs over ingested `sources` and suggests candidate opponent attacks, fallacies, and counter-punches into `arguments` and `argument_texts` flagged as `status: 'draft'`.
   * The human core team reviews, polishes, and flips status to `reviewed` via the repository UI.
 * **Translation Review:** All machine-generated English translations are flagged `status: 'draft'` / `origin: 'machine_translation'` until human review.
@@ -312,7 +312,7 @@ Below are the concrete answers and budget-optimized proposals addressing the own
 * **Papal Encyclicals (*Pacem in Terris*, *Gaudium et Spes*):** Official Polish Magisterial texts from the Holy See (**vatican.va**) and **opoka.org.pl**.
 * **Frédéric Bastiat (*The Law* / *Prawo*):** Canonical Polish translation published by **Instytut Misesa (mises.pl)**.
 * **Swiss Neutrality Documents:** Official texts from the Swiss Federal Department of Foreign Affairs (**EDA / FDFA**).
-* **PL Movement Manifesto & Double Distance Strategy:** Original canonical Polish texts authored directly by Pakt Lemiesza.
+* **PL Movement Manifesto & Double Distance Strategy:** Original canonical Polish texts authored directly by Przymierze Lemiesza.
 
 ---
 
@@ -400,7 +400,7 @@ If Gemini has no objection to 10.2, I will write the revised `implementation_pla
    * For Phase 1, only ingest texts that are verified public domain or official public records:
      * Papal encyclicals (*Pacem in Terris*, *Gaudium et Spes*) from Vatican.va / official Magisterium sources.
      * Swiss Neutrality official legal texts from the Swiss Federal Department of Foreign Affairs (FDFA / EDA).
-     * Pakt Lemiesza Manifesto and Double Distance Strategy (original PL property).
+     * Przymierze Lemiesza Manifesto and Double Distance Strategy (original PL property).
    * For copyright-encumbered modern Polish translations (such as modern Bastiat editions published by private institutes), store only the metadata, section references, and movement-authored paraphrases until redistribution rights are verified.
 
 ---

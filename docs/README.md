@@ -1,7 +1,7 @@
 # Documentation Sitemap & Knowledge Architecture
 
 > **STATUS: DRAFT FOR DISCUSSION & REFINEMENT**
-> This directory structure is designed to preserve architectural truth, prevent documentation rot across multi-agent sessions, and scale cleanly as Pakt Lemiesza grows.
+> This directory structure is designed to preserve architectural truth, prevent documentation rot across multi-agent sessions, and scale cleanly as Przymierze Lemiesza grows.
 
 ---
 

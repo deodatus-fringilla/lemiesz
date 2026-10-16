@@ -9,17 +9,18 @@
 	let { data, children } = $props();
 
 	const nav = $derived([
-		{ href: '/', label: m.nav_dashboard(), icon: LayoutDashboard },
-		{ href: '/shield', label: m.nav_shield(), icon: MessageSquareQuote },
-		{ href: '/content', label: m.nav_content(), icon: PenLine },
-		{ href: '/media', label: m.nav_media(), icon: Music },
-		{ href: '/repository', label: m.nav_repository(), icon: BookOpen },
-		{ href: '/arguments', label: m.nav_arguments(), icon: Swords },
-		{ href: '/review', label: m.nav_review(), icon: CheckSquare }
+		{ href: '/dashboard', label: m.nav_dashboard(), icon: LayoutDashboard, badge: 0 },
+		{ href: '/shield', label: m.nav_shield(), icon: MessageSquareQuote, badge: 0 },
+		{ href: '/content', label: m.nav_content(), icon: PenLine, badge: 0 },
+		{ href: '/media', label: m.nav_media(), icon: Music, badge: 0 },
+		{ href: '/repository', label: m.nav_repository(), icon: BookOpen, badge: 0 },
+		{ href: '/arguments', label: m.nav_arguments(), icon: Swords, badge: 0 },
+		{ href: '/review', label: m.nav_review(), icon: CheckSquare, badge: data.queueCount ?? 0 }
 	]);
 
-	const isActive = (href: string) =>
-		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
+	const isActive = (href: string) => page.url.pathname.startsWith(href);
+	/** The public landing page renders full-bleed, outside the app's content container. */
+	const isLanding = $derived(page.url.pathname === '/');
 </script>
 
 <svelte:head>
@@ -36,7 +37,7 @@
 						<Shield class="h-5 w-5" />
 					</span>
 					<span class="leading-tight">
-						<span class="block text-base font-bold">Pakt Lemiesza</span>
+						<span class="block text-base font-bold">Przymierze Lemiesza</span>
 						<span class="block text-[11px] text-zinc-400">{m.app_subtitle()}</span>
 					</span>
 				</a>
@@ -51,6 +52,11 @@
 						>
 							<item.icon class="h-4 w-4" />
 							{item.label}
+							{#if item.badge > 0}
+								<span class="ml-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-amber-300">
+									{item.badge}
+								</span>
+							{/if}
 						</a>
 					{/each}
 				</nav>
@@ -85,17 +91,27 @@
 			</div>
 			<nav class="flex gap-1 overflow-x-auto border-t border-zinc-900 px-4 py-2 text-sm md:hidden">
 				{#each nav as item (item.href)}
-					<a href={item.href} class="whitespace-nowrap rounded-lg px-3 py-1 {isActive(item.href) ? 'bg-zinc-900 text-amber-400' : 'text-zinc-400'}">
+					<a href={item.href} class="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1 {isActive(item.href) ? 'bg-zinc-900 text-amber-400' : 'text-zinc-400'}">
+						<item.icon class="h-3.5 w-3.5" />
 						{item.label}
+						{#if item.badge > 0}
+							<span class="rounded-full bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-amber-300">{item.badge}</span>
+						{/if}
 					</a>
 				{/each}
 			</nav>
 		</header>
 	{/if}
 
-	<main class="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
-		{@render children()}
-	</main>
+	{#if isLanding}
+		<main class="flex-1">
+			{@render children()}
+		</main>
+	{:else}
+		<main class="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
+			{@render children()}
+		</main>
+	{/if}
 
 	<footer class="border-t border-zinc-900 py-6 text-center text-xs text-zinc-600">{m.footer()}</footer>
 </div>

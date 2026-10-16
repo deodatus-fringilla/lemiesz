@@ -1,137 +1,155 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { CircleAlert, Info, TriangleAlert } from 'lucide-svelte';
+	import { ArrowRight, ChevronDown, CookingPot, Coins, Grape, Hammer, LayoutDashboard, Link, LogIn, Swords, Users, VolumeX } from 'lucide-svelte';
 	import { m } from '$lib/paraglide/messages.js';
-	import { languageLabel, reviewLabel } from '$lib/i18n/labels';
+	import {
+		SAMUEL8_REF,
+		SAMUEL8_TRANSLATION,
+		consequences,
+		lordAnswers,
+		request,
+		samuelPrays,
+		samuelTells,
+		type ConsequenceKey
+	} from '$lib/content/samuel8';
 
-	let { data, form } = $props();
-	const d = $derived(data.dash);
+	let { data } = $props();
 
-	const warnText = (id: string): string => {
-		const fn = (m as unknown as Record<string, () => string>)[`warn_${id}`];
-		return typeof fn === 'function' ? fn() : id;
+	const icons: Record<ConsequenceKey, typeof Swords> = {
+		army: Swords,
+		labour: Hammer,
+		daughters: CookingPot,
+		land: Grape,
+		tithe_harvest: Coins,
+		servants: Users,
+		slavery: Link,
+		silence: VolumeX
 	};
-	const pct = (x: number | null) => (x === null ? '—' : `${Math.round(x * 100)}%`);
-	const kib = (b: number) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MiB` : `${Math.max(1, Math.round(b / 1024))} KiB`);
-	const ago = (h: number | null) => (h === null ? '—' : h < 1 ? m.dash_minutes_ago({ n: Math.max(1, Math.round(h * 60)) }) : h < 48 ? m.dash_hours_ago({ n: Math.round(h) }) : m.dash_days_ago({ n: Math.round(h / 24) }));
-
-	const tiles = $derived([
-		{ label: m.dash_sources(), value: d.counts.sources },
-		{ label: m.dash_arguments(), value: d.counts.arguments },
-		{ label: m.dash_approved(), value: d.counts.approvedTexts },
-		{ label: m.content_title(), value: d.counts.drafts },
-		{ label: m.dash_users(), value: d.counts.users }
-	]);
-	const queueRows = $derived([
-		{ label: m.review_reason_flagged(), n: d.queue.flagged, tone: 'text-amber-300' },
-		{ label: m.review_reason_stale(), n: d.queue.stale, tone: 'text-rose-300' },
-		{ label: m.review_reason_sampled(), n: d.queue.sampled, tone: 'text-sky-300' },
-		{ label: m.review_reason_draft(), n: d.queue.draft, tone: 'text-zinc-300' }
-	]);
-	const errors = $derived((form && 'errors' in form ? (form.errors as string[]) : []) ?? []);
-	const card = 'rounded-xl border border-zinc-800 bg-zinc-900/40 p-4';
-	const yes = (b: boolean) => (b ? m.dash_yes() : m.dash_no());
+	const titles: Record<ConsequenceKey, () => string> = {
+		army: m.landing_c_army,
+		labour: m.landing_c_labour,
+		daughters: m.landing_c_daughters,
+		land: m.landing_c_land,
+		tithe_harvest: m.landing_c_tithe_harvest,
+		servants: m.landing_c_servants,
+		slavery: m.landing_c_slavery,
+		silence: m.landing_c_silence
+	};
 </script>
 
-<div class="space-y-8">
-	<div>
-		<h1 class="text-3xl font-bold tracking-tight">{m.dash_title()}</h1>
-		<p class="mt-1 text-sm text-zinc-400">{m.dash_intro()}</p>
-	</div>
+<svelte:head>
+	<meta name="description" content={m.landing_lead()} />
+	<meta property="og:image" content="/images/two_crowns_hero.jpg" />
+</svelte:head>
 
-	{#if d.warnings.length}
-		<section aria-label={m.dash_attention()} class="space-y-2">
-			{#each d.warnings as w (w.id)}
-				<div role={w.severity === 'error' ? 'alert' : 'status'} class="flex items-start gap-2 rounded-lg border px-3 py-2 text-sm
-					{w.severity === 'error' ? 'border-rose-500/40 bg-rose-500/10 text-rose-200' : w.severity === 'warn' ? 'border-amber-500/40 bg-amber-500/10 text-amber-200' : 'border-sky-500/30 bg-sky-500/5 text-sky-200'}">
-					{#if w.severity === 'error'}<CircleAlert class="mt-0.5 h-4 w-4 shrink-0" />{:else if w.severity === 'warn'}<TriangleAlert class="mt-0.5 h-4 w-4 shrink-0" />{:else}<Info class="mt-0.5 h-4 w-4 shrink-0" />{/if}
-					<span>{warnText(w.id)}</span>
-				</div>
-			{/each}
-		</section>
-	{/if}
+<!-- HERO -->
+<section class="relative isolate flex min-h-[92vh] items-end overflow-hidden">
+	<img
+		src="/images/two_crowns_hero.jpg"
+		alt={m.landing_hero_alt()}
+		class="absolute inset-0 -z-20 h-full w-full object-cover object-center"
+		fetchpriority="high"
+	/>
+	<div class="absolute inset-0 -z-10 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-zinc-950/10"></div>
+	<div class="absolute inset-0 -z-10 bg-gradient-to-r from-zinc-950/70 via-transparent to-transparent"></div>
 
-	<div class="grid grid-cols-2 gap-4 md:grid-cols-5">
-		{#each tiles as tile (tile.label)}
-			<div class={card}><div class="text-3xl font-bold text-amber-400">{tile.value}</div><div class="mt-1 text-xs text-zinc-400">{tile.label}</div></div>
-		{/each}
-	</div>
+	<div class="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 sm:pb-24">
+		<p class="text-xs font-semibold tracking-[0.25em] text-amber-400 uppercase">{m.landing_eyebrow()}</p>
+		<h1 class="mt-4 font-serif text-5xl leading-[1.05] font-bold tracking-tight text-zinc-50 sm:text-7xl">
+			{m.landing_title_a()}<br /><span class="text-amber-400">{m.landing_title_b()}</span>
+		</h1>
+		<p class="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300">{m.landing_lead()}</p>
 
-	<div class="grid gap-4 lg:grid-cols-2">
-		<section class={card}>
-			<div class="flex items-baseline justify-between"><h2 class="font-semibold">{m.dash_queue()}</h2><a href="/review" class="text-xs text-sky-400 hover:underline">{m.dash_open_review()}</a></div>
-			<ul class="mt-3 space-y-1 text-sm">{#each queueRows as r (r.label)}<li class="flex justify-between"><span class="text-zinc-400">{r.label}</span><span class="font-mono {r.n ? r.tone : 'text-zinc-600'}">{r.n}</span></li>{/each}</ul>
-		</section>
-
-		<section class={card}>
-			<h2 class="font-semibold">{m.dash_sampling()}</h2>
-			<p class="mt-2 text-sm text-zinc-300">{m.review_stats_line({ reviewed: d.sampling.reviewed, disagreed: d.sampling.disagreed, rate: Math.round(d.sampling.rate * 100) })}</p>
-			<p class="mt-1 text-xs {d.sampling.alert ? 'text-rose-300' : 'text-zinc-500'}">{d.sampling.alert ? m.review_alert() : m.dash_sampling_ok()}</p>
-		</section>
-
-		<section class={card}>
-			<h2 class="font-semibold">{m.dash_pipeline()}</h2>
-			<dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-				<dt class="text-zinc-400">{m.dash_runs()}</dt><dd class="text-right font-mono">{d.pipeline.runs30d}</dd>
-				<dt class="text-zinc-400">{m.dash_cards_created()}</dt><dd class="text-right font-mono">{d.pipeline.created}</dd>
-				<dt class="text-zinc-400">{m.dash_fabrication()}</dt><dd class="text-right font-mono {d.pipeline.fabricationRate && d.pipeline.fabricationRate > 0.3 ? 'text-rose-300' : ''}">{pct(d.pipeline.fabricationRate)}</dd>
-				<dt class="text-zinc-400">{m.dash_ai_verified()}</dt><dd class="text-right font-mono">{d.pipeline.verified}</dd>
-				<dt class="text-zinc-400">{m.dash_flagged()}</dt><dd class="text-right font-mono">{d.pipeline.flagged}</dd>
-			</dl>
-			{#if d.pipeline.last}<p class="mt-2 text-xs text-zinc-500">{m.dash_last_run()}: {d.pipeline.last.at} · {d.pipeline.last.drafter ?? '—'} → {d.pipeline.last.auditor ?? '—'}</p>{/if}
-		</section>
-
-		<section class={card}>
-			<h2 class="font-semibold">{m.repo_coverage()}</h2>
-			<div class="mt-3 space-y-3">
-				{#each Object.entries(d.coverage) as [code, c] (code)}
-					<div><div class="flex justify-between text-sm"><span>{languageLabel(code)}</span><span class="text-zinc-400">{c.translated}/{c.total} · {c.approved} {m.repo_approved()}</span></div>
-						<div class="mt-1 h-1.5 rounded bg-zinc-800"><div class="h-1.5 rounded bg-amber-500" style="width: {c.percentage}%"></div></div></div>
-				{/each}
-			</div>
-		</section>
-
-		<section class={card}>
-			<h2 class="font-semibold">{m.dash_backup()}</h2>
-			{#if d.backup.last}
-				<p class="mt-2 text-sm">{m.dash_last_backup()}: <span class="font-mono">{d.backup.last.file}</span> ({kib(d.backup.last.bytes)}, {ago(d.backup.ageHours)})</p>
-			{:else}<p class="mt-2 text-sm text-rose-300">{m.dash_no_backup()}</p>{/if}
-			<p class="mt-1 text-xs text-zinc-500">{m.dash_backup_info({ n: d.backup.count, hours: d.backup.intervalHours, dir: d.backup.dir })}</p>
-			{#if data.isAdmin}
-				<form method="POST" action="?/backup" use:enhance class="mt-3 flex items-center gap-3">
-					<button class="rounded border border-zinc-700 px-3 py-1 text-xs hover:bg-zinc-800">{m.dash_backup_now()}</button>
-					{#if form && 'backedUp' in form}<span class="text-xs text-emerald-300">{form.backedUp}</span>{/if}
-				</form>
+		<div class="mt-8 flex flex-wrap items-center gap-3">
+			<a href="#warning" class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-400">
+				{m.landing_cta_read()} <ChevronDown class="h-4 w-4" />
+			</a>
+			{#if data.user}
+				<a href="/dashboard" class="inline-flex items-center gap-2 rounded-lg border border-zinc-600 bg-zinc-950/50 px-5 py-2.5 text-sm font-semibold text-zinc-100 backdrop-blur hover:border-amber-500/60">
+					<LayoutDashboard class="h-4 w-4" /> {m.landing_cta_dashboard()}
+				</a>
+			{:else}
+				<a href="/login" class="inline-flex items-center gap-2 rounded-lg border border-zinc-600 bg-zinc-950/50 px-5 py-2.5 text-sm font-semibold text-zinc-100 backdrop-blur hover:border-amber-500/60">
+					<LogIn class="h-4 w-4" /> {m.landing_cta_signin()}
+				</a>
 			{/if}
-			{#each errors as e (e)}<p role="alert" class="mt-2 text-xs text-rose-300">{e}</p>{/each}
-		</section>
-
-		<section class={card}>
-			<h2 class="font-semibold">{m.dash_config()}</h2>
-			<dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-				<dt class="text-zinc-400">{m.dash_cfg_auth()}</dt><dd class="text-right">{d.config.auth === 'enabled' ? m.dash_on() : m.dash_off()}</dd>
-				<dt class="text-zinc-400">{m.dash_cfg_chat()}</dt><dd class="text-right">{yes(d.config.chat)}</dd>
-				<dt class="text-zinc-400">{m.dash_cfg_drafter()}</dt><dd class="text-right">{yes(d.config.drafter)}</dd>
-				<dt class="text-zinc-400">{m.dash_cfg_auditor()}</dt><dd class="text-right">{yes(d.config.auditor)}</dd>
-				<dt class="text-zinc-400">{m.dash_cfg_embedder()}</dt><dd class="text-right font-mono">{d.config.embedder}</dd>
-				<dt class="text-zinc-400">RAG_VECTOR_MIN</dt><dd class="text-right font-mono">{d.config.ragVectorMin}</dd>
-			</dl>
-		</section>
-
-		<section class={card}>
-			<h2 class="font-semibold">{m.dash_top_used()}</h2>
-			<ul class="mt-3 space-y-1 text-sm">
-				{#each d.topUsed as t (`${t.ownerType}:${t.ownerId}`)}<li class="flex justify-between gap-3"><span class="truncate text-zinc-300">{t.title}</span><span class="font-mono text-zinc-500">{t.uses}×</span></li>
-				{:else}<li class="text-zinc-500">{m.dash_no_usage()}</li>{/each}
-			</ul>
-		</section>
-
-		<section class={card}>
-			<h2 class="font-semibold">{m.dash_recent()}</h2>
-			<ul class="mt-3 space-y-1 text-xs text-zinc-400">
-				{#each d.recent as e, i (i)}<li>{e.at} · {e.actor} · #{e.ownerId} {e.locale}: {reviewLabel(e.from)} → {reviewLabel(e.to)}</li>
-				{:else}<li class="text-zinc-500">{m.dash_no_activity()}</li>{/each}
-			</ul>
-		</section>
+		</div>
 	</div>
-</div>
+</section>
+
+<!-- THE REQUEST & THE ANSWER (vv. 4–10) -->
+<section id="warning" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6">
+	<p class="text-center text-xs font-semibold tracking-[0.25em] text-zinc-500 uppercase">{SAMUEL8_REF}</p>
+	<div class="mt-10 grid gap-8 lg:grid-cols-2">
+		<article class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 sm:p-8">
+			<h2 class="text-sm font-semibold tracking-widest text-zinc-400 uppercase">{m.landing_request_title()}</h2>
+			<p class="mt-4 font-serif text-xl leading-relaxed text-zinc-200">
+				{#each request as v (v.n)}<sup class="mr-1 font-sans text-xs text-amber-500/80">{v.n}</sup>{v.text}{' '}{/each}
+			</p>
+		</article>
+
+		<article class="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-zinc-900/60 to-zinc-950 p-6 sm:p-8">
+			<h2 class="text-sm font-semibold tracking-widest text-amber-300 uppercase">{m.landing_answer_title()}</h2>
+			<p class="mt-4 leading-relaxed text-zinc-300">
+				{#each samuelPrays as v (v.n)}<sup class="mr-1 text-xs text-amber-500/80">{v.n}</sup>{v.text}{' '}{/each}
+			</p>
+			<blockquote class="mt-4 border-l-2 border-amber-500/60 pl-4 font-serif text-xl leading-relaxed text-zinc-100">
+				{#each lordAnswers as v, i (i)}{#if i > 0}<sup class="mr-1 font-sans text-xs text-amber-500/80">{v.n}</sup>{/if}{v.text}{' '}{/each}
+			</blockquote>
+			<p class="mt-4 leading-relaxed text-zinc-300">
+				<sup class="mr-1 text-xs text-amber-500/80">{samuelTells.n}</sup>{samuelTells.text}
+			</p>
+		</article>
+	</div>
+</section>
+
+<!-- THE COST OF THE CROWN (vv. 11–18) -->
+<section class="border-y border-zinc-900 bg-zinc-900/30">
+	<div class="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+		<div class="max-w-3xl">
+			<p class="text-xs font-semibold tracking-[0.25em] text-rose-400/90 uppercase">{m.landing_cost_eyebrow()}</p>
+			<h2 class="mt-3 font-serif text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl">{m.landing_cost_title()}</h2>
+			<p class="mt-4 text-lg leading-relaxed text-zinc-400">{m.landing_cost_intro()}</p>
+		</div>
+
+		<ol class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+			{#each consequences as c, i (c.key)}
+				{@const Icon = icons[c.key]}
+				<li
+					class="group relative flex flex-col rounded-xl border p-5 transition-colors {c.climax
+						? 'border-rose-500/40 bg-rose-950/20 hover:border-rose-400/70 lg:col-span-2'
+						: 'border-zinc-800 bg-zinc-950/60 hover:border-amber-500/40'}"
+				>
+					<div class="flex items-center justify-between">
+						<span class="flex h-10 w-10 items-center justify-center rounded-lg border {c.climax ? 'border-rose-500/40 bg-rose-500/10 text-rose-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-400'}">
+							<Icon class="h-5 w-5" />
+						</span>
+						<span class="font-mono text-xs text-zinc-500">{String(i + 1).padStart(2, '0')} · {c.ref}</span>
+					</div>
+					<h3 class="mt-4 text-lg font-semibold {c.climax ? 'text-rose-200' : 'text-zinc-100'}">{titles[c.key]()}</h3>
+					<p class="mt-2 font-serif leading-relaxed {c.climax ? 'text-xl text-zinc-200' : 'text-zinc-400'}">
+						{#each c.verses as v (v.n)}<sup class="mr-1 font-sans text-[10px] text-zinc-500">{v.n}</sup>{v.text}{' '}{/each}
+					</p>
+				</li>
+			{/each}
+		</ol>
+
+		<p class="mt-12 text-center font-serif text-sm tracking-[0.2em] text-zinc-500 uppercase sm:text-base">{m.landing_tally()}</p>
+	</div>
+</section>
+
+<!-- CLOSING: TWO CROWNS -->
+<section class="relative isolate overflow-hidden">
+	<img src="/images/two_crowns_hero.jpg" alt="" aria-hidden="true" class="absolute inset-0 -z-20 h-full w-full object-cover opacity-25 blur-sm" loading="lazy" />
+	<div class="absolute inset-0 -z-10 bg-gradient-to-b from-zinc-950 via-zinc-950/80 to-zinc-950"></div>
+	<div class="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
+		<h2 class="font-serif text-3xl font-bold tracking-tight text-zinc-50 sm:text-4xl">{m.landing_close_title()}</h2>
+		<p class="mt-6 text-lg leading-relaxed text-zinc-300">{m.landing_close_body()}</p>
+		<a
+			href={data.user ? '/dashboard' : '/login'}
+			class="mt-10 inline-flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-300 hover:bg-amber-500/20"
+		>
+			{data.user ? m.landing_cta_dashboard() : m.landing_cta_signin()} <ArrowRight class="h-4 w-4" />
+		</a>
+		<p class="mt-12 text-xs text-zinc-600">{m.landing_translation_note({ translation: `${SAMUEL8_REF}, ${SAMUEL8_TRANSLATION}` })}</p>
+	</div>
+</section>

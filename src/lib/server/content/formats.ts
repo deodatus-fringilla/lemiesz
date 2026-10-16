@@ -5,7 +5,7 @@ import { DEFAULT_LOCALE } from '$lib/i18n/locales';
  * style differs from English press style, and a new language adds entries here instead of changing logic.
  * Formatting only: nothing here publishes anywhere (no social-API integrations in v1).
  */
-export const PLATFORMS = ['x', 'facebook', 'shorts', 'press'] as const;
+export const PLATFORMS = ['x', 'facebook', 'shorts', 'press', 'letter'] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
 export const TONES = ['assertive', 'pastoral', 'formal', 'conversational'] as const;
@@ -19,7 +19,8 @@ export const DEFAULT_TONE: Record<Platform, Tone> = {
 	x: 'assertive',
 	facebook: 'pastoral',
 	shorts: 'conversational',
-	press: 'formal'
+	press: 'formal',
+	letter: 'assertive'
 };
 
 type PerLocale = Record<string, string>;
@@ -41,6 +42,10 @@ const PLATFORM_RULES: Record<Platform, PerLocale> = {
 	press: {
 		pl: 'Napisz komunikat prasowy: pierwsza linia to nagłówek (do 120 znaków), druga to dateline w formie "[DATA] — [MIEJSCOWOŚĆ]", dalej 2-4 zwięzłe akapity w formalnym, rzeczowym stylu, na końcu linia "[KONTAKT DLA MEDIÓW]". Nie wymyślaj nazwisk, stanowisk, dat ani danych kontaktowych: zostaw nawiasy kwadratowe do uzupełnienia.',
 		en: 'Write a press statement: the first line is the headline (at most 120 characters), the second a dateline like "[DATE] — [CITY]", then 2-4 concise paragraphs in a formal, factual register, ending with a line "[MEDIA CONTACT]". Do not invent names, titles, dates or contact details: leave square-bracket placeholders to be filled in.'
+	},
+	letter: {
+		pl: 'Napisz list polemiczny / otwarty w duchu Dysputy Tomistycznej i Rycerskiej Polemiki (odrzucając dialektykę heglowską): zacznij od zwrotu „Szczęść Boże!” oraz „[ADRESAT]”, doceń merytoryczny charakter dialogu i wskaż punkty wspólne, po czym w 3-5 numerowanych sekcjach przeprowadź rygorystyczną kontrargumentację logiczną, historyczną, ekonomiczną i teologiczną ze źródłami. Zakończ zaproszeniem do dalszego dialogu i linią „[PODPIS]”.',
+		en: 'Write an epistolary polemic / open letter in the spirit of Thomistic Disputation and Chivalrous Polemics (rejecting Hegelian dialectics): open with a respectful salutation "[RECIPIENT]", acknowledge shared patriotic premises, then present 3-5 numbered sections of rigorous logical, historical, economic, and theological refutation grounded in the sources. End with an invitation to further dialogue and "[SIGNATURE]".'
 	}
 };
 

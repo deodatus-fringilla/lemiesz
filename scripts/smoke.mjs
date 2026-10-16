@@ -59,6 +59,10 @@ try {
 	check('page without a session redirects to /login', r.status === 303 && r.headers.get('location') === '/login', String(r.status));
 	r = await fetch(`${BASE}/login`);
 	check('login page is public', r.status === 200);
+	r = await fetch(`${BASE}/`, noRedirect);
+	check('landing page is public and quotes 1 Samuel 8', r.status === 200 && (await r.text()).includes('1 Samuel 8:4'), String(r.status));
+	r = await fetch(`${BASE}/dashboard`, noRedirect);
+	check('dashboard without a session redirects to /login', r.status === 303 && r.headers.get('location') === '/login', String(r.status));
 
 	// Unauthenticated form action must not write anything
 	r = await fetch(`${BASE}/repository?/delete`, {
@@ -98,7 +102,7 @@ try {
 	r = await fetch(`${BASE}/repository`, authed);
 	check('repository page renders (Polish by default)', r.status === 200 && (await r.text()).includes('Repozytorium'));
 
-	for (const page of ['/arguments', '/review', '/']) {
+	for (const page of ['/arguments', '/review', '/dashboard', '/']) {
 		r = await fetch(BASE + page, authed);
 		check('page ' + page + ' renders', r.status === 200, String(r.status));
 	}
@@ -275,7 +279,17 @@ try {
 	failures++;
 } finally {
 	server.kill();
-	fs.rmSync(dir, { recursive: true, force: true });
+	if (server.exitCode === null) {
+		await new Promise((r) => {
+			server.on('exit', r);
+			setTimeout(r, 1000);
+		});
+	}
+	try {
+		fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+	} catch {
+		/* ignore busy file cleanup errors on Windows */
+	}
 }
 
 if (failures) {

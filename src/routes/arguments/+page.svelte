@@ -1,17 +1,30 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Plus, Search, Sparkles } from 'lucide-svelte';
+	import { Columns2, PenLine, Plus, Search, Sparkles } from 'lucide-svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import ReviewBadge from '$lib/components/ReviewBadge.svelte';
 	import { languageLabel, originLabel, reviewLabel } from '$lib/i18n/labels';
 
 	let { data, form } = $props();
 	let showCreate = $state(false);
+	let bilingualView = $state(true);
+	let sourceFilter = $state('');
 
 	const errors = $derived((form && 'errors' in form ? (form.errors as string[]) : []) ?? []);
 	const summary = $derived(form && 'summary' in form ? form.summary : null);
 	const sourceLabel = (id: number) => data.sources.find((s) => s.id === id)?.label ?? `#${id}`;
+	const filteredSources = $derived(
+		sourceFilter.trim()
+			? data.sources.filter((s) => s.label.toLowerCase().includes(sourceFilter.trim().toLowerCase()))
+			: data.sources
+	);
 	const input = 'w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm';
+	let searchTimer: ReturnType<typeof setTimeout> | null = null;
+	function debouncedSubmit(formEl: HTMLFormElement | null) {
+		if (!formEl) return;
+		if (searchTimer) clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => formEl.requestSubmit(), 300);
+	}
 </script>
 
 <div class="space-y-8">
@@ -20,9 +33,25 @@
 			<h1 class="text-3xl font-bold tracking-tight">{m.arg_title()}</h1>
 			<p class="mt-1 text-sm text-zinc-400">{m.arg_intro()}</p>
 		</div>
-		<button type="button" onclick={() => (showCreate = !showCreate)} class="inline-flex items-center gap-2 self-start rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400">
-			<Plus class="h-4 w-4" />{m.arg_add()}
-		</button>
+		<div class="flex flex-wrap items-center gap-2">
+			<button
+				type="button"
+				onclick={() => (bilingualView = !bilingualView)}
+				class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors {bilingualView
+					? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+					: 'border-zinc-700 text-zinc-400 hover:bg-zinc-900'}"
+			>
+				<Columns2 class="h-4 w-4" />
+				{m.bilingual_view_toggle()}
+			</button>
+			<button
+				type="button"
+				onclick={() => (showCreate = !showCreate)}
+				class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400"
+			>
+				<Plus class="h-4 w-4" />{m.arg_add()}
+			</button>
+		</div>
 	</div>
 
 	{#if errors.length}
@@ -65,20 +94,61 @@
 	{/if}
 
 	{#if showCreate}
-		<form method="POST" action="?/create" use:enhance={() => async ({ result, update }) => { await update(); if (result.type === 'success') showCreate = false; }} class="grid gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 md:grid-cols-2">
-			<label class="block text-sm md:col-span-2"><span class="mb-1 block text-zinc-300">{m.f_claim()}</span><textarea name="opponent_claim" rows="2" required class={input}></textarea></label>
-			<label class="block text-sm md:col-span-2"><span class="mb-1 block text-zinc-300">{m.f_punch()}</span><textarea name="counter_punch" rows="4" required class={input}></textarea></label>
-			<label class="block text-sm"><span class="mb-1 block text-zinc-300">{m.f_principle()}</span><input name="core_principle" required class={input} /></label>
-			<label class="block text-sm"><span class="mb-1 block text-zinc-300">{m.f_fallacy()}</span><input name="fallacy_type" class={input} /></label>
+		<form
+			method="POST"
+			action="?/create"
+			use:enhance={() =>
+				async ({ result, update }) => {
+					await update();
+					if (result.type === 'success') showCreate = false;
+				}}
+			class="grid gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 md:grid-cols-2"
+		>
+			<label class="block text-sm md:col-span-2">
+				<span class="mb-1 block text-zinc-300">{m.f_claim()}</span>
+				<textarea name="opponent_claim" rows="2" required class={input}></textarea>
+			</label>
+			<label class="block text-sm md:col-span-2">
+				<span class="mb-1 block text-zinc-300">{m.f_punch()}</span>
+				<textarea name="counter_punch" rows="4" required class={input}></textarea>
+			</label>
+			<label class="block text-sm">
+				<span class="mb-1 block text-zinc-300">{m.f_principle()}</span>
+				<input name="core_principle" required class={input} />
+			</label>
+			<label class="block text-sm">
+				<span class="mb-1 block text-zinc-300">{m.f_fallacy()}</span>
+				<input name="fallacy_type" class={input} />
+			</label>
 			<label class="block text-sm">
 				<span class="mb-1 block text-zinc-300">{m.f_locale()}</span>
-				<select name="locale" class={input}>{#each data.uiLocales as l (l)}<option value={l} selected={l === data.filters.locale}>{languageLabel(l)}</option>{/each}</select>
+				<select name="locale" class={input}>
+					{#each data.uiLocales as l (l)}<option value={l} selected={l === data.filters.locale}>{languageLabel(l)}</option>{/each}
+				</select>
 			</label>
-			<label class="block text-sm"><span class="mb-1 block text-zinc-300">{m.f_keywords()}</span><input name="keywords" class={input} /></label>
-			<label class="block text-sm md:col-span-2">
-				<span class="mb-1 block text-zinc-300">{m.f_sources()}</span>
-				<select name="source_ids" multiple size="6" class={input}>{#each data.sources as s (s.id)}<option value={s.id}>{s.label}</option>{/each}</select>
+			<label class="block text-sm">
+				<span class="mb-1 block text-zinc-300">{m.f_keywords()}</span>
+				<input name="keywords" class={input} />
 			</label>
+			<div class="block text-sm md:col-span-2">
+				<div class="mb-1.5 flex items-center justify-between gap-2">
+					<span class="text-zinc-300">{m.arg_sources_label()}</span>
+					<input
+						type="search"
+						bind:value={sourceFilter}
+						placeholder={m.sources_filter_placeholder()}
+						class="w-64 rounded border border-zinc-700 bg-zinc-950 px-2.5 py-1 text-xs"
+					/>
+				</div>
+				<div class="grid max-h-48 gap-1.5 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-3 sm:grid-cols-2">
+					{#each filteredSources as s (s.id)}
+						<label class="flex cursor-pointer items-start gap-2 rounded px-1.5 py-1 text-xs hover:bg-zinc-900">
+							<input type="checkbox" name="source_ids" value={s.id} class="mt-0.5" />
+							<span class="text-zinc-200">{s.label}</span>
+						</label>
+					{/each}
+				</div>
+			</div>
 			<div class="flex gap-3 md:col-span-2">
 				<button class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950">{m.repo_save()}</button>
 				<button type="button" onclick={() => (showCreate = false)} class="rounded-lg border border-zinc-700 px-4 py-2 text-sm">{m.repo_cancel()}</button>
@@ -89,13 +159,27 @@
 	<form method="GET" class="flex flex-wrap items-center gap-3">
 		<div class="relative min-w-60 flex-1">
 			<Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-			<input name="q" value={data.filters.q} placeholder={m.arg_search()} class="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-2 pl-9 pr-3 text-sm" />
+			<input
+				name="q"
+				value={data.filters.q}
+				oninput={(e) => debouncedSubmit((e.currentTarget as HTMLInputElement).form)}
+				placeholder={m.arg_search()}
+				class="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-2 pl-9 pr-3 text-sm"
+			/>
 		</div>
-		<select name="review" class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
+		<select
+			name="review"
+			onchange={(e) => (e.currentTarget as HTMLSelectElement).form?.requestSubmit()}
+			class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+		>
 			<option value="">{m.repo_all()}</option>
 			{#each data.reviews as r (r)}<option value={r} selected={data.filters.review === r}>{reviewLabel(r)}</option>{/each}
 		</select>
-		<select name="locale" class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
+		<select
+			name="locale"
+			onchange={(e) => (e.currentTarget as HTMLSelectElement).form?.requestSubmit()}
+			class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+		>
 			{#each data.uiLocales as l (l)}<option value={l} selected={data.filters.locale === l}>{languageLabel(l)}</option>{/each}
 		</select>
 		<button class="rounded-lg border border-zinc-700 px-4 py-2 text-sm hover:bg-zinc-900">{m.repo_search_submit()}</button>
@@ -104,16 +188,44 @@
 	<div class="space-y-4">
 		{#each data.cards as card (card.id)}
 			{@const shown = card.activeText}
+			{@const textPl = card.texts['pl']}
+			{@const textEn = card.texts['en']}
 			<article class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-				{#if shown}
+				<div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+					<div class="flex flex-wrap items-center gap-2">
+						<span class="rounded bg-amber-500/15 px-2.5 py-0.5 font-semibold text-amber-300">{card.core_principle}</span>
+						{#if card.fallacy_type}<span class="rounded bg-zinc-800 px-2 py-0.5 text-zinc-400">{card.fallacy_type}</span>{/if}
+					</div>
+					{#if shown}
+						<a
+							href="/content?platform=letter&brief={encodeURIComponent(shown.opponent_claim)}"
+							class="inline-flex items-center gap-1 rounded border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+						>
+							<PenLine class="h-3 w-3" />{m.shield_to_letter()}
+						</a>
+					{/if}
+				</div>
+
+				{#if bilingualView && (textPl || textEn)}
+					<div class="mt-3 grid gap-4 lg:grid-cols-2">
+						{#each [textPl, textEn].filter((x) => !!x) as t (t!.locale)}
+							<div class="rounded-lg border border-zinc-800/90 bg-zinc-950/50 p-3.5">
+								<div class="mb-2 flex items-center justify-between gap-2">
+									<span class="rounded bg-zinc-800 px-2 py-0.5 text-xs font-semibold uppercase text-amber-300">{t!.locale} · {languageLabel(t!.locale)}</span>
+									<ReviewBadge state={t!.review} />
+								</div>
+								<h3 class="text-sm font-semibold text-zinc-100">„{t!.opponent_claim}”</h3>
+								<p class="mt-2 whitespace-pre-line text-sm leading-relaxed text-zinc-300">{t!.counter_punch}</p>
+							</div>
+						{/each}
+					</div>
+				{:else if shown}
 					<div class="flex flex-wrap items-start justify-between gap-3">
 						<h2 class="text-base font-semibold text-zinc-100">“{shown.opponent_claim}”</h2>
 						<ReviewBadge state={shown.review} />
 					</div>
 					<p class="mt-2 whitespace-pre-line text-sm leading-relaxed text-zinc-200">{shown.counter_punch}</p>
 					<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
-						<span>{card.core_principle}</span>
-						{#if card.fallacy_type}<span>{card.fallacy_type}</span>{/if}
 						<span>{originLabel(shown.origin)}</span>
 						{#if card.isFallback}<span class="text-amber-300">{languageLabel(shown.locale)}</span>{/if}
 					</div>
@@ -121,12 +233,13 @@
 						<p class="mt-2 rounded bg-amber-500/10 px-3 py-2 text-xs text-amber-300">{m.arg_ai_notice()}</p>
 					{/if}
 				{/if}
-				<div class="mt-2 text-xs text-zinc-400">
+
+				<div class="mt-3 text-xs text-zinc-400">
 					{m.arg_sources_label()}:
 					{#if card.source_ids.length}{card.source_ids.map(sourceLabel).join(' · ')}{:else}{m.arg_no_sources()}{/if}
 				</div>
 
-				<div class="mt-4 space-y-2">
+				<div class="mt-4 grid gap-3 {bilingualView ? 'lg:grid-cols-2' : ''}">
 					{#each Object.values(card.texts) as t (t.locale)}
 						<details class="rounded-lg border border-zinc-800">
 							<summary class="flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2 text-sm">
@@ -149,9 +262,14 @@
 									<textarea name="opponent_claim" rows="2" required class={input}>{t.opponent_claim}</textarea>
 									<textarea name="counter_punch" rows="4" required class={input}>{t.counter_punch}</textarea>
 									<input name="keywords" value={t.keywords ?? ''} placeholder={m.f_keywords()} class={input} />
-									<select name="source_ids" multiple size="4" class={input}>
-										{#each data.sources as s (s.id)}<option value={s.id} selected={card.source_ids.includes(s.id)}>{s.label}</option>{/each}
-									</select>
+									<div class="grid max-h-40 gap-1 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-2.5 sm:grid-cols-2">
+										{#each data.sources as s (s.id)}
+											<label class="flex cursor-pointer items-start gap-2 rounded px-1.5 py-1 text-xs hover:bg-zinc-900">
+												<input type="checkbox" name="source_ids" value={s.id} checked={card.source_ids.includes(s.id)} class="mt-0.5" />
+												<span class="text-zinc-200">{s.label}</span>
+											</label>
+										{/each}
+									</div>
 									<p class="text-xs text-amber-300">{m.arg_edit_warning()}</p>
 									<button class="rounded bg-amber-500 px-3 py-1 text-xs font-semibold text-zinc-950">{m.repo_save()}</button>
 								</form>

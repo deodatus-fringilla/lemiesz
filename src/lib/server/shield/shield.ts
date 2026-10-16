@@ -13,6 +13,8 @@ import {
 import { CitationStreamer, findUnverifiedQuotes } from './cite';
 import { appendMessage, createConversation, getOwnedConversation, listMessages } from './conversations';
 import { SHIELD_PROMPT_VERSION, shieldRequest } from './prompt';
+import { mediaForShield } from '$lib/server/media';
+import { postersForArguments, type PosterRecord } from '$lib/server/posters';
 
 export const MAX_MESSAGE_CHARS = 2000;
 const HISTORY_MESSAGES = 8;
@@ -36,6 +38,8 @@ export type ShieldEvent =
 			includeDrafts: boolean;
 			arguments: ClientArgument[];
 			sources: EvidenceSource[];
+			media?: ReturnType<typeof mediaForShield>;
+			posters?: PosterRecord[];
 	  }
 	| { type: 'token'; text: string }
 	| {
@@ -102,6 +106,7 @@ export async function* runShield(args: {
 	});
 	if (retrieval.tier !== 'none') recordUsage(retrieval);
 
+	const argIds = retrieval.arguments.map((a) => a.id);
 	yield {
 		type: 'sources',
 		conversationId,
@@ -110,7 +115,9 @@ export async function* runShield(args: {
 		outputLocale,
 		includeDrafts,
 		arguments: clientArguments(retrieval),
-		sources: retrieval.sources
+		sources: retrieval.sources,
+		media: mediaForShield(argIds, includeDrafts),
+		posters: postersForArguments(argIds, includeDrafts)
 	};
 
 	const finish = (answer: string, extra: { noSource: boolean; llm: boolean; citations: Citation[]; unverified: string[] }) => {

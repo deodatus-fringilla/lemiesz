@@ -26,12 +26,18 @@
 	let evidence = $state<Evidence | null>(null);
 	let notice = $state('');
 	let copied = $state(false);
+	let copiedPostIdx = $state<number | null>(null);
 	let draftLocale = $state(getLocale());
 
-	// Open a stored draft (?d=id) or reflect the result of save/review actions.
+	// Open a stored draft (?d=id) or prefill from URL (?platform=letter&brief=...)
 	$effect(() => {
 		const d = data.draft;
-		if (!d) return;
+		if (!d) {
+			if (data.prefill?.platform) platform = data.prefill.platform;
+			if (data.prefill?.tone) tone = data.prefill.tone;
+			if (data.prefill?.brief) brief = data.prefill.brief;
+			return;
+		}
 		draftId = d.id;
 		body = d.body;
 		status = d.status;
@@ -47,10 +53,19 @@
 	const evidenceSources = $derived(evidence?.sources ?? []);
 	const savedSources = $derived(data.draft?.sources ?? []);
 
-	// Live per-post counter for X threads (same rule as the server check: code points per post).
-	const posts = $derived(
-		platform === 'x' ? body.split(/^\s*---\s*$/m).map((p) => p.trim()).filter(Boolean).map((p) => Array.from(p).length) : []
+	// Live per-post counter and post texts for X threads (same rule as the server check: code points per post).
+	const postTexts = $derived(
+		platform === 'x' ? body.split(/^\s*---\s*$/m).map((p) => p.trim()).filter(Boolean) : []
 	);
+	const posts = $derived(postTexts.map((p) => Array.from(p).length));
+
+	async function copyPost(idx: number, text: string) {
+		await navigator.clipboard.writeText(text);
+		copiedPostIdx = idx;
+		setTimeout(() => {
+			if (copiedPostIdx === idx) copiedPostIdx = null;
+		}, 1600);
+	}
 
 	function detail(c: CheckResult): string {
 		if (c.ok || !c.detail) return '';
@@ -177,10 +192,41 @@
 					<input type="hidden" name="draftId" value={draftId ?? ''} />
 					<textarea name="body" bind:value={body} rows="14" readonly={busy}
 						class="{field} font-mono leading-relaxed {watermark ? 'border-amber-500/50' : ''}"></textarea>
-					{#if platform === 'x' && posts.length}
-						<p class="flex flex-wrap gap-2 text-xs">
-							{#each posts as n, i (i)}<span class="rounded px-2 py-0.5 {n > 280 ? 'bg-rose-500/20 text-rose-300' : 'bg-zinc-800 text-zinc-400'}">{i + 1}: {n}/280</span>{/each}
-						</p>
+					{#if platform === 'x' && postTexts.length}
+						<div class="space-y-2 rounded-lg border border-zinc-800/80 bg-zinc-950/60 p-3">
+							<div class="flex flex-wrap gap-2 text-xs">
+								{#each posts as n, i (i)}
+									<span class="rounded px-2 py-0.5 font-mono {n > 280 ? 'bg-rose-500/20 text-rose-300' : 'bg-zinc-800 text-zinc-400'}">
+										#{i + 1}: {n}/280
+									</span>
+								{/each}
+							</div>
+							<div class="grid gap-2 sm:grid-cols-2">
+								{#each postTexts as pText, i (i)}
+									{@const count = posts[i] ?? 0}
+									{@const pct = Math.min(100, Math.round((count / 280) * 100))}
+									<div class="rounded-lg border border-zinc-800 bg-zinc-900/70 p-2.5 text-xs">
+										<div class="mb-1.5 flex items-center justify-between gap-2">
+											<span class="font-mono font-semibold text-amber-400">#{i + 1}/{postTexts.length} <span class="font-normal text-zinc-400">({count}/280)</span></span>
+											<button
+												type="button"
+												onclick={() => copyPost(i, pText)}
+												class="inline-flex items-center gap-1 rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-300 hover:bg-zinc-800"
+											>
+												{#if copiedPostIdx === i}<Check class="h-3 w-3 text-emerald-400" />{m.content_copied()}{:else}<Copy class="h-3 w-3" />{m.content_copy()}{/if}
+											</button>
+										</div>
+										<div class="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+											<div
+												class="h-full rounded-full transition-all {count > 280 ? 'bg-rose-500' : count > 240 ? 'bg-amber-400' : 'bg-emerald-500'}"
+												style="width: {pct}%"
+											></div>
+										</div>
+										<p class="whitespace-pre-line text-zinc-300">{pText}</p>
+									</div>
+								{/each}
+							</div>
+						</div>
 					{/if}
 					<p class="text-xs text-zinc-500">{m.content_edit_hint()}</p>
 

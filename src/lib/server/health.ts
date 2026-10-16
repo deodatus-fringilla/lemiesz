@@ -38,7 +38,7 @@ export interface PipelineHealth {
 }
 
 export interface Dashboard {
-	counts: { sources: number; arguments: number; approvedTexts: number; users: number; drafts: number };
+	counts: { sources: number; arguments: number; approvedTexts: number; users: number; drafts: number; media: number; posters: number };
 	queue: Record<QueueReason, number>;
 	sampling: SampleStats;
 	pipeline: PipelineHealth;
@@ -109,7 +109,9 @@ export function collectDashboard(env: Record<string, string | undefined> = proce
 			n("SELECT COUNT(*) AS c FROM source_texts WHERE review = 'human_approved'") +
 			n("SELECT COUNT(*) AS c FROM argument_texts WHERE review = 'human_approved'"),
 		users: n('SELECT COUNT(*) AS c FROM users'),
-		drafts: n('SELECT COUNT(*) AS c FROM content_drafts')
+		drafts: n('SELECT COUNT(*) AS c FROM content_drafts'),
+		media: n('SELECT COUNT(*) AS c FROM media_assets'),
+		posters: n('SELECT COUNT(*) AS c FROM campaign_posters')
 	};
 
 	const warnings: Warning[] = [];

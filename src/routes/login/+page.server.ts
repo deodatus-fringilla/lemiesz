@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { SESSION_COOKIE, authenticate, createSession } from '$lib/server/auth';
 
 export const load: PageServerLoad = ({ locals }) => {
-	if (locals.user) redirect(303, '/');
+	if (locals.user) redirect(303, '/dashboard');
 	return {};
 };
 
@@ -24,6 +24,6 @@ export const actions: Actions = {
 			secure: url.protocol === 'https:',
 			expires
 		});
-		redirect(303, '/');
+		redirect(303, '/dashboard');
 	}
 };

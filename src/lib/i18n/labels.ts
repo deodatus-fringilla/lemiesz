@@ -20,3 +20,6 @@ export const checkLabel = (id: string) => call(`content_check_${id}`);
 export const genreLabel = (g: string) => call(`genre_${g}`);
 export const mediaTypeLabel = (t: string) => call(`media_type_${t}`);
 export const mediaStatusLabel = (s: string) => call(`media_status_${s}`);
+export const methodologyLabel = (mKey: string) => call(`method_${mKey}`);
+export const posterThemeLabel = (theme: string) => call(`poster_theme_${theme}`);
+

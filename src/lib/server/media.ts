@@ -360,6 +360,7 @@ export function linksForMedia(mediaId: number): (MediaLink & { opponent_claim: s
 /** Genres that suit each platform (module 05 §3.B). Genre only: mood is a separate field and never a genre. */
 export const PLATFORM_GENRES: Record<string, readonly Genre[]> = {
 	press: ['gregorian_sacred', 'classical'],
+	letter: ['gregorian_sacred', 'patriotic_folk', 'classical'],
 	shorts: ['modern_synth', 'reggae_acoustic', 'rock_metal'],
 	facebook: ['patriotic_folk', 'classical', 'gregorian_sacred'],
 	x: ['modern_synth', 'patriotic_folk', 'rock_metal', 'reggae_acoustic']
@@ -402,6 +403,37 @@ export function mediaForContent(platform: string, argumentIds: number[], max = 3
 			.prepare(`SELECT * FROM media_assets WHERE status = 'human_approved' AND genre IN (${genres.map(() => '?').join(',')}) ORDER BY id`)
 			.all(...genres) as Row[];
 		rows.forEach((r) => add(r));
+	}
+	return [...out.values()];
+}
+
+/** Returns media linked to retrieved argument cards (or fallback library items when includeDrafts is enabled) for the Shield Evidence pane. */
+export function mediaForShield(argumentIds: number[], includeDrafts = false): (ContentMedia & { status: MediaStatus; embed_url: string })[] {
+	const statuses = includeDrafts ? ['human_approved', 'draft'] : ['human_approved'];
+	const out = new Map<number, ContentMedia & { status: MediaStatus; embed_url: string }>();
+	if (argumentIds.length) {
+		const rows = db
+			.prepare(
+				`SELECT m.*, l.cue FROM argument_media_links l JOIN media_assets m ON m.id = l.media_id
+				 WHERE m.status IN (${statuses.map(() => '?').join(',')}) AND l.argument_id IN (${argumentIds.map(() => '?').join(',')})
+				 ORDER BY m.status = 'human_approved' DESC, l.cue IS NULL, m.id`
+			)
+			.all(...statuses, ...argumentIds) as (Row & { cue: string | null })[];
+		for (const r of rows) {
+			if (!out.has(r.id)) {
+				out.set(r.id, {
+					id: r.id,
+					title: r.title,
+					artist: r.artist_or_author,
+					genre: r.genre,
+					mood: r.mood,
+					url: r.url,
+					embed_url: r.embed_url,
+					status: r.status,
+					cue: r.cue ?? null
+				});
+			}
+		}
 	}
 	return [...out.values()];
 }

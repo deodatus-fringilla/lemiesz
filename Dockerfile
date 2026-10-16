@@ -1,5 +1,5 @@
 # ==========================================
-# Pakt Lemiesza — multi-stage image (linux/amd64 and linux/arm64)
+# Przymierze Lemiesza — multi-stage image (linux/amd64 and linux/arm64)
 # Build the image ON the architecture you deploy to, or use `docker buildx --platform`.
 # ==========================================
 

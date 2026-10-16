@@ -1,4 +1,4 @@
-# Caddyfile for Pakt Lemiesza — VPS mode (docker compose --profile vps up -d)
+# Caddyfile for Przymierze Lemiesza — VPS mode (docker compose --profile vps up -d)
 # Caddy sets X-Forwarded-For / X-Forwarded-Proto itself; the app reads them via ADDRESS_HEADER / ORIGIN.
 {$DOMAIN:lemiesz.local} {
 	encode gzip zstd

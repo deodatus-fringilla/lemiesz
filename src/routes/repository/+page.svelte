@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ExternalLink, Plus, Search } from 'lucide-svelte';
+	import { Columns2, ExternalLink, Plus, Search } from 'lucide-svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import ReviewBadge from '$lib/components/ReviewBadge.svelte';
 	import { categoryLabel, languageLabel, originLabel, reviewLabel } from '$lib/i18n/labels';
@@ -8,8 +8,15 @@
 	let { data, form } = $props();
 
 	let showCreate = $state(false);
+	let bilingualView = $state(true);
 	const coverage = $derived(Object.entries(data.coverage));
 	const errors = $derived((form && 'errors' in form ? (form.errors as string[]) : []) ?? []);
+	let searchTimer: ReturnType<typeof setTimeout> | null = null;
+	function debouncedSubmit(formEl: HTMLFormElement | null) {
+		if (!formEl) return;
+		if (searchTimer) clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => formEl.requestSubmit(), 300);
+	}
 </script>
 
 <div class="space-y-8">
@@ -18,14 +25,26 @@
 			<h1 class="text-3xl font-bold tracking-tight">{m.repo_title()}</h1>
 			<p class="mt-1 text-sm text-zinc-400">{m.repo_intro()}</p>
 		</div>
-		<button
-			type="button"
-			onclick={() => (showCreate = !showCreate)}
-			class="inline-flex items-center gap-2 self-start rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400"
-		>
-			<Plus class="h-4 w-4" />
-			{m.repo_add()}
-		</button>
+		<div class="flex flex-wrap items-center gap-2">
+			<button
+				type="button"
+				onclick={() => (bilingualView = !bilingualView)}
+				class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors {bilingualView
+					? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+					: 'border-zinc-700 text-zinc-400 hover:bg-zinc-900'}"
+			>
+				<Columns2 class="h-4 w-4" />
+				{m.bilingual_view_toggle()}
+			</button>
+			<button
+				type="button"
+				onclick={() => (showCreate = !showCreate)}
+				class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400"
+			>
+				<Plus class="h-4 w-4" />
+				{m.repo_add()}
+			</button>
+		</div>
 	</div>
 
 	{#if errors.length}
@@ -121,23 +140,36 @@
 			<input
 				name="q"
 				value={data.filters.q}
+				oninput={(e) => debouncedSubmit((e.currentTarget as HTMLInputElement).form)}
 				placeholder={m.repo_search()}
 				class="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-2 pl-9 pr-3 text-sm"
 			/>
 		</div>
-		<select name="category" class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
+		<select
+			name="category"
+			onchange={(e) => (e.currentTarget as HTMLSelectElement).form?.requestSubmit()}
+			class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+		>
 			<option value="">{m.repo_all()}</option>
 			{#each data.options.categories as c (c)}
 				<option value={c} selected={data.filters.category === c}>{categoryLabel(c)}</option>
 			{/each}
 		</select>
-		<select name="review" class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
+		<select
+			name="review"
+			onchange={(e) => (e.currentTarget as HTMLSelectElement).form?.requestSubmit()}
+			class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+		>
 			<option value="">{m.repo_all()}</option>
 			{#each data.options.reviews as r (r)}
 				<option value={r} selected={data.filters.review === r}>{reviewLabel(r)}</option>
 			{/each}
 		</select>
-		<select name="locale" class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
+		<select
+			name="locale"
+			onchange={(e) => (e.currentTarget as HTMLSelectElement).form?.requestSubmit()}
+			class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+		>
 			{#each data.options.uiLocales as l (l)}
 				<option value={l} selected={data.filters.locale === l}>{languageLabel(l)}</option>
 			{/each}
@@ -148,6 +180,8 @@
 	<div class="space-y-4">
 		{#each data.sources as source (source.id)}
 			{@const shown = source.activeText}
+			{@const trPl = source.translations['pl']}
+			{@const trEn = source.translations['en']}
 			{@const missing = data.options.uiLocales.filter((l) => !source.translations[l])}
 			<article class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
 				<div class="flex flex-wrap items-start justify-between gap-3">
@@ -167,10 +201,23 @@
 						</div>
 						<div class="mt-1 text-xs text-zinc-500">{m.repo_license()}: {source.license}</div>
 					</div>
-					{#if shown}<ReviewBadge state={shown.review} />{/if}
+					{#if shown && !bilingualView}<ReviewBadge state={shown.review} />{/if}
 				</div>
 
-				{#if shown}
+				{#if bilingualView && (trPl || trEn)}
+					<div class="mt-3 grid gap-4 lg:grid-cols-2">
+						{#each [trPl, trEn].filter((x) => !!x) as t (t!.locale)}
+							<div class="rounded-lg border border-zinc-800/90 bg-zinc-950/50 p-3.5">
+								<div class="mb-2 flex items-center justify-between gap-2">
+									<span class="rounded bg-zinc-800 px-2 py-0.5 text-xs font-semibold uppercase text-amber-300">{t!.locale} · {languageLabel(t!.locale)}</span>
+									<ReviewBadge state={t!.review} />
+								</div>
+								<p class="whitespace-pre-line text-sm leading-relaxed text-zinc-200">{t!.text}</p>
+								<div class="mt-2 text-xs text-zinc-500">{originLabel(t!.origin)}{t!.translator ? ` · ${t!.translator}` : ''}</div>
+							</div>
+						{/each}
+					</div>
+				{:else if shown}
 					{#if source.isFallback}
 						<p class="mt-3 rounded bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
 							{m.repo_fallback({ target: languageLabel(data.filters.locale), shown: languageLabel(shown.locale) })}
@@ -182,7 +229,7 @@
 					<p class="mt-3 text-sm text-zinc-500">{m.repo_no_text()}</p>
 				{/if}
 
-				<div class="mt-4 space-y-2">
+				<div class="mt-4 grid gap-3 {bilingualView ? 'lg:grid-cols-2' : ''}">
 					{#each Object.values(source.translations) as t (t.locale)}
 						<details class="rounded-lg border border-zinc-800">
 							<summary class="flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2 text-sm">

@@ -122,7 +122,7 @@ export const SEED_SOURCES: IngestionChecklistItem[] = [
 
 	// ---- PLACEHOLDERS (AI-written scaffolding; replace with the movement's own text) ------------
 	{
-		work: 'Manifest Paktu Lemiesza [PLACEHOLDER]',
+		work: 'Manifest Przymierza Lemiesza [PLACEHOLDER]',
 		section_ref: 'Rozdział I',
 		category: 'movement',
 		license:

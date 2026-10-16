@@ -14,6 +14,7 @@ export interface ConversationSummary {
 	id: string;
 	title: string | null;
 	updated_at: string;
+	message_count?: number;
 }
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -60,8 +61,22 @@ export function listMessages(conversationId: string): StoredMessage[] {
 		.all(conversationId) as StoredMessage[];
 }
 
-export function listConversations(userId: string, limit = 15): ConversationSummary[] {
+export function listConversations(userId: string, limit = 25): ConversationSummary[] {
 	return db
-		.prepare('SELECT id, title, updated_at FROM conversations WHERE user_id = ? ORDER BY updated_at DESC, rowid DESC LIMIT ?')
+		.prepare(
+			`SELECT c.id, c.title, c.updated_at,
+				(SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id) AS message_count
+			 FROM conversations c WHERE c.user_id = ? ORDER BY c.updated_at DESC, c.rowid DESC LIMIT ?`
+		)
 		.all(userId, limit) as ConversationSummary[];
+}
+
+export function renameConversation(id: string, userId: string, title: string): boolean {
+	const trimmed = clip(title.trim(), 80);
+	if (!trimmed) return false;
+	return db.prepare('UPDATE conversations SET title = ? WHERE id = ? AND user_id = ?').run(trimmed, id, userId).changes > 0;
+}
+
+export function deleteConversation(id: string, userId: string): boolean {
+	return db.prepare('DELETE FROM conversations WHERE id = ? AND user_id = ?').run(id, userId).changes > 0;
 }

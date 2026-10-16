@@ -13,6 +13,7 @@ import {
 import { startBackupScheduler } from '$lib/server/backup';
 import { runSeed } from '$lib/server/seed/seed';
 import { seedMedia } from '$lib/server/seed/mediaSeed';
+import { seedKoronaCorpus } from '$lib/server/seed/koronaSeed';
 
 // ---- startup -------------------------------------------------------------
 ensureBootstrapAdmin();
@@ -20,6 +21,7 @@ purgeExpiredSessions();
 try {
 	runSeed();
 	seedMedia();
+	seedKoronaCorpus();
 } catch (e) {
 	console.error('[hooks] Startup seed error:', e);
 }
@@ -38,7 +40,7 @@ const loginLimiter = new RateLimiter(10, 60_000); // per client IP
 const llmBudget = new RateLimiter(Number(process.env.LLM_DAILY_REQUESTS ?? 300), 24 * 3_600_000);
 
 const DEV_USER: SessionUser = { id: 'dev', username: 'dev', role: 'admin' };
-const PUBLIC_PATHS = ['/login', '/api/health'];
+const PUBLIC_PATHS = ['/', '/login', '/api/health'];
 
 function jsonError(status: number, error: string) {
 	return new Response(JSON.stringify({ error }), {

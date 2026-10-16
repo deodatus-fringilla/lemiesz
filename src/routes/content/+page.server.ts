@@ -7,8 +7,16 @@ import { getProvider } from '$lib/server/llm';
 
 export const load: PageServerLoad = ({ url }) => {
 	const id = Number(url.searchParams.get('d'));
+	const prefillPlatform = url.searchParams.get('platform');
+	const prefillTone = url.searchParams.get('tone');
+	const prefillBrief = url.searchParams.get('brief');
 	return {
 		draft: Number.isInteger(id) && id > 0 ? getDraft(id) : null,
+		prefill: {
+			platform: prefillPlatform && (PLATFORMS as readonly string[]).includes(prefillPlatform) ? prefillPlatform : null,
+			tone: prefillTone && (TONES as readonly string[]).includes(prefillTone) ? prefillTone : null,
+			brief: prefillBrief?.trim() ? prefillBrief.trim().slice(0, MAX_BRIEF_CHARS) : null
+		},
 		recent: listDrafts(15),
 		platforms: [...PLATFORMS],
 		tones: [...TONES],

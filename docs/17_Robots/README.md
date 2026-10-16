@@ -11,7 +11,7 @@
 
 A **robot** is a small automated program that exercises the platform and shouts when something breaks. The name is deliberate: **conclusions rot; robots don't.**
 
-In Pakt Lemiesza, rules written only in prose or agreed upon in chat sessions will inevitably be forgotten or bypassed by future LLM updates or human edits. Every critical boundary—whether theological citation rigor, copyright safety, or retrieval accuracy—must be guarded by a numbered automated Robot.
+In Przymierze Lemiesza, rules written only in prose or agreed upon in chat sessions will inevitably be forgotten or bypassed by future LLM updates or human edits. Every critical boundary—whether theological citation rigor, copyright safety, or retrieval accuracy—must be guarded by a numbered automated Robot.
 
 ---
 
