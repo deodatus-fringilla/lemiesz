@@ -16,9 +16,17 @@
 		initialLayer?: 'allegory' | 'realism';
 	} = $props();
 
-	let stepIndex = $state(initialStep);
-	let activeLayer = $state<'allegory' | 'realism'>(initialLayer);
+	let stepIndex = $state(0);
+	let activeLayer = $state<'allegory' | 'realism'>('allegory');
 	let copied = $state(false);
+
+	$effect(() => {
+		stepIndex = initialStep;
+	});
+
+	$effect(() => {
+		activeLayer = initialLayer;
+	});
 
 	const totalSteps = $derived(pairs.length);
 	const currentPair = $derived(pairs[stepIndex] ?? null);

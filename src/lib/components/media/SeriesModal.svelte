@@ -53,7 +53,6 @@
 		<!-- Modal Container -->
 		<div
 			class="relative flex flex-col max-h-[94vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl text-zinc-100"
-			onclick={(e) => e.stopPropagation()}
 		>
 			<!-- Header -->
 			<div class="flex items-center justify-between border-b border-zinc-800/80 px-5 py-3.5 bg-zinc-900/60">
