@@ -58,6 +58,7 @@
 		{ name: m.shield_preset_swiss_name(), text: m.shield_preset_swiss_text() },
 		{ name: m.shield_preset_double_name(), text: m.shield_preset_double_text() },
 		{ name: m.shield_preset_paradox_name(), text: m.shield_preset_paradox_text() },
+		{ name: m.shield_preset_hedgehog_name(), text: m.shield_preset_hedgehog_text() },
 		{
 			name: 'Korona IV: Lemiesz a Miecz',
 			text: 'Pokój, silna gospodarka i silna armia nie wykluczają się wzajemnie — Polska powinna być Oazą Pokoju, ale nie Oazą Bezbronności. Nie ma potrzeby wybierać między lemieszem a mieczem.'

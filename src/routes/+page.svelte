@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowRight, ChevronDown, CookingPot, Coins, Grape, Hammer, LayoutDashboard, Link, LogIn, Swords, Users, VolumeX } from 'lucide-svelte';
+	import { ArrowRight, ChevronDown, CookingPot, Coins, Grape, Hammer, LayoutDashboard, Link, LogIn, Shield, Swords, Users, VolumeX } from 'lucide-svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import {
 		SAMUEL8_REF,
@@ -134,6 +134,75 @@
 		</ol>
 
 		<p class="mt-12 text-center font-serif text-sm tracking-[0.2em] text-zinc-500 uppercase sm:text-base">{m.landing_tally()}</p>
+	</div>
+</section>
+
+<!-- THE HEDGEHOG DOCTRINE: SECURITY ARCHITECTURE -->
+<section class="border-b border-zinc-900 bg-zinc-950 px-4 py-20 sm:px-6">
+	<div class="mx-auto max-w-7xl">
+		<div class="max-w-3xl">
+			<p class="text-xs font-semibold tracking-[0.25em] text-amber-400 uppercase">{m.landing_hedgehog_eyebrow()}</p>
+			<h2 class="mt-3 font-serif text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl">{m.landing_hedgehog_title()}</h2>
+			<p class="mt-4 text-lg leading-relaxed text-zinc-300">{m.landing_hedgehog_lead()}</p>
+		</div>
+
+		<div class="mt-12 grid gap-6 md:grid-cols-2">
+			<!-- SPARTA ILLUSION -->
+			<div class="rounded-2xl border border-rose-500/30 bg-rose-950/10 p-6 sm:p-8">
+				<div class="flex items-center gap-3">
+					<span class="flex h-10 w-10 items-center justify-center rounded-lg border border-rose-500/40 bg-rose-500/10 text-rose-300">
+						<Swords class="h-5 w-5" />
+					</span>
+					<h3 class="font-serif text-2xl font-bold text-rose-200">{m.landing_hedgehog_sparta_title()}</h3>
+				</div>
+				<ul class="mt-6 space-y-4 text-sm text-zinc-300">
+					<li class="flex items-start gap-2.5">
+						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
+						<span>{m.landing_hedgehog_sparta_1()}</span>
+					</li>
+					<li class="flex items-start gap-2.5">
+						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
+						<span>{m.landing_hedgehog_sparta_2()}</span>
+					</li>
+					<li class="flex items-start gap-2.5">
+						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
+						<span>{m.landing_hedgehog_sparta_3()}</span>
+					</li>
+					<li class="flex items-start gap-2.5">
+						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
+						<span>{m.landing_hedgehog_sparta_4()}</span>
+					</li>
+				</ul>
+			</div>
+
+			<!-- HEDGEHOG DOCTRINE -->
+			<div class="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-zinc-900/60 to-zinc-950 p-6 sm:p-8">
+				<div class="flex items-center gap-3">
+					<span class="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-400">
+						<Shield class="h-5 w-5" />
+					</span>
+					<h3 class="font-serif text-2xl font-bold text-amber-300">{m.landing_hedgehog_jeza_title()}</h3>
+				</div>
+				<ul class="mt-6 space-y-4 text-sm text-zinc-200">
+					<li class="flex items-start gap-2.5">
+						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
+						<span>{m.landing_hedgehog_jeza_1()}</span>
+					</li>
+					<li class="flex items-start gap-2.5">
+						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
+						<span>{m.landing_hedgehog_jeza_2()}</span>
+					</li>
+					<li class="flex items-start gap-2.5">
+						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
+						<span>{m.landing_hedgehog_jeza_3()}</span>
+					</li>
+					<li class="flex items-start gap-2.5">
+						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
+						<span>{m.landing_hedgehog_jeza_4()}</span>
+					</li>
+				</ul>
+			</div>
+		</div>
 	</div>
 </section>
 

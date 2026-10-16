@@ -168,12 +168,12 @@ const KORONA_SOURCES: BilingualSeedSource[] = [
 			reviewer: 'seed:korona-corpus',
 			locale: 'pl',
 			origin: 'original',
-			keywords: 'Przymierze Lemiesza, Oaza Pokoju, suwerenność pokoju, płodność lemiesza, rachunek królewski, dysputa tomistyczna, rycerska polemika, odrzucenie heglizmu',
-			text: 'Przymierze Lemiesza głosi Doktrynę „Oazy Pokoju Europy Środkowej” opartą na pięciu filarach: (1) Suwerenność Pokoju zamiast Suwerenności Garnizonu — suwerenność to środek do ochrony życia i własności Polaków, a nie fetysz polityczny; (2) Płodność Lemiesza ponad Jałowością Miecza — fabryka, rola i rodzina pomnażają siłę narodu, podczas gdy zbrojenia na kredyt (bez kodów źródłowych) rodzą dług; (3) Chrześcijański Rachunek Królewski (Łk 14, 31–32) ponad pogańskim Wegecjuszem (Si vis pacem, para bellum); (4) Koniec Asymetrii Ryzyka (J 10, 11–13) i powtórki z mostu w Kutach 1939 r.; (5) Konstytucyjna Zbrojna Neutralność Terytorialna (wzór Szwajcarii, Austrii 1955 i Malty Art. 1 ust. 3). W debacie odrzucamy dialektykę heglowską (teza–antyteza–synteza) na rzecz Dysputy Tomistycznej i Rycerskiej, Pryncypialnej Polemiki.'
+			keywords: 'Przymierze Lemiesza, Oaza Pokoju, suwerenność pokoju, płodność lemiesza, rachunek królewski, dysputa tomistyczna, rycerska polemika, odrzucenie heglizmu, doktryna jeża, obrona asymetryczna',
+			text: 'Przymierze Lemiesza głosi Doktrynę „Oazy Pokoju Europy Środkowej” opartą na pięciu filarach: (1) Suwerenność Pokoju zamiast Suwerenności Garnizonu — suwerenność to środek do ochrony życia i własności Polaków, a nie fetysz polityczny; (2) Płodność Lemiesza ponad Jałowością Miecza — fabryka, rola i rodzina pomnażają siłę narodu, podczas gdy zbrojenia na kredyt (bez kodów źródłowych) rodzą dług; (3) Chrześcijański Rachunek Królewski (Łk 14, 31–32) ponad pogańskim Wegecjuszem (Si vis pacem, para bellum); (4) Koniec Asymetrii Ryzyka (J 10, 11–13) i powtórki z mostu w Kutach 1939 r.; (5) Konstytucyjna Zbrojna Neutralność Terytorialna i Doktryna Jeża (wzór Szwajcarii, Austrii 1955 i Malty Art. 1 ust. 3: asymetryczny koszt inwazji przewyższający zysk agresora, nasycenie terenu obroną cywilną i dronami). W debacie odrzucamy dialektykę heglowską (teza–antyteza–synteza) na rzecz Dysputy Tomistycznej i Rycerskiej, Pryncypialnej Polemiki.'
 		},
-		enKeywords: 'Plowshare Pact, Oasis of Peace, sovereignty of peace, fertility of the plowshare, royal reckoning, Thomistic disputation, chivalrous polemics, anti-Hegelian',
+		enKeywords: 'Plowshare Covenant, Oasis of Peace, sovereignty of peace, fertility of the plowshare, royal reckoning, Thomistic disputation, chivalrous polemics, anti-Hegelian, hedgehog doctrine, asymmetric defense',
 		enText:
-			'The Plowshare Pact proclaims the "Oasis of Peace of Central Europe" Doctrine built on five pillars: (1) Sovereignty of Peace over Garrison Sovereignty — sovereignty is a means to protect Polish life and property, not a political fetish; (2) Fertility of the Plowshare over Sterility of the Sword — factories, farms, and families multiply national strength while credit-bought weaponry (without source codes) breeds debt; (3) Christian Royal Reckoning (Luke 14:31–32) over pagan Vegetius (Si vis pacem, para bellum); (4) Ending Risk Asymmetry (John 10:11–13) and any repeat of the 1939 Kuty bridge flight; (5) Constitutional Armed Territorial Neutrality (modeled on Switzerland, Austria 1955, and Malta Art. 1(3)). In debate we reject Hegelian dialectics (thesis–antithesis–synthesis) in favor of Thomistic Disputation and Chivalrous, Principled Polemics.'
+			'The Plowshare Pact proclaims the "Oasis of Peace of Central Europe" Doctrine built on five pillars: (1) Sovereignty of Peace over Garrison Sovereignty — sovereignty is a means to protect Polish life and property, not a political fetish; (2) Fertility of the Plowshare over Sterility of the Sword — factories, farms, and families multiply national strength while credit-bought weaponry (without source codes) breeds debt; (3) Christian Royal Reckoning (Luke 14:31–32) over pagan Vegetius (Si vis pacem, para bellum); (4) Ending Risk Asymmetry (John 10:11–13) and any repeat of the 1939 Kuty bridge flight; (5) Constitutional Armed Territorial Neutrality and the Hedgehog Doctrine (modeled on Switzerland, Austria 1955, and Malta Art. 1(3): asymmetric cost of invasion exceeding aggressor gains, saturating territory with civil defense and drones). In debate we reject Hegelian dialectics (thesis–antithesis–synthesis) in favor of Thomistic Disputation and Chivalrous, Principled Polemics.'
 	}
 ];
 
@@ -441,6 +441,31 @@ const KORONA_ARGUMENTS: BilingualArgumentSeed[] = [
 			keywords: 'Hegel, Hegelian dialectics, Thomistic disputation, chivalrous polemics, synthesis, objective truth',
 			span: 'In debate we reject Hegelian dialectics (thesis–antithesis–synthesis) in favor of Thomistic Disputation and Chivalrous, Principled Polemics'
 		}
+	},
+	{
+		fallacy_type: 'false_dilemma',
+		core_principle: 'Doktryna Jeża i Teoria Gier: Neutralność Zbrojna to asymetryczny koszt inwazji przewyższający zysk agresora',
+		tags: 'doktryna jeża, teoria gier, Szwajcaria, neutralność zbrojna, obrona terytorialna, asymetria, Hitler, Korona',
+		sourceRefs: [
+			{ work: 'Doktryna Oazy Pokoju Europy Środkowej i Karta Metodologiczna Przymierza Lemiesza', section_ref: 'Kanon I–V' },
+			{ work: 'Konwencja Haska (V) o prawach i obowiązkach mocarstw i osób neutralnych (1907)', section_ref: 'Art. 1, 2, 5' }
+		],
+		pl: {
+			opponent_claim:
+				'Neutralność wymaga dobrej woli sąsiadów, a w kleszczach między Rosją a Niemcami to naiwność i zdanie się na łaskę wroga — bez potężnej armii nas rozjadą.',
+			counter_punch:
+				'Neutralność nie opiera się na altruizmie ani dobrej woli sąsiada, lecz na chłodnej teorii gier i bilansie zysków i strat. Szwajcaria nie przetrwała II wojny światowej dlatego, że Hitler miał wobec niej „dobrą wolę” – Hitler gardził Szwajcarami. Przetrwała, ponieważ jej asymetryczna obrona (doktryna jeża: powszechna obrona terytorialna, nasycenie terenu bronią defensywną i gotowość wysadzenia tuneli alpejskich) oraz status neutralnego węzła finansowego sprawiły, że inwazja była dla Rzeszy po prostu mniej opłacalna niż uszanowanie jej statusu. Połknięcie jeża kosztuje zbyt wiele krwi i kapitału, by agresja miała sens.',
+			keywords: 'doktryna jeża, teoria gier, Szwajcaria, neutralność zbrojna, Hitler, obrona terytorialna, zysk i strata, asymetria',
+			span: 'asymetryczny koszt inwazji przewyższający zysk agresora, nasycenie terenu obroną cywilną i dronami'
+		},
+		en: {
+			opponent_claim:
+				'Neutrality relies on the goodwill of neighbors, and caught between Russia and Germany that is naive and leaves us at the mercy of enemies — without a massive army they will crush us.',
+			counter_punch:
+				'Neutrality does not depend on a neighbor’s altruism or goodwill, but on cold game theory and cost-benefit reckoning. Switzerland did not survive World War II because Hitler felt "goodwill" toward it — Hitler despised the Swiss. It survived because its asymmetric defense (the hedgehog doctrine: widespread territorial defense, defensive saturation, and readiness to destroy Alpine tunnels) and its role as a neutral trade and financial hub made invasion simply unprofitable compared to respecting its status. Swallowing the hedgehog costs far more blood and treasure than any aggressor could gain.',
+			keywords: 'hedgehog doctrine, game theory, Switzerland, armed neutrality, territorial defense, cost-benefit, asymmetry',
+			span: 'asymmetric cost of invasion exceeding aggressor gains, saturating territory with civil defense and drones'
+		}
 	}
 ];
 
@@ -707,7 +732,8 @@ export function seedKoronaCorpus(): {
 			linkPrinciples: [
 				'Suwerenność Pokoju ponad Suwerennością Garnizonu (Wzór, nie Kopia)',
 				'Chrystus (Łk 14, 31–32) ponad pogańskim Wegecjuszem (Si vis pacem, para bellum)',
-				'Distinguo Tomistyczne: Oaza Pokoju (Zbrojna Neutralność Terytorialna) to nie Oaza Bezbronności'
+				'Distinguo Tomistyczne: Oaza Pokoju (Zbrojna Neutralność Terytorialna) to nie Oaza Bezbronności',
+				'Doktryna Jeża i Teoria Gier: Neutralność Zbrojna to asymetryczny koszt inwazji przewyższający zysk agresora'
 			]
 		},
 		{
