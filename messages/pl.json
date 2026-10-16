@@ -436,5 +436,18 @@
 	"landing_hedgehog_jeza_1": "Asymetryczny bilans zysków i strat oparty na chłodnej teorii gier",
 	"landing_hedgehog_jeza_2": "Powszechna obrona terytorialna, drony, nasycenie terenu i obrona cywilna",
 	"landing_hedgehog_jeza_3": "Płodność Lemiesza: fabryki, rola, rodzina i kapitał budujące siłę narodu",
-	"landing_hedgehog_jeza_4": "Nienaruszalny most tranzytowy i dyplomatyczny: Oaza Pokoju Europy Środkowej"
+	"landing_hedgehog_jeza_4": "Nienaruszalny most tranzytowy i dyplomatyczny: Oaza Pokoju Europy Środkowej",
+	"series_badge_planet": "Planeta Serii ({count} satelitów)",
+	"series_badge_satellite": "Satelita {order} ({layer})",
+	"series_open_carousel": "Otwórz sekwencję serii",
+	"series_layer_allegory": "Leśna Przypowieść (Alegoria)",
+	"series_layer_realism": "Doktryna Wojskowa RP (Realia)",
+	"series_step_counter": "Krok {current} z {total}",
+	"series_moral_label": "Morał Edukacyjny",
+	"series_prev": "Poprzedni",
+	"series_next": "Następny",
+	"series_close": "Zamknij sekwencję",
+	"series_dual_lens_prompt": "Zmień perspektywę:",
+	"series_download_frame": "Pobierz plakat",
+	"series_copied_moral": "Skopiowano morał do schowka!"
 }

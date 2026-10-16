@@ -14,6 +14,7 @@ import { startBackupScheduler } from '$lib/server/backup';
 import { runSeed } from '$lib/server/seed/seed';
 import { seedMedia } from '$lib/server/seed/mediaSeed';
 import { seedKoronaCorpus } from '$lib/server/seed/koronaSeed';
+import { seedPosterSeries } from '$lib/server/seed/seriesSeed';
 
 // ---- startup -------------------------------------------------------------
 ensureBootstrapAdmin();
@@ -22,6 +23,7 @@ try {
 	runSeed();
 	seedMedia();
 	seedKoronaCorpus();
+	seedPosterSeries();
 } catch (e) {
 	console.error('[hooks] Startup seed error:', e);
 }

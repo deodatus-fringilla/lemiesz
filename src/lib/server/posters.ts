@@ -7,6 +7,9 @@ import { MediaError, slugify, type MediaStatus, MEDIA_STATUSES } from '$lib/serv
 export const POSTER_THEMES = ['sacred_life', 'sovereignty_peace', 'history_warning', 'agrarian_ethos', 'other'] as const;
 export type PosterTheme = (typeof POSTER_THEMES)[number];
 
+export const POSTER_LAYERS = ['allegory', 'realism', 'standalone'] as const;
+export type PosterLayer = (typeof POSTER_LAYERS)[number];
+
 export interface PosterRecord {
 	id: number;
 	slug: string;
@@ -20,6 +23,13 @@ export interface PosterRecord {
 	ai_assisted: boolean;
 	production_credits: string | null;
 	status: MediaStatus;
+	series_slug: string | null;
+	series_order: number;
+	is_planet: boolean;
+	layer: PosterLayer;
+	pair_key: string | null;
+	moral_quote_pl: string | null;
+	moral_quote_en: string | null;
 	reviewed_by: string | null;
 	reviewed_at: string | null;
 	created_by: string;
@@ -38,27 +48,56 @@ export interface PosterInput {
 	ai_assisted?: boolean;
 	production_credits?: string;
 	slug?: string;
+	series_slug?: string | null;
+	series_order?: number;
+	is_planet?: boolean;
+	layer?: PosterLayer;
+	pair_key?: string | null;
+	moral_quote_pl?: string | null;
+	moral_quote_en?: string | null;
 }
 
-type PosterRow = Omit<PosterRecord, 'ai_assisted'> & { ai_assisted: number };
-const fromRow = (r: PosterRow): PosterRecord => ({ ...r, ai_assisted: !!r.ai_assisted });
+type PosterRow = Omit<PosterRecord, 'ai_assisted' | 'is_planet'> & {
+	ai_assisted: number;
+	is_planet: number;
+};
+
+const fromRow = (r: PosterRow): PosterRecord => ({
+	...r,
+	ai_assisted: !!r.ai_assisted,
+	is_planet: !!r.is_planet,
+	series_slug: r.series_slug ?? null,
+	series_order: r.series_order ?? 0,
+	layer: (r.layer as PosterLayer) ?? 'standalone',
+	pair_key: r.pair_key ?? null,
+	moral_quote_pl: r.moral_quote_pl ?? null,
+	moral_quote_en: r.moral_quote_en ?? null
+});
+
 const clean = (v?: string | null) => (v && v.trim() ? v.trim() : null);
 
 export function isValidLocalImagePath(p: string): boolean {
 	const trimmed = p.trim();
-	return /^\/images\/[A-Za-z0-9_.-]+\.(jpg|jpeg|png|webp|svg)$/i.test(trimmed) && !trimmed.includes('..');
+	return /^\/images\/([A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.(jpg|jpeg|png|webp|svg)$/i.test(trimmed) && !trimmed.includes('..');
 }
 
-/** Lists image files available inside static/images/ so operators can pick them in one click. */
+/** Lists image files available inside static/images/ (recursively) so operators can pick them in one click. */
 export function listStaticImages(): string[] {
 	try {
 		const dir = path.resolve('static', 'images');
 		if (!fs.existsSync(dir)) return [];
-		return fs
-			.readdirSync(dir)
-			.filter((f) => /\.(jpg|jpeg|png|webp|svg)$/i.test(f))
-			.sort()
-			.map((f) => `/images/${f}`);
+		const results: string[] = [];
+		function walk(current: string, prefix: string) {
+			for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+				if (entry.isDirectory()) {
+					walk(path.join(current, entry.name), `${prefix}${entry.name}/`);
+				} else if (/\.(jpg|jpeg|png|webp|svg)$/i.test(entry.name)) {
+					results.push(`/images/${prefix}${entry.name}`);
+				}
+			}
+		}
+		walk(dir, '');
+		return results.sort();
 	} catch {
 		return [];
 	}
@@ -73,6 +112,9 @@ export function validatePoster(input: Partial<PosterInput>): string[] {
 	}
 	if (input.theme !== undefined && !(POSTER_THEMES as readonly string[]).includes(input.theme)) {
 		errors.push(`Theme must be one of: ${POSTER_THEMES.join(', ')}`);
+	}
+	if (input.layer !== undefined && !(POSTER_LAYERS as readonly string[]).includes(input.layer)) {
+		errors.push(`Layer must be one of: ${POSTER_LAYERS.join(', ')}`);
 	}
 	if (input.ai_assisted && !input.production_credits?.trim()) {
 		errors.push('An AI-assisted visual asset must name the AI tools in production credits');
@@ -98,8 +140,9 @@ export function createPoster(input: PosterInput, actor: Actor): number {
 		.prepare(
 			`INSERT INTO campaign_posters (
 				slug, title, artist_or_author, image_path, theme, caption_pl, caption_en,
-				symbolism_notes, ai_assisted, production_credits, status, created_by
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)`
+				symbolism_notes, ai_assisted, production_credits, status, created_by,
+				series_slug, series_order, is_planet, layer, pair_key, moral_quote_pl, moral_quote_en
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?)`
 		)
 		.run(
 			slug,
@@ -112,7 +155,14 @@ export function createPoster(input: PosterInput, actor: Actor): number {
 			clean(input.symbolism_notes),
 			input.ai_assisted ? 1 : 0,
 			clean(input.production_credits),
-			actor.name
+			actor.name,
+			clean(input.series_slug),
+			input.series_order ?? 0,
+			input.is_planet ? 1 : 0,
+			input.layer ?? 'standalone',
+			clean(input.pair_key),
+			clean(input.moral_quote_pl),
+			clean(input.moral_quote_en)
 		);
 	return Number(res.lastInsertRowid);
 }
@@ -129,13 +179,17 @@ export function listPosters(q?: string): PosterRecord[] {
 			db
 				.prepare(
 					`SELECT * FROM campaign_posters
-					 WHERE title LIKE ? OR artist_or_author LIKE ? OR COALESCE(caption_pl, '') LIKE ? OR COALESCE(caption_en, '') LIKE ? OR COALESCE(symbolism_notes, '') LIKE ?
-					 ORDER BY status = 'human_approved' DESC, id DESC`
+					 WHERE title LIKE ? OR artist_or_author LIKE ? OR COALESCE(caption_pl, '') LIKE ? OR COALESCE(caption_en, '') LIKE ? OR COALESCE(symbolism_notes, '') LIKE ? OR COALESCE(series_slug, '') LIKE ?
+					 ORDER BY status = 'human_approved' DESC, is_planet DESC, series_order ASC, id DESC`
 				)
-				.all(like, like, like, like, like) as PosterRow[]
+				.all(like, like, like, like, like, like) as PosterRow[]
 		).map(fromRow);
 	}
-	return (db.prepare("SELECT * FROM campaign_posters ORDER BY status = 'human_approved' DESC, id DESC").all() as PosterRow[]).map(fromRow);
+	return (
+		db
+			.prepare("SELECT * FROM campaign_posters ORDER BY status = 'human_approved' DESC, is_planet DESC, series_order ASC, id DESC")
+			.all() as PosterRow[]
+	).map(fromRow);
 }
 
 export function setPosterStatus(id: number, to: MediaStatus, actor: Actor): void {
@@ -187,4 +241,83 @@ export function postersForArguments(argumentIds: number[], includeDrafts = false
 		)
 		.all(...argumentIds, ...statuses) as PosterRow[];
 	return rows.map(fromRow);
+}
+
+export interface SatellitePair {
+	pair_key: string;
+	order: number;
+	allegory?: PosterRecord;
+	realism?: PosterRecord;
+	moral_quote_pl?: string;
+	moral_quote_en?: string;
+}
+
+export interface PosterSeriesData {
+	series_slug: string;
+	planet: PosterRecord | null;
+	satellites: PosterRecord[];
+	pairs: SatellitePair[];
+}
+
+export function getSeries(seriesSlug: string, includeDrafts = true): PosterSeriesData {
+	const statuses = includeDrafts ? ['human_approved', 'draft', 'flagged'] : ['human_approved'];
+	const placeholders = statuses.map(() => '?').join(',');
+	const rows = db
+		.prepare(
+			`SELECT * FROM campaign_posters
+			 WHERE series_slug = ? AND status IN (${placeholders})
+			 ORDER BY series_order ASC, id ASC`
+		)
+		.all(seriesSlug, ...statuses) as PosterRow[];
+
+	const records = rows.map(fromRow);
+	const planet = records.find((r) => r.is_planet) ?? null;
+	const satellites = records.filter((r) => !r.is_planet);
+
+	const pairMap = new Map<string, SatellitePair>();
+	for (const sat of satellites) {
+		const key = sat.pair_key || `step_${sat.series_order}`;
+		let pair = pairMap.get(key);
+		if (!pair) {
+			pair = {
+				pair_key: key,
+				order: sat.series_order,
+				moral_quote_pl: sat.moral_quote_pl ?? undefined,
+				moral_quote_en: sat.moral_quote_en ?? undefined
+			};
+			pairMap.set(key, pair);
+		}
+		if (sat.layer === 'allegory') {
+			pair.allegory = sat;
+			if (!pair.moral_quote_pl && sat.moral_quote_pl) pair.moral_quote_pl = sat.moral_quote_pl;
+			if (!pair.moral_quote_en && sat.moral_quote_en) pair.moral_quote_en = sat.moral_quote_en;
+		} else if (sat.layer === 'realism') {
+			pair.realism = sat;
+			if (!pair.moral_quote_pl && sat.moral_quote_pl) pair.moral_quote_pl = sat.moral_quote_pl;
+			if (!pair.moral_quote_en && sat.moral_quote_en) pair.moral_quote_en = sat.moral_quote_en;
+		}
+	}
+
+	const pairs = Array.from(pairMap.values()).sort((a, b) => a.order - b.order);
+	return {
+		series_slug: seriesSlug,
+		planet,
+		satellites,
+		pairs
+	};
+}
+
+export function listSeriesSummary(): { series_slug: string; planet: PosterRecord | null; count: number }[] {
+	const slugs = db
+		.prepare(`SELECT DISTINCT series_slug FROM campaign_posters WHERE series_slug IS NOT NULL ORDER BY series_slug`)
+		.all() as { series_slug: string }[];
+
+	return slugs.map(({ series_slug }) => {
+		const s = getSeries(series_slug, true);
+		return {
+			series_slug,
+			planet: s.planet,
+			count: s.satellites.length
+		};
+	});
 }

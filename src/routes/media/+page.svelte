@@ -3,8 +3,14 @@
 	import { ExternalLink, Image, Music2, Search, TriangleAlert } from 'lucide-svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { genreLabel, mediaStatusLabel, mediaTypeLabel, posterThemeLabel } from '$lib/i18n/labels';
+	import PosterCard from '$lib/components/media/PosterCard.svelte';
+	import SeriesModal from '$lib/components/media/SeriesModal.svelte';
+	import Satellites from '$lib/components/media/Satellites.svelte';
 
 	let { data, form } = $props();
+
+	let activeSeriesSlug = $state<string | null>(null);
+	const selectedSeriesData = $derived(activeSeriesSlug && data.seriesMap ? data.seriesMap[activeSeriesSlug] : null);
 
 	const field = 'w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm';
 	const statusStyle: Record<string, string> = {
@@ -49,87 +55,32 @@
 
 		<div class="grid gap-5 md:grid-cols-2">
 			{#each data.posters as p (p.id)}
-				<article class="flex flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70">
-					<div class="relative aspect-[16/10] w-full overflow-hidden bg-zinc-900">
-						<img src={p.image_path} alt={p.title} class="h-full w-full object-cover" loading="lazy" />
-						<span class="absolute right-2.5 top-2.5 rounded-full border px-2.5 py-0.5 text-xs font-medium backdrop-blur {statusStyle[p.status]}">
-							{mediaStatusLabel(p.status)}
-						</span>
-					</div>
-					<div class="flex flex-1 flex-col justify-between space-y-3 p-4">
-						<div class="space-y-1.5">
-							<div class="flex flex-wrap items-center gap-2 text-xs text-amber-300">
-								<span class="rounded bg-amber-500/15 px-2 py-0.5 font-medium">{posterThemeLabel(p.theme)}</span>
-								<span class="font-mono text-zinc-500">{p.image_path}</span>
-							</div>
-							<h3 class="text-base font-bold text-zinc-100">{p.title}</h3>
-							{#if p.caption_pl}<p class="text-xs leading-relaxed text-zinc-300"><strong class="text-zinc-400">PL:</strong> {p.caption_pl}</p>{/if}
-							{#if p.caption_en}<p class="text-xs leading-relaxed text-zinc-400"><strong class="text-zinc-500">EN:</strong> {p.caption_en}</p>{/if}
-							{#if p.symbolism_notes}<p class="text-xs italic text-zinc-400">{p.symbolism_notes}</p>{/if}
-							{#if p.production_credits}<p class="text-[11px] text-zinc-500">{p.production_credits}</p>{/if}
-						</div>
-
-						<div class="space-y-2 border-t border-zinc-800/80 pt-3">
-							<div class="text-xs font-semibold text-zinc-400">{m.media_link_title()}:</div>
-							<ul class="space-y-1 text-xs">
-								{#each p.links as l (l.argument_id)}
-									<li class="flex items-center justify-between gap-2 rounded border border-zinc-800 bg-zinc-900/50 px-2.5 py-1">
-										<a href="/arguments?q={encodeURIComponent(l.opponent_claim ?? '')}" class="truncate text-zinc-300 hover:text-amber-300">
-											{l.opponent_claim ?? `#${l.argument_id}`}
-										</a>
-										<form method="POST" action="?/unlinkPoster" use:enhance>
-											<input type="hidden" name="posterId" value={p.id} />
-											<input type="hidden" name="argumentId" value={l.argument_id} />
-											<button class="text-[11px] text-zinc-500 hover:text-rose-300">{m.media_unlink()}</button>
-										</form>
-									</li>
-								{:else}
-									<li class="text-xs text-zinc-500">{m.media_no_links()}</li>
-								{/each}
-							</ul>
-
-							<form method="POST" action="?/linkPoster" use:enhance class="flex gap-2 pt-1">
-								<input type="hidden" name="posterId" value={p.id} />
-								<select name="argumentId" class="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-xs">
-									{#each data.arguments as a (a.id)}<option value={a.id}>{a.label}</option>{/each}
-								</select>
-								<button class="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs hover:bg-zinc-800">{m.media_link_add()}</button>
-							</form>
-
-							<div class="flex flex-wrap gap-2 pt-2 text-xs">
-								{#if p.status !== 'human_approved'}
-									<form method="POST" action="?/posterStatus" use:enhance>
-										<input type="hidden" name="posterId" value={p.id} />
-										<input type="hidden" name="to" value="human_approved" />
-										<button class="rounded bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-500">{m.media_approve()}</button>
-									</form>
-								{/if}
-								{#if p.status !== 'flagged'}
-									<form method="POST" action="?/posterStatus" use:enhance>
-										<input type="hidden" name="posterId" value={p.id} />
-										<input type="hidden" name="to" value="flagged" />
-										<button class="rounded border border-amber-500/40 px-2.5 py-1 text-amber-300 hover:bg-amber-500/10">{m.media_flag()}</button>
-									</form>
-								{/if}
-								{#if p.status !== 'draft'}
-									<form method="POST" action="?/posterStatus" use:enhance>
-										<input type="hidden" name="posterId" value={p.id} />
-										<input type="hidden" name="to" value="draft" />
-										<button class="rounded border border-zinc-700 px-2.5 py-1 hover:bg-zinc-900">{m.media_to_draft()}</button>
-									</form>
-								{/if}
-								{#if data.isAdmin || p.created_by === data.username}
-									<form method="POST" action="?/deletePoster" use:enhance>
-										<input type="hidden" name="posterId" value={p.id} />
-										<button class="rounded border border-rose-500/40 px-2.5 py-1 text-rose-300 hover:bg-rose-500/10">{m.media_delete()}</button>
-									</form>
-								{/if}
-							</div>
-						</div>
-					</div>
-				</article>
+				<PosterCard
+					poster={p}
+					satelliteCount={data.seriesSummaries?.find((s) => s.series_slug === p.series_slug)?.count ?? 0}
+					argumentsList={data.arguments}
+					onOpenSeries={(slug) => {
+						activeSeriesSlug = slug;
+					}}
+				/>
 			{/each}
 		</div>
+
+		<!-- Reusable Series Modal with Satellites Sequence (Canon 04) -->
+		{#if selectedSeriesData}
+			<SeriesModal
+				open={!!activeSeriesSlug}
+				title={selectedSeriesData.planet?.title ?? 'Sekwencja Serii'}
+				onClose={() => {
+					activeSeriesSlug = null;
+				}}
+			>
+				<Satellites
+					pairs={selectedSeriesData.pairs}
+					planet={selectedSeriesData.planet}
+				/>
+			</SeriesModal>
+		{/if}
 
 		<details class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
 			<summary class="cursor-pointer text-sm font-semibold text-zinc-200">{m.posters_add_title()}</summary>

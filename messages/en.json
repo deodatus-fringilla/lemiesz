@@ -436,5 +436,18 @@
 	"landing_hedgehog_jeza_1": "Asymmetric cost-benefit calculus grounded in cold game theory",
 	"landing_hedgehog_jeza_2": "Widespread territorial defense, drones, territorial saturation, and civil defense",
 	"landing_hedgehog_jeza_3": "Fertility of the Plowshare: industry, agriculture, and families multiplying national strength",
-	"landing_hedgehog_jeza_4": "Inviolable trade and transit bridge: The Oasis of Peace of Central Europe"
+	"landing_hedgehog_jeza_4": "Inviolable trade and transit bridge: The Oasis of Peace of Central Europe",
+	"series_badge_planet": "Series Planet ({count} satellites)",
+	"series_badge_satellite": "Satellite {order} ({layer})",
+	"series_open_carousel": "Open series sequence",
+	"series_layer_allegory": "Forest Fable (Allegory)",
+	"series_layer_realism": "Polish Defense Doctrine (Realism)",
+	"series_step_counter": "Step {current} of {total}",
+	"series_moral_label": "Educational Moral",
+	"series_prev": "Previous",
+	"series_next": "Next",
+	"series_close": "Close sequence",
+	"series_dual_lens_prompt": "Switch perspective:",
+	"series_download_frame": "Download poster",
+	"series_copied_moral": "Moral copied to clipboard!"
 }

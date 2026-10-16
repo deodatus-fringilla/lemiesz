@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgReal1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b" />
+      <stop offset="50%" stop-color="#27272a" />
+      <stop offset="100%" stop-color="#3f3f46" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bgReal1)" />
+  <rect x="30" y="30" width="1140" height="690" fill="none" stroke="#eab308" stroke-width="1.5" opacity="0.5" />
+  
+  <text x="600" y="85" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="14" letter-spacing="6" fill="#facc15">KROK 1 · REALIA BEZPIECZEŃSTWA RP</text>
+  <text x="600" y="125" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="30" font-weight="bold" fill="#fef08a">PŁODNOŚĆ LEMIESZA I PRACA ORGANICZNA</text>
+  <text x="600" y="155" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="14" font-style="italic" fill="#fde047">Gospodarka rolna, przemysł wytwórczy i suwerenność rodzin zamiast zbrojeniowego długu</text>
+
+  <!-- Farmland and Plowshare Lines -->
+  <path d="M 100 580 L 1100 580" stroke="#71717a" stroke-width="2" />
+  <!-- Furrows / Skiby ziemi -->
+  <path d="M 100 620 Q 600 590 1100 620" stroke="#a1a1aa" stroke-width="2.5" />
+  <path d="M 150 660 Q 600 630 1050 660" stroke="#71717a" stroke-width="3" />
+
+  <!-- Symbolic Plowshare (Lemiesz) in Center-Left -->
+  <g transform="translate(420, 430)">
+    <path d="M -80 80 L 80 80 L 130 10 L 0 -60 L -60 -10 Z" fill="#e4e4e7" stroke="#ca8a04" stroke-width="3" />
+    <path d="M -20 -30 L 40 40" stroke="#a1a1aa" stroke-width="3" />
+    <text x="0" y="120" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="16" font-weight="bold" fill="#fef08a">VOMER (LEMIESZ)</text>
+  </g>
+
+  <!-- Modern Industrial / Granary Silos & Factory Silhouettes in Center-Right -->
+  <g transform="translate(800, 390)">
+    <!-- Silos -->
+    <rect x="-60" y="-80" width="50" height="150" rx="10" fill="#3f3f46" stroke="#71717a" stroke-width="2" />
+    <rect x="0" y="-100" width="60" height="170" rx="12" fill="#52525b" stroke="#ca8a04" stroke-width="2" />
+    <rect x="70" y="-70" width="45" height="140" rx="8" fill="#3f3f46" stroke="#71717a" stroke-width="2" />
+    <text x="25" y="120" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="16" font-weight="bold" fill="#fef08a">FABRYKI &amp; SPICHLERZE</text>
+  </g>
+
+  <!-- Doctrinal Pillar Banner -->
+  <rect x="180" y="635" width="840" height="50" rx="6" fill="#18181b" fill-opacity="0.95" stroke="#ca8a04" stroke-width="1" />
+  <text x="600" y="665" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="13" font-weight="bold" fill="#fef08a">DOKTRYNA: PŁODNY LEMIESZ TWORZY BOGACTWO NARODU · BEZPŁODNY MIECZ TRAWI JEGO ZASOBY</text>
+</svg>

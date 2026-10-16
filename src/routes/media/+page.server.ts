@@ -23,9 +23,11 @@ import {
 	createPoster,
 	deletePoster,
 	getPoster,
+	getSeries,
 	linkPosterToArgument,
 	linksForPoster,
 	listPosters,
+	listSeriesSummary,
 	listStaticImages,
 	setPosterStatus,
 	unlinkPosterFromArgument,
@@ -72,11 +74,16 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		links: linksForPoster(p.id)
 	}));
 
+	const seriesSummaries = listSeriesSummary();
+	const seriesMap = Object.fromEntries(seriesSummaries.map((s) => [s.series_slug, getSeries(s.series_slug, true)]));
+
 	return {
 		items: listMedia({ genre, q }),
 		selected,
 		links: selected ? linksForMedia(selected.id) : [],
 		posters,
+		seriesSummaries,
+		seriesMap,
 		staticImages: listStaticImages(),
 		posterThemes: [...POSTER_THEMES],
 		arguments: listArguments({ locale, limit: 200 }).arguments.map((a) => ({
