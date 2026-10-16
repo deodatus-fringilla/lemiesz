@@ -14,7 +14,8 @@ docs/
 │   ├── 01_Ideological_Doctrine.md    # The three tenets, theological/legal foundations, quote truth
 │   ├── 02_Architecture_Manifesto.md  # SQLite/WAL, Svelte 5 runes, multi-provider LLM, offline-first
 │   ├── 03_Rules_of_Engagement.md     # "One fact, one home", proof-of-failure rule, measurement rule
-│   └── 04_Hedgehog_Doctrine_Educational_Visual_Canon.md # Educational fable, dual-layer pairs, visual art direction
+│   ├── 04_Hedgehog_Doctrine_Educational_Visual_Canon.md # Educational fable, dual-layer pairs, visual art direction
+│   └── 05_Metodologia_Obronnosci_Polski.md # Organic defense, landscape hydro-barriers, DAS seismic grid, youth PO & scouting
 ├── 01_Architecture/                  # Chapter 1: Living technical blueprints and schema specifications
 │   ├── 01_System_Overview.md         # Component diagrams, trust tiers, data flows
 │   ├── 02_Database_Schema.md         # SQLite tables, FTS5 virtual tables, migrations

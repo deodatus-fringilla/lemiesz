@@ -10,6 +10,7 @@
 	let { data, form } = $props();
 
 	let activeSeriesSlug = $state<string | null>(null);
+	let activePlanetPoster = $state<any>(null);
 	const selectedSeriesData = $derived(activeSeriesSlug && data.seriesMap ? data.seriesMap[activeSeriesSlug] : null);
 
 	const field = 'w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm';
@@ -59,8 +60,9 @@
 					poster={p}
 					satelliteCount={data.seriesSummaries?.find((s) => s.series_slug === p.series_slug)?.count ?? 0}
 					argumentsList={data.arguments}
-					onOpenSeries={(slug) => {
+					onOpenSeries={(slug, poster) => {
 						activeSeriesSlug = slug;
+						activePlanetPoster = poster;
 					}}
 				/>
 			{/each}
@@ -70,14 +72,15 @@
 		{#if selectedSeriesData}
 			<SeriesModal
 				open={!!activeSeriesSlug}
-				title={selectedSeriesData.planet?.title ?? 'Sekwencja Serii'}
+				title={activePlanetPoster?.title || selectedSeriesData.planet?.title || 'Sekwencja Serii'}
 				onClose={() => {
 					activeSeriesSlug = null;
+					activePlanetPoster = null;
 				}}
 			>
 				<Satellites
 					pairs={selectedSeriesData.pairs}
-					planet={selectedSeriesData.planet}
+					planet={activePlanetPoster || selectedSeriesData.planet}
 				/>
 			</SeriesModal>
 		{/if}

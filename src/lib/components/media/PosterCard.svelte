@@ -18,7 +18,7 @@
 		poster: PosterWithLinks;
 		satelliteCount?: number;
 		argumentsList?: { id: number; label: string }[];
-		onOpenSeries?: (seriesSlug: string) => void;
+		onOpenSeries?: (seriesSlug: string, poster: PosterWithLinks) => void;
 	} = $props();
 
 	const statusStyle: Record<string, string> = {
@@ -29,7 +29,7 @@
 
 	function handleSeriesClick() {
 		if (poster.series_slug && onOpenSeries) {
-			onOpenSeries(poster.series_slug);
+			onOpenSeries(poster.series_slug, poster);
 		}
 	}
 </script>

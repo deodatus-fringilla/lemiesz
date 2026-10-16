@@ -7,7 +7,7 @@ interface SeriesPosterSeedDef extends PosterInput {
 }
 
 export const HEDGEHOG_SERIES_SEEDS: SeriesPosterSeedDef[] = [
-	// 0. Planeta / Hero
+	// 0. Planeta / Hero I: Doktryna Jeża
 	{
 		title: 'Doktryna Jeża — Oaza Pokoju i Niestrawność Terytorialna',
 		artist_or_author: 'Przymierze Lemiesza Studio (malarstwo olejne, styl Józefa Chełmońskiego)',
@@ -26,6 +26,31 @@ export const HEDGEHOG_SERIES_SEEDS: SeriesPosterSeedDef[] = [
 		ai_assisted: true,
 		production_credits: 'Koncept: Bogdan Zięba (Przymierze Lemiesza); obraz olejny w stylu polskiego realizmu XIX w. (Józef Chełmoński) wspomagany AI (static/images/doktryna-jeza/hedgehog_planet_hero.jpg).',
 		linkPrinciples: [
+			'Doktryna Jeża i Teoria Gier: Neutralność Zbrojna to asymetryczny koszt inwazji przewyższający zysk agresora',
+			'Distinguo Tomistyczne: Oaza Pokoju (Zbrojna Neutralność Terytorialna) to nie Oaza Bezbronności'
+		]
+	},
+
+	// 0b. Planeta / Hero II: Geopolityczne Imadło
+	{
+		title: 'Geopolityczne Imadło — Z Kleszczy Imperializmów w Suwerenny Pomost',
+		artist_or_author: 'Przymierze Lemiesza Studio (malarstwo olejne, styl Józefa Chełmońskiego & Jacka Malczewskiego)',
+		image_path: '/images/imadlo_geopolityczne_hero.jpg',
+		theme: 'history_warning',
+		series_slug: 'doktryna-jeza',
+		series_order: 0,
+		is_planet: true,
+		layer: 'standalone',
+		pair_key: null,
+		caption_pl: 'Polska w geopolitycznym imadle: dwie imperialne szczęki zaciskające się ze Wschodu i Zachodu nie zdołają zmiażdżyć hartowanego lemiesza suwerennej pracy narodowej.',
+		caption_en: 'Poland in the geopolitical vice: two imperial jaws tightening from East and West cannot crush the tempered plowshare of sovereign national labor.',
+		symbolism_notes: 'Metafora Imadła i Kleszczy (Canon 01 §2 Filar IV; Canon 04): Odrzucenie Rapallo i wojny zastępczej poprzez Podwójny Dystans i niezłomny opór lemiesza.',
+		moral_quote_pl: 'Równy dystans strategiczny zapobiega zmiażdżeniu w obcym imadle i przekształca kleszcze w niezbędny dla świata pomost.',
+		moral_quote_en: 'Equal strategic distance prevents being crushed in a foreign vice and turns geopolitical pincers into an indispensable bridge.',
+		ai_assisted: true,
+		production_credits: 'Koncept: Bogdan Zięba (Przymierze Lemiesza); obraz olejny w stylu polskiego realizmu XIX w. (Józef Chełmoński) wspomagany AI (static/images/imadlo_geopolityczne_hero.jpg).',
+		linkPrinciples: [
+			'Suwerenność Pokoju ponad Suwerennością Garnizonu (Wzór, nie Kopia)',
 			'Doktryna Jeża i Teoria Gier: Neutralność Zbrojna to asymetryczny koszt inwazji przewyższający zysk agresora',
 			'Distinguo Tomistyczne: Oaza Pokoju (Zbrojna Neutralność Terytorialna) to nie Oaza Bezbronności'
 		]
