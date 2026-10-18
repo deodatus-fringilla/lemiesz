@@ -1,7 +1,7 @@
 # Transfer letter — Claude (Sonnet 5.5) to the next session
 
 > **Doc type: HANDOFF (point-in-time).** Written 2026-10-01 at the end of the session that audited Gemini's Phase 0–1 and built Phases 2–5.
-> **Authority:** this letter owns nothing. Status lives in the [Harness ledger](../10_Harness/02_Harness_Ledger.md), design in the [plan](../implementation_plan.md), operations in [OPERATIONS.md](../OPERATIONS.md). Where this letter and those disagree, they win and this letter is out of date. Measured claims below carry the date and command ([Canon 03 · D2](../00_Canon/03_Rules_of_Engagement.md)).
+> **Authority:** this letter owns nothing. Status lives in the [Harness ledger](../10_Harness/02_Harness_Ledger.md), design in the [Architecture Manifesto](../00_Canon/02_Architecture_Manifesto.md), operations in [OPERATIONS.md](../OPERATIONS.md). Where this letter and those disagree, they win and this letter is out of date. Measured claims below carry the date and command ([Canon 03 · D2](../00_Canon/03_Rules_of_Engagement.md)).
 
 ---
 

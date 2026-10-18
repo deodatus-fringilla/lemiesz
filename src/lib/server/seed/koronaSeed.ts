@@ -605,7 +605,7 @@ function findSourceId(work: string, sectionRef: string): number | null {
 
 /**
  * Idempotently expands the corpus with the canonical sources, bilingual argument cards,
- * correspondence thread (`letters/Korona/*.txt`), and visual campaign posters (`static/images/*.jpg`).
+ * correspondence thread (`docs/99_Raw_Repo/letters/Korona/*.txt`), and visual campaign posters (`static/images/*.jpg`).
  */
 export function seedKoronaCorpus(): {
 	sourcesAdded: number;
@@ -796,7 +796,7 @@ export function seedKoronaCorpus(): {
 		);
 	}
 
-	// 5. Seed the Korona correspondence thread & 8 letters from letters/Korona/*.txt
+	// 5. Seed the Korona correspondence thread & 8 letters from docs/99_Raw_Repo/letters/Korona/*.txt
 	let thread = db.prepare("SELECT id FROM correspondence_threads WHERE slug = 'korona'").get() as { id: number } | undefined;
 	if (!thread) {
 		const res = db
@@ -812,7 +812,7 @@ export function seedKoronaCorpus(): {
 		thread = { id: Number(res.lastInsertRowid) };
 	}
 
-	const lettersDir = path.resolve('letters', 'Korona');
+	const lettersDir = path.resolve('docs', '99_Raw_Repo', 'letters', 'Korona');
 	for (const meta of KORONA_LETTERS_META) {
 		const exists = db
 			.prepare('SELECT 1 FROM correspondence_letters WHERE thread_id = ? AND filename = ?')

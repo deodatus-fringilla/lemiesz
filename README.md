@@ -4,8 +4,8 @@ Internal, bilingual (Polish default, English second) knowledge base and debate-d
 core team of Przymierze Lemiesza. SvelteKit 5 + SQLite (FTS5) + in-RAM vector search, no external
 infrastructure.
 
-The authoritative design is [docs/implementation_plan.md](docs/implementation_plan.md); the
-decisions behind it are in [docs/discussions/implementation_plan_critique.md](docs/discussions/implementation_plan_critique.md).
+The authoritative design principles are in [docs/00_Canon/02_Architecture_Manifesto.md](docs/00_Canon/02_Architecture_Manifesto.md); the
+decisions behind them are in [docs/discussions/implementation_plan_critique.md](docs/discussions/implementation_plan_critique.md).
 
 ## What works today (Phases 0–5)
 

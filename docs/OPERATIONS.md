@@ -1,6 +1,6 @@
 # Operations guide
 
-For whoever runs the server. Design background is in [implementation_plan.md](implementation_plan.md).
+For whoever runs the server. Architectural invariants live in [02_Architecture_Manifesto.md](00_Canon/02_Architecture_Manifesto.md).
 
 ## 1. First deployment
 

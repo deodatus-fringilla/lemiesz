@@ -43,10 +43,10 @@ docs/
 │   ├── ROBOT-06-sqlite-disk-assertion.md
 │   ├── ROBOT-07-license-and-storage-gate.md
 │   └── ROBOT-08-doc-rot-and-census-gate.md
-├── discussions/                      # Consultation logs and debate critiques
-│   └── implementation_plan_critique.md
-├── implementation_plan.md            # Authoritative implementation plan (v2)
-└── implementation_plan.v1.md         # Archived v1 plan
+├── 99_Raw_Repo/                      # Thematic raw & source materials repository
+│   └── letters/                      # Epistolary correspondence & speech analyses (Korona, Prezydent)
+└── discussions/                      # Consultation logs and debate critiques
+    └── implementation_plan_critique.md
 ```
 
 ---

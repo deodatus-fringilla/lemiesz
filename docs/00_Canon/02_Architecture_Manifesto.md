@@ -2,7 +2,7 @@
 
 > **Doc type: DURABLE RULING.**
 > **STATUS: AUTHORITATIVE.**
-> Summarizes the non-negotiable architectural invariants of **Przymierze Lemiesza (`lemiesz`)**. Detailed specifications live in [implementation_plan.md](../implementation_plan.md) and live verification status in the [Harness Ledger](../10_Harness/02_Harness_Ledger.md).
+> Summarizes the non-negotiable architectural invariants of **Przymierze Lemiesza (`lemiesz`)**. Live verification status lives in the [Harness Ledger](../10_Harness/02_Harness_Ledger.md).
 
 ---
 

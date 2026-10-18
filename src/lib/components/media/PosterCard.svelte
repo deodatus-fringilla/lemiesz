@@ -1,4 +1,4 @@
-<script lang="ts">
+yy<script lang="ts">
 	import { enhance } from '$app/forms';
 	import { Layers, Sparkles } from 'lucide-svelte';
 	import type { PosterRecord } from '$lib/server/posters';

@@ -34,7 +34,7 @@ For every markdown file in `docs/`:
 
 4. **Links resolve.** Relative links point at existing files and, for `#anchor` links, at existing headings (GitHub slug rules). Code blocks and inline code are ignored.
 5. **No machine-local paths** (`C:\Users\…`, `C:\www\…`, `file:///C:/…`).
-6. **Archives are exempt.** A document whose first lines say `Doc type: ARCHIVE` is history and is skipped (currently `implementation_plan.v1.md`).
+6. **Archives are exempt.** A document whose first lines say `Doc type: ARCHIVE` is history and is skipped.
 
 Not covered: whether numbers quoted in prose (test counts) are current. Those belong only in the ledger (Canon 03 D2); a future rule could flag digits-plus-"tests" outside it.
 

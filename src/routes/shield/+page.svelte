@@ -692,7 +692,7 @@
 			{/if}
 		</section>
 	{:else if activeTab === 'dossier'}
-		<!-- Epistolary Dossier: letters/Korona/ -->
+		<!-- Epistolary Dossier: docs/99_Raw_Repo/letters/Korona/ -->
 		<section class="space-y-6">
 			<div class="rounded-xl border border-amber-500/30 bg-zinc-900/50 p-5">
 				<h2 class="text-xl font-bold text-zinc-100">{m.shield_dossier_title()}</h2>

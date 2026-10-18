@@ -189,7 +189,7 @@ Dziękuję bardzo.
 
 # Egzegeza w duchu filarów Przymierza Lemiesza
 
-> **Podstawa doktrynalna:** [Canon 01 · Ideological Doctrine](../../../docs/00_Canon/01_Ideological_Doctrine.md) (Pięć Filarów i Pięć Metodologii Dysputy) oraz [Canon 04 · Doktryna Jeża](../../../docs/00_Canon/04_Hedgehog_Doctrine_Educational_Visual_Canon.md).
+> **Podstawa doktrynalna:** [Canon 01 · Ideological Doctrine](../../../../00_Canon/01_Ideological_Doctrine.md) (Pięć Filarów i Pięć Metodologii Dysputy) oraz [Canon 04 · Doktryna Jeża](../../../../00_Canon/04_Hedgehog_Doctrine_Educational_Visual_Canon.md).
 > **Metoda:** Dysputa Tomistyczna (*Videtur quod – Sed contra – Respondeo*) oraz Rycerska i Pryncypialna Polemika. Zgodnie z Canon 01 §1 **nie szukamy heglowskiej „syntezy”** między naszą doktryną a tezami Prezydenta. Stosujemy rozróżnienie: co w przemówieniu jest prawdziwe i zbieżne z naszymi zasadami, a co jest z nimi niespójne — także wewnątrz samego tekstu.
 > **Zasada D5 (Prawda w cytatach):** wszystkie cytaty pochodzą z transkrypcji powyżej, opartej na napisach automatycznych. Przed publicznym użyciem trzeba je sprawdzić z autoryzowanym tekstem Kancelarii Prezydenta.
 
@@ -353,7 +353,7 @@ Morał Lemiesza: *„Gdy dwa wilki dzielą las, naiwny mały zwierz nie wstępuj
 
 ## VI. Dekonstrukcja „mitu drona” i suwerenne alternatywy Lemiesza
 
-> **Pełny traktat doktrynalny:** Szczegółowe rozwinięcie tego zagadnienia, w tym analiza technologicznego wasalizmu, zjawiska dehumanizacji algorytmicznej oraz 7 suwerennych filarów obronności RP (hydro-geobariera krajobrazu, pasywna sieć sejsmiczna DAS, immunologia antydronowa, architektura komórkowa, schrony dla 100% ludności, obywatelska łączność kratowa oraz żywy człowiek: przysposobienie obronne, harcerstwo, strzelnice wiejskie i pierwsza pomoc), zostało włączone do Kanonu Platformy jako **[Canon 05 · Metodologia Obronności Polski](../../../docs/00_Canon/05_Metodologia_Obronnosci_Polski.md)**.
+> **Pełny traktat doktrynalny:** Szczegółowe rozwinięcie tego zagadnienia, w tym analiza technologicznego wasalizmu, zjawiska dehumanizacji algorytmicznej oraz 7 suwerennych filarów obronności RP (hydro-geobariera krajobrazu, pasywna sieć sejsmiczna DAS, immunologia antydronowa, architektura komórkowa, schrony dla 100% ludności, obywatelska łączność kratowa oraz żywy człowiek: przysposobienie obronne, harcerstwo, strzelnice wiejskie i pierwsza pomoc), zostało włączone do Kanonu Platformy jako **[Canon 05 · Metodologia Obronności Polski](../../../../00_Canon/05_Metodologia_Obronnosci_Polski.md)**.
 
 W kontekście wystąpienia Prezydenta RP należy postawić fundamentalną granicę pojęciową: **współczesny dron dalekosiężny nie jest narzędziem obronnym, lecz precyzyjną, inwazyjną rakietą manewrującą nowej generacji.**
 1. **Zniszczenie statusu Oazy Pokoju:** Wypuszczanie rojów uderzeniowych w głąb obcego terytorium przenosi ogień poza granice kraju i prowokuje zmasowany, niszczycielski odwet rakietowy wprost na polskie miasta i zakłady pracy.
