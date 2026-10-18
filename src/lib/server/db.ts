@@ -30,7 +30,8 @@ export function assertLocalFilesystem(dbPath: string): void {
 		);
 	};
 
-	if (resolved.startsWith('\\\\') || resolved.startsWith('//')) fail('is on a UNC network share');
+	// Check the path as given: path.resolve() on Linux turns "\\server\share" into a relative path.
+	if (dbPath.startsWith('\\\\') || dbPath.startsWith('//')) fail('is on a UNC network share');
 
 	if (process.platform === 'linux') {
 		try {
