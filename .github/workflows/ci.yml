@@ -1,0 +1,44 @@
+name: CI
+
+# The local gates, run automatically. Deliberately excludes `pnpm eval` and the
+# model-dependent halves of the robots: those need a model download or an LLM key.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: check, test, robots
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm version comes from the "packageManager" field in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type and Svelte check
+        run: pnpm check
+
+      - name: Unit and integration tests
+        run: pnpm test
+
+      - name: Robots (static and backend gates)
+        run: pnpm robots
