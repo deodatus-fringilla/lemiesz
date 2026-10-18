@@ -87,3 +87,14 @@ Changing the embedding model: vectors are stored per model, so old ones are simp
 | First search after a restart is slow | The local embedding model is loading (~20 s) |
 | Dashboard: "backups on the same disk" | Set `BACKUP_DIR` to another disk, or copy the folder off the machine |
 | `pnpm check`/`test` while `vite dev` is running breaks the page | They recompile the message files under the dev server; stop dev first |
+
+## 7. Deployment limits
+
+Lemiesz is built for **one trusted team on one machine**. These are deliberate trade-offs, not oversights:
+
+* **One instance only.** Sessions, rate limits and the AI spending budget are held in the process's memory (`src/lib/server/rateLimit.ts`). Two replicas would each keep their own counters, and every restart resets the rate limits and the AI budget for the day. Vector embeddings are stored in the database and cached in memory on first use, so the first search after a restart is slower.
+* **The database is a single local SQLite file** on a local disk (`DATABASE_PATH`). There is no replication; the last verified backup is the recovery point, so the backup interval is how much work you can lose.
+* **Backups are not an off-site copy.** See section 2.
+* **Rotate `ADMIN_PASSWORD` out of the environment** after the first start (section 1).
+
+If the tool ever needs more than one instance, the rate limits and the AI budget move to the database first; that change is not made yet.

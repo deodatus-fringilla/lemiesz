@@ -32,7 +32,16 @@ Every robot in the fleet must have:
 | `pnpm robots:sabotage` | Canon 03 D4: breaks one guarded line at a time, requires the guarding robot to turn red, restores the file. Run it whenever a robot or its guarded code changes. |
 | `pnpm eval` | The model-dependent halves of ROBOT-03 (needs `LLM_AUDITOR_*`) and ROBOT-04 (real local embedder, downloads the model once). |
 
-Gate strictness (decided 2026-10-01): robots run through `pnpm robots` and in CI. The two static gates (05, 08) are cheap enough to add to a pre-commit hook later; nothing that needs the embedder or an LLM ever runs there.
+Gate strictness (decided 2026-10-01): robots run through `pnpm robots`, and CI runs them on every push and pull request. The two static gates (05, 08) are cheap enough to add to a pre-commit hook later; nothing that needs the embedder or an LLM ever runs there.
+
+**What CI runs** ([`.github/workflows/`](../../.github/workflows/)):
+
+| Workflow | Trigger | Runs |
+| :-- | :-- | :-- |
+| `ci.yml` | every push and pull request | `pnpm check`, `pnpm test`, `pnpm robots` |
+| `eval.yml` | weekly (Mondays) and on demand | `pnpm eval`, with the auditor half only when the `LLM_AUDITOR_*` secrets are set; uploads `eval-report.txt` as an artifact |
+
+`pnpm robots:sabotage` is not in CI. It temporarily edits application source files to break them, so it is run by hand whenever a robot or the code it guards changes.
 
 ---
 
