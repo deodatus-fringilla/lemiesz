@@ -1,330 +1,257 @@
-# Propozycja Architektoniczna · Nowa Struktura Korpusu Tekstowego, Symbioza z SQLite oraz „Spichlerz Lemiesza” (Svelte 5 UI)
-*(Architectural Proposal: New Text Corpus Structure, SQLite Symbiosis & "The Lemiesz Granary" Svelte 5 UI)*
+# Propozycja Architektoniczna v2 · Korpus Tekstowy w Git i Podział Władzy Plik ↔ SQLite
+*(Architectural Proposal v2: Git-Hosted Text Corpus and the File ↔ SQLite Authority Split)*
 
 > **Doc type: CONSULTATION & ARCHITECTURAL PROPOSAL (point-in-time).**  
 > **STATUS: OPEN FOR STAKEHOLDER CONSULTATION.**  
-> **Data:** 2026-10-18  
-> **Autorzy:** Antigravity AI & Lead Architect  
-> **Adresaci / Interesariusze:** Zespół Przymierza Lemiesza, Developerzy, Kuratorzy Treści, Claude (Reviewer)  
-> **Cel dokumentu:** Kompleksowe uporządkowanie rozrastającego się repozytorium tekstów na wczesnym etapie projektu (Część I) oraz zaprojektowanie dedykowanego komponentu Svelte 5 typu Evernote – **„Spichlerz Lemiesza”** (Część II) – który uczyni z bazy wiedzy płynne, błyskawiczne środowisko pracy badawczo-redakcyjnej i oręża retorycznego.
+> **Wersja:** v2 · 2026-10-19 (zastępuje v1 z 2026-10-18; v1 pozostaje w historii Git, commity `542c603` i `9585458`)  
+> **Właściciel dokumentu:** Claude (przejęcie od Antigravity AI, audyt v1 w §0)  
+> **Adresaci / Interesariusze:** Lead Architect, Zespół Przymierza Lemiesza, Developerzy, Kuratorzy Treści  
+> **Zakres:** wyłącznie struktura korpusu, ingest do SQLite i plan migracji. Interfejs „Spichlerz Lemiesza” wydzielono do osobnej propozycji: [Propozycja_Spichlerz_UI.md](Propozycja_Spichlerz_UI.md) — odłożonej do zakończenia Fazy 2 niniejszego planu.
 
 ---
 
-# CZĘŚĆ I · ARCHITEKTURA DANYCH I STRUKTURA PLIKÓW
+## 0. Audyt v1 — co poprawiono
+
+Kierunek v1 jest słuszny: treść korpusu powinna żyć w plikach Markdown w Git, a nie w literałach TypeScript, a `docs/` powinno wrócić do roli dokumentacji technicznej. Jednak v1 opierała się na kilku błędnych faktach i pomijała najtrudniejszą kwestię — kto jest właścicielem stanu recenzji.
+
+| # | Twierdzenie v1 | Stan faktyczny (zmierzony 2026-10-19) | Konsekwencja w v2 |
+|---|---|---|---|
+| A1 | Treści listów są w `.txt`, metadane zduplikowane w `koronaSeed.ts` | Prawda, ale `koronaSeed.ts` (60 kB) to głównie **źródła** (`KORONA_SOURCES`), **tłumaczenia** i **9 kart argumentów**; metadane 8 listów to ok. 120 linii | Migracja obejmuje źródła, nie tylko listy (§6, Faza 3) |
+| A2 | `docs/01_Architecture/` istnieje i zostaje w `docs/` | Katalog nie istnieje. `docs/README.md` wymienia też nieistniejące `01_Testing_Strategy.md` i 4 z 5 plików `02_Platform_Modules/` | Faza 0 porządkuje mapę `docs/README.md` |
+| A3 | Kanony doktrynalne to 01, 04–08 | Istnieje już Canon 09 (`09_Kowadlo_Pokoju_…`, jeszcze nie zacommitowany) | Canon 09 wchodzi do migracji |
+| A4 | Przenumerowanie kanonów (04→02, 05→03 …) | W `docs/`, `src/`, `scripts/` i `tests/` jest 76 odwołań typu „Canon 0N” / `00_Canon/`; „Canon 03 D2” to stały identyfikator reguły | **Numery kanonów zostają bez zmian**; luki w numeracji są dopuszczalne |
+| A5 | Baza SQLite jako „ephemeral cache”, `npm run db:rebuild` odtwarza 100% bazy | Baza przechowuje stan, którego nie ma w plikach: `review` (w tym `human_approved`), `review_events`, `audit_json`, embeddingi, użytkowników, sesje, rozmowy, szkice, media, plakaty. Odbudowa z plików zgubiłaby każdą ludzką akceptację (Canon 02 §1.2, ROBOT-02) | Jawny podział władzy plik ↔ baza (§3). Kopie zapasowe (`backup.ts`, `restore-drill.mjs`) pozostają mechanizmem DR |
+| A6 | Nowy plik „natychmiast zasila” `fts_pl`/`fts_en` bez restartu | FTS indeksuje tylko `source` i `argument`; listy i kanony nie są indeksowane. `owner_type` w `embeddings` i `review_events` ma `CHECK IN ('source','argument')` | Indeksowanie listów to osobna decyzja z migracją schematu (D6) |
+| A7 | ROBOT-01 i ROBOT-07 „mogą walidować pliki `.md`” | ROBOT-01 sprawdza cytaty modeli względem zapisanych tekstów; ROBOT-07 działa przez `validateIngestionChecklist`. Żaden robot nie czyta plików korpusu. ROBOT-08 sprawdza linki tylko w `docs/` | Nowy ROBOT-11 oraz rozszerzenie ROBOT-08 na `corpus/` (§4) |
+| A8 | `npm run ingest`, `npm run robots` | Projekt używa `pnpm` (`pnpm robots`, `pnpm check`, `pnpm test`) | Poprawione polecenia |
+| A9 | Czasy „< 5 ms”, „2 sekundy”, „100%” | Nigdy nie zmierzone — narusza zasadę *Measured Claims Carry Dates* | Usunięte |
+| A10 | Przykład A: `license: "Public domain: Biblia Gdańska / Nova Vulgata"` | Tekst PL Łk 14,31–32 w seedzie wygląda na **Biblię Tysiąclecia** (© Pallottinum), a tekst EN na **ESV** (© Crossway) — nie na Biblię Gdańską ani WEB, które deklaruje pole `license` | Blokuje migrację źródeł 1:1 — kurator musi zweryfikować (§5, Faza 0) |
+
+Dwa dodatkowe ustalenia z kodu, istotne dla migracji:
+
+- **Obraz produkcyjny nie zawiera listów.** `Dockerfile` kopiuje do etapu runtime tylko `build/`, `node_modules/`, `package.json` i `restore-drill.mjs`. `seedKoronaCorpus()` czyta `docs/99_Raw_Repo/letters/Korona/*.txt` w czasie działania — w kontenerze plików nie ma, więc zapisują się jednozdaniowe `fallbackBody`.
+- **Nowe listy są niewidoczne.** `lemiesz_to_korona_05.txt` i `odpna4.txt` leżą w katalogu, ale seed ma zakodowaną listę 8 plików, więc ich nie wczytuje.
+
+**Moment jest najtańszy z możliwych.** Stan bazy na 2026-10-19 (`data/lemiesz.db`): 19 źródeł, 35 tekstów źródeł — wszystkie `draft`, 9 argumentów, 8 listów, 53 zdarzenia recenzji — wszystkie od `system:seed`. Nie istnieje jeszcze żadna ludzka akceptacja, którą migracja mogłaby zgubić.
 
 ---
 
-## 1. Kontekst i Diagnoza Stanu Obecnego
+## 1. Diagnoza
 
-Przymierze Lemiesza wchodzi w fazę intensywnego rozwoju bazy wiedzy. W projekcie gromadzone są zróżnicowane materiały tekstowe:
-- Nienaruszalne Kanony doktrynalne (dotychczas Canons 01–08),
-- Korespondencja epistolarna (8 listów polemicznych z Konfederacją Korony Polskiej, wystąpienia dyplomatyczne, np. prezydenckie z ONZ),
-- Źródła autorytatywne (Pismo Święte, encykliki papieskie, traktaty międzynarodowe jak V Konwencja Haska czy Traktat Austriacki z 1955 r.),
-- Materiały robocze, wycinki prasowe i transkrypcje w toku obróbki (np. `Braun GRzegorz.md`).
-
-### Aktualne Problemy Architektoniczne:
-
-1. **Pomieszanie dwóch różnych dziedzin w katalogu `docs/`:**
-   - W jednym katalogu `docs/` przemieszane są **dokumenty inżynieryjne kodu** (`docs/17_Robots/`, `docs/10_Harness/`, `docs/01_Architecture/`, manifesty techniczne `02_Architecture_Manifesto.md`, `03_Rules_of_Engagement.md`) oraz **korpus intelektualny i geopolityczny Ruchu** (doktryna, teologia, listy, publicystyka).
-2. **Naruszenie zasady *„One Fact, One Home”* (Canon 03 D2):**
-   - Treści listów Korony leżą w plikach `.txt` w `docs/99_Raw_Repo/letters/Korona/`, lecz ich metadane (daty, nadawcy, odbiorcy, streszczenia PL/EN) są zduplikowane w 60-kilobajtowym pliku kodu TypeScript (`src/lib/server/seed/koronaSeed.ts`).
-   - Poprawienie literówki lub dodanie nowego listu wymaga dziś żmudnego, ręcznego kodowania obiektów w TypeScript.
-3. **Katalog `99_Raw_Repo` jako nieskategoryzowany „zsyp”:**
-   - Brak wyraźnego podziału na to, co jest oficjalną, zatwierdzoną korespondencją, a co surowym materiałem wejściowym oczekującym na obróbkę redakcyjną.
+1. **`docs/` miesza dwie dziedziny:** dokumentację inżynieryjną (Canon 02, 03, `10_Harness/`, `17_Robots/`) i korpus Ruchu (Canon 01, 04–09, listy, materiały surowe).
+2. **Treść korpusu żyje w kodzie:** źródła, tłumaczenia, karty argumentów i metadane listów są literałami TypeScript w `src/lib/server/seed/koronaSeed.ts` i `seedData.ts`. Poprawka literówki w cytacie wymaga zmiany kodu i nie przechodzi przez recenzję treści.
+3. **`docs/99_Raw_Repo/` nie odróżnia materiału zatwierdzonego od surowego:** oficjalna korespondencja leży obok `For_Processing/` (np. `Braun Grzegorz.md`, `Gadowski Witold.md`).
+4. **Ścieżka produkcyjna jest zepsuta** (obraz bez plików listów, patrz §0).
 
 ---
 
-## 2. Proponowana Struktura Katalogów Korpusu
+## 2. Struktura katalogów
 
-Proponuje się wydzielenie całego korpusu treściowego do dedykowanego, czystego drzewa (zalecana ścieżka główna: `corpus/` w korzeniu projektu lub podkatalog `docs/corpus/`):
+Korpus wydziela się do `corpus/` w korzeniu repozytorium. Nazwy katalogów są angielskie i ASCII (to klucze czytane przez kod); nazwy plików kanonów i treść pozostają polskie.
 
 ```text
-corpus/                                 # [KORPUS WIEDZY I TREŚCI PRZYMIERZA LEMIESZA]
+corpus/
+├── README.md                      # Mapa korpusu, konwencje frontmatter, polecenia
 │
-├── 00_Kanon/                           # RULINGS: Nienaruszalna doktryna ideowa, teologiczna i geopolityczna
-│   ├── 01_Doktryna_Ideowa.md           # Dawny Canon 01 (Filary I-V, Oaza Pokoju)
-│   ├── 02_Doktryna_Jeza_Wizualna.md    # Dawny Canon 04 (Alegoria, Edukacja, Satelity)
-│   ├── 03_Metodologia_Obronnosci.md    # Dawny Canon 05 (Organiczna Tarcza, Imadło)
-│   ├── 04_Dekonstrukcja_Suwerennosci.md# Dawny Canon 06 (Mit Niepodległości a Zbrojna Neutralność)
-│   ├── 05_Dominus_Pacis_Pan_Pokoju.md  # Dawny Canon 07 (Prymat Ius ad Pacem nad Wegecjuszem)
-│   └── 06_Przelamanie_Augustyna.md     # Dawny Canon 08 (Fałsz „Wojny o Pokój”, Realizm Lemiesza)
+├── canon/                         # Doktryna Ruchu — przeniesiona z docs/00_Canon/, numery i nazwy BEZ ZMIAN
+│   ├── 01_Ideological_Doctrine.md
+│   ├── 04_Hedgehog_Doctrine_Educational_Visual_Canon.md
+│   ├── 05_Metodologia_Obronnosci_Polski.md
+│   ├── 06_Dekonstrukcja_Mitu_Niepodleglosci_i_Prawdziwa_Suwerennosc.md
+│   ├── 07_Pan_Pokoju_i_Dekonstrukcja_Maksymy_Wegecjusza.md
+│   ├── 08_Przelamanie_Augustynskiej_Iluzji.md
+│   └── 09_Kowadlo_Pokoju_i_Symbolika_Narzedzi_Rolniczych.md
 │
-├── 01_Zrodla_Kanonu/                   # SOURCES: Teksty autorytatywne (odwzorowanie 1:1 z tabelą sources)
-│   ├── 01_Pismo_Swiete/                # Łk 14 (Rachunek Królewski), Iz 2 (Lemiesze), J 10 (Pasterz i Najemnik)
-│   ├── 02_Magisterium/                 # Pacem in Terris, Gaudium et Spes
-│   ├── 03_Prawo_Miedzynarodowe/        # V Konwencja Haska 1907, Traktat Austriacki 1955, Konstytucja RP
-│   └── 04_Historia_Mysli/              # Eisenhower 1953, Dmowski, Witos, Bobrzyński
+├── sources/                       # Teksty autorytatywne → tabele sources + source_texts
+│   └── lk-14-rachunek-krolewski/
+│       ├── source.yaml            # Metadane niezależne od języka (jedno miejsce)
+│       ├── la.md                  # Oryginał (dosłowny tekst, nic poza nim)
+│       ├── pl.md                  # Tłumaczenie PL (dosłowny tekst)
+│       └── en.md                  # Tłumaczenie EN (dosłowny tekst)
 │
-├── 02_Korespondencja/                  # EPISTOLARY: Archiwum listów i polemik dyplomatycznych
-│   ├── korona/                         # Wątek: Konfederacja Korony Polskiej
-│   │   ├── _thread.yaml                # Metadane wątku (interlocutor, slug, methodology)
-│   │   ├── 01_out_lemiesz_do_korony.md # Kolejne tury z YAML frontmatter
-│   │   ├── 02_in_korona_odpowiedz.md
-│   │   └── ...
-│   └── prezydent/                      # Wątek: Kancelaria Prezydenta RP
-│       └── nawrocki/
-│           ├── _thread.yaml
-│           └── 2026-09-23_ONZ_81_sesja.md
+├── correspondence/                # Wątki listów → correspondence_threads + correspondence_letters
+│   ├── korona/
+│   │   ├── _thread.yaml
+│   │   ├── 01_out.md              # Tura 1, list wychodzący
+│   │   ├── 01_in.md               # Tura 1, odpowiedź
+│   │   └── …
+│   └── prezydent-nawrocki/
+│       ├── _thread.yaml
+│       └── 2026-09-23_ONZ_81_sesja.md
 │
-├── 03_Publicystyka/                    # ARTICLES: Opracowania, artykuły programowe, oświadczenia
-│   ├── analizy/                        # Pogłębione analizy geopolityczne (tranzyt, energetyka, imadło)
-│   ├── oswiadczenia/                   # Oficjalne komunikaty prasowe Przymierza Lemiesza
-│   └── glosy_w_debacie/                # Felietony i polemiki bieżące
-│
-├── 04_Kultura_i_Edukacja/              # ALEGORIE I MEDIA: Teksty bajek, scenariusze, pieśni
-│   ├── bajki_filozoficzne/             # Przypowieści o jeżu, niedźwiedziu i wilku
-│   └── teksty_piesni/                  # Słowa utworów (indeksowane w tabeli media_assets dla FTS5)
-│
-└── 99_Spichlerz_Surowy/                # INTAKE / BUFFER: Dawne 99_Raw_Repo
-    ├── do_przetworzenia/               # Surowe wloty (np. Braun GRzegorz.md, wycinki, transkrypcje)
-    └── archiwum_zewnetrzne/            # Skanowane dokumenty, materiały pomocnicze
+└── intake/                        # Materiał surowy — NIGDY nie jest wczytywany do bazy
+    ├── for_processing/            # Dawne docs/99_Raw_Repo/For_Processing/
+    └── external_archive/          # Skany, materiały pomocnicze
 ```
 
-> **Czystość katalogu `docs/`:**  
-> Po tej operacji katalog `docs/` staje się w 100% domeną dokumentacji technicznej oprogramowania:
-> - `docs/01_Architecture/` — architektura systemu, schematy bazy, RAG,
-> - `docs/02_Platform_Modules/` — specyfikacje żywych modułów aplikacji,
-> - `docs/10_Harness/` — ledger testów, raporty weryfikacji,
-> - `docs/17_Robots/` — flota automatycznych robotów strażniczych,
-> - `docs/00_Canon/` — **wyłącznie zasady inżynieryjne** (`02_Architecture_Manifesto.md`, `03_Rules_of_Engagement.md`).
+Zasady:
+
+- **Kategoria źródła żyje w `source.yaml`, nie w ścieżce.** Taksonomia folderów v1 (Pismo Święte / Magisterium / Prawo / Historia) nie pokrywa się z `CATEGORIES` w kodzie (`magisterium`, `geopolitics`, `economics`, `movement`); dwie taksonomie to złamanie Canon 03 D2. Jeśli kuratorzy potrzebują drobniejszego podziału, rozszerza się `CATEGORIES` (osobna decyzja).
+- **Jeden język = jeden plik.** Każdy wiersz `source_texts` ma własny stan recenzji i własny `source_hash`; osobny plik daje osobny diff w Git i osobny reset recenzji. Ułatwia też ROBOT-05 (parzystość języków).
+- **Plik tekstu źródła zawiera wyłącznie dosłowny tekst.** Komentarz teologiczny nie może leżeć w tym samym pliku: ROBOT-01 dopasowuje cytaty do zapisanego tekstu, więc komentarz w ciele pliku stałby się „cytowalny”. Komentarze należą do `canon/` lub do przyszłej publicystyki.
+- **`intake/` jest poza ingestem.** Przejście z `intake/` do `sources/` lub `correspondence/` to zwykły PR — recenzja w Git jest bramą (D5).
+- `corpus/articles/` i `corpus/culture/` (publicystyka, bajki, teksty pieśni) **nie są tworzone teraz.** Teksty pieśni mają już dom w `media_assets` pod ROBOT-10; nie przenosimy ich bez potrzeby.
+
+Po migracji `docs/00_Canon/` zawiera wyłącznie Canon 02 i Canon 03 — reguły inżynieryjne.
 
 ---
 
-## 3. Architektura Symbiozy z Bazą SQLite (`lemiesz.db`)
+## 3. Podział władzy: plik ↔ SQLite
 
-Pliki Markdown w repozytorium Git oraz baza SQLite nie powinny ze sobą konkurować. Tworzą one uzupełniający się tandem:
+To jest rdzeń propozycji. Pliki i baza nie konkurują, bo **każda informacja ma dokładnie jednego właściciela.**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              SYSTEM PLIKÓW / GIT (Markdown + YAML)          │
-│                „Jedyne Źródło Prawdy” (Truth)               │
-│   • Czytelne dla człowieka i AI                             │
-│   • Pełna historia i audytowalność (git log, diff, PR)      │
-│   • Niezależność od awarii oprogramowania                   │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-               [ Automatyczny Ingestion Pipeline: ]
-               [ npm run ingest / build / watch   ]
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     SQLITE (lemiesz.db)                     │
-│             „Silnik Operacyjny i Wyszukiwawczy”             │
-│   • Relacje i klucze obce (threads ↔ letters ↔ arguments)   │
-│   • Pełnotekstowy FTS5 (błyskawiczne szukanie w PL i EN)    │
-│   • Baza wektorowa pod RAG dla Tarczy Ideologicznej         │
-│   • Zerowy czas odpowiedzi dla interfejsu SvelteKit         │
-└─────────────────────────────────────────────────────────────┘
-```
+| Właściciel | Co posiada | Gdzie się to edytuje |
+|---|---|---|
+| **Plik w `corpus/`** | Treść (tekst źródła, tłumaczenia, treść listu) i metadane statyczne: `slug`, `work`, `section_ref`, `category`, `url`, `license`, `cleared_to_store`, `original_locale`, `origin`, `translator`; nadawca, odbiorca, data, streszczenia listu | Git → PR → merge → ingest |
+| **SQLite** | Tożsamość wierszy (`id`), stan recenzji (`review`), historia recenzji (`review_events`), wyniki audytu (`audit_json`, `audit_notes`, modele), embeddingi, wyekstrahowane `key_claims_json`, użytkownicy, sesje, rozmowy, szkice treści, media, plakaty | UI (`/review`, `/repository`, `/media`) |
 
-### 3.1. Standard Plików: Markdown z nagłówkiem YAML Frontmatter
-Każdy plik w korpusie staje się samowystarczalnym rekordem bazodanowym.
+### 3.1. Tożsamość
 
-#### Przykład A: Źródło Kanoniczne (`corpus/01_Zrodla_Kanonu/01_Pismo_Swiete/lk-14-rachunek-krolewski.md`)
+- Każde źródło dostaje stabilny `slug` (nazwa katalogu). Migracja `008` dodaje `sources.slug TEXT UNIQUE` i uzupełnia go dla 19 istniejących wierszy mapą `(work, section_ref) → slug`, aby istniejące `id` — a więc odwołania `[[src:ID]]`, `argument_sources` i historia recenzji — przetrwały.
+- Listy mają już klucz `correspondence_letters.filename UNIQUE`. Migracja przepisuje go na ścieżkę względną w `corpus/` (`korona/01_out.md`) w tym samym kroku co zmiana plików.
+
+### 3.2. Reguły ingestu (idempotentne)
+
+Ingest liczy hash treści każdego pliku i porównuje go z istniejącą kolumną `source_hash`:
+
+1. **Nowy `slug`** → `INSERT` z `review = 'draft'`, zdarzenie w `review_events` od aktora `system:ingest`.
+2. **Hash bez zmian** → nic się nie dzieje. Stan recenzji, w tym `human_approved`, zostaje.
+3. **Hash zmieniony** → aktualizacja tekstu, `review → 'draft'` przez `setReview` oraz `markDependentsStale` dla zależnych kart argumentów — dokładnie to, czego wymaga Canon 02 §1.2. `canTransition` już pozwala systemowi na przejście do `draft`.
+4. **Plik usunięty** → ingest **nie usuwa** wiersza. Zgłasza go w raporcie; usunięcie pozostaje ręczną decyzją w `/repository`.
+5. **Błąd walidacji** (`validateIngestionChecklist`) → plik jest pomijany z czytelnym błędem; ingest nie przerywa startu serwera, ale `pnpm corpus:check` kończy się kodem ≠ 0.
+
+### 3.3. Edycja w UI
+
+Wiersze z niepustym `slug` (pochodzące z korpusu) są w `/repository` **tylko do odczytu w zakresie treści** — zmienia się je w Git. UI nadal zmienia ich stan recenzji. Wiersze bez `slug` (dodane ręcznie w UI) zachowują obecne zachowanie. Bez tej reguły edycja w UI i ingest nadpisywałyby się nawzajem.
+
+### 3.4. Gdzie działa ingest
+
+- Moduł serwerowy w TypeScript (`src/lib/server/corpus/ingest.ts`), który używa istniejących `createSource`, `upsertSourceText`, `validateIngestionChecklist` i `extractClaimsFromLetter` — bez osobnego skryptu `.mjs` duplikującego walidację.
+- Wywoływany w `hooks.server.ts` w miejscu `seedKoronaCorpus()` oraz przez `pnpm corpus:check` (sama walidacja, bez zapisu; do CI i przed commitem).
+- `Dockerfile` kopiuje `corpus/` do etapu runtime. Zmiana treści w produkcji = nowy obraz; przy obecnej skali to akceptowalne i daje audytowalność.
+
+### 3.5. Disaster recovery
+
+Odbudowa z plików odtwarza **treść**, nie stan recenzji. Mechanizmem DR pozostają kopie zapasowe (`src/lib/server/backup.ts`, `scripts/restore-drill.mjs`). Polecenie `db:rebuild` z v1 nie powstaje.
+
+### 3.6. Formaty plików
+
+**`corpus/sources/lk-14-rachunek-krolewski/source.yaml`**
 ```yaml
----
 slug: lk-14-rachunek-krolewski
-category: magisterium
-work: "Ewangelia wg św. Łukasza — Rachunek Królewski"
+work: "Ewangelia wg św. Łukasza — Rachunek Królewski (Luke 14)"
 section_ref: "Łk 14, 31–32"
-license: "Public domain: Biblia Gdańska / Nova Vulgata"
+category: magisterium
+url: "https://www.vatican.va/archive/bible/nova_vulgata/documents/nova-vulgata_nt_evang-lucam_lt.html#14"
+original_locale: la
 cleared_to_store: true
-locales:
-  pl:
-    text: "Albo który król, mając wyruszyć, aby stoczyć bitwę z drugim królem, nie usiądzie wpierw i nie rozważy, czy w dziesięć tysięcy może stawić czoło temu, który z dwudziestoma tysiącami nadciąga przeciw niemu? Jeśli nie, wyprawia poselstwo, gdy tamten jest jeszcze daleko, i prosi o warunki pokoju."
-    keywords: "rachunek królewski, król, dziesięć tysięcy, dwadzieścia tysięcy, poselstwo, warunki pokoju, roztropność"
-  en:
-    text: "Or what king, going to encounter another king in war, will not sit down first and deliberate whether he is able with ten thousand to meet him who comes against him with twenty thousand? And if not, while the other is yet a great way off, he sends a delegation and asks for terms of peace."
-    keywords: "royal reckoning, king, ten thousand, twenty thousand, delegation, terms of peace, prudence"
----
-
-# Rachunek Królewski — Podstawa Chrześcijańskiego Realizmu Geopolitycznego
-[Komentarz teologiczno-polityczny do użytku Tarczy Ideologicznej i formacji działaczy]
+license: "DO WERYFIKACJI — patrz §5"
 ```
 
-#### Przykład B: List Epistolarny (`corpus/02_Korespondencja/korona/01_out_lemiesz_do_korony.md`)
-```yaml
+**`corpus/sources/lk-14-rachunek-krolewski/pl.md`**
+```markdown
 ---
-thread_slug: korona
+origin: official_translation
+translator: "<wydanie i rok, np. Biblia Tysiąclecia, wyd. V>"
+license: "<licencja tego tłumaczenia, jeśli inna niż w source.yaml>"
+keywords: "rachunek królewski, Łk 14, król, poselstwo, warunki pokoju, roztropność"
+---
+<dosłowny tekst wersetów, bez komentarza>
+```
+
+**`corpus/correspondence/korona/01_out.md`**
+```markdown
+---
 turn_number: 1
 direction: outbound
 sender: "Bogdan Zięba (Przymierze Lemiesza)"
-recipient: "Grzegorz Braun / Teresa Pracownik (Biuro Poselskie Korony)"
-date_label: "11 października 2026"
-summary_pl: "Wezwanie do debaty nad Oazą Pokoju a mitem Polski-Sparty"
-summary_en: "Call for debate on the Oasis of Peace vs the Poland-Sparta myth"
-key_claims:
-  - "Polska nie może być kowadłem obcych mocarstw"
-  - "Rachunek Królewski nakazuje zbrojną neutralność"
+recipient: "Konfederacja Korony Polskiej (Biuro Poselskie)"
+date_label: "17 IX 2026"
+summary_pl: "List I: Propozycja ogłoszenia Polski „Oazą Pokoju i Neutralności w Europie Środkowej”…"
+summary_en: "Letter I: Proposal to proclaim Poland an \"Oasis of Peace and Neutrality in Central Europe\"…"
 ---
-
-Szanowny Panie Pośle,
-W odpowiedzi na dotychczasowe deklaracje dotyczące obronności...
-[pełna treść listu]
+<pełna treść listu>
 ```
 
-### 3.2. Korzyści z Takiej Architektury
-
-1. **Likwidacja monstrualnych seederów w TypeScript:**
-   * Zamiast pisać 800 linii w `koronaSeed.ts`, skrypt `scripts/ingest-corpus.mjs` automatycznie skanuje strukturę `corpus/`, czyta frontmatter i wykonuje instrukcje `INSERT OR REPLACE` do tabel `sources`, `source_texts`, `correspondence_threads` i `correspondence_letters`.
-2. **Błyskawiczne odtwarzanie bazy (*Disaster Recovery*):**
-   * Baza SQLite `lemiesz.db` staje się strukturą całkowicie odtwarzalną (*ephemeral cache*). W razie uszkodzenia pliku bazy polecenie `npm run db:rebuild` rekonstruuje 100% bazy i indeksów FTS5 w 2 sekundy wprost z repozytorium Git.
-3. **Automatyczne zasilanie Wyszukiwarki i RAG:**
-   * Dodanie nowego pliku Markdown natychmiast zasila tabelę `fts_pl` i `fts_en`. Użytkownik i Tarcza Ideologiczna (`/shield`) mogą od razu cytować nowy dokument bez konieczności restartowania serwera.
-4. **Weryfikacja przez Flotę Robotów:**
-   * ROBOT-01 (Verbatim Quotation) i ROBOT-07 (License & Cleared-to-Store) mogą walidować bezpośrednio pliki `.md` w `corpus/` przed dopuszczeniem ich do bazy.
+Względem v1 z frontmatter listu usunięto `thread_slug` (wynika z katalogu) i `key_claims`. Tezy są dziś wyciągane z treści automatycznie (`extractClaimsFromLetter`); ręczna lista w pliku byłaby drugim domem tego samego faktu, a parafrazy w niej nie przeszłyby kontroli dosłowności ROBOT-01.
 
 ---
 
-# CZĘŚĆ II · „SPICHLERZ LEMIESZA” (SVELTE 5 EVERNOTE-LIKE WORKSPACE)
+## 4. Roboty
+
+Zgodnie z Canon 03 D1 każda nowa reguła z §2–§3 dostaje strażnika:
+
+- **ROBOT-08 (rozszerzenie):** sprawdzanie linków, kotwic i ścieżek lokalnych obejmuje także `corpus/`. Bez tego przeniesione kanony tracą ochronę przed rozpadem linków.
+- **ROBOT-11 · Corpus Schema Gate (nowy):** każdy plik w `corpus/sources/` i `corpus/correspondence/` przechodzi `validateIngestionChecklist` (w tym regułę licencji ROBOT-07); `slug` są unikalne; kody języków są w rejestrze; `turn_number` + `direction` są unikalne w wątku; plik tekstu źródła nie zawiera nagłówków Markdown (pilnuje reguły „tylko dosłowny tekst”). Dowód porażki: fixture z duplikatem `slug`, z pustą licencją i z nagłówkiem w `pl.md`.
 
 ---
 
-## 4. Wizja Interfejsu: Cyfrowe Biurko Przymierza Lemiesza (`/corpus` / `/spichlerz`)
+## 5. Blokada licencyjna
 
-Sama czysta struktura katalogów i baza SQLite potrzebują intuicyjnego, estetycznego interfejsu użytkownika. Zamiast zmuszać autorów, analityków i działaczy do ręcznego przeglądania plików na GitHubie lub w edytorze kodu, tworzymy **„Spichlerz Lemiesza”** — dedykowany moduł platformy inspirowany ergonomią **Evernote**, lecz zaprojektowany specjalnie pod misję i specyfikę Przymierza Lemiesza.
+Pole `license` istniejących źródeł biblijnych deklaruje domenę publiczną (Biblia Gdańska / World English Bible), ale zapisane teksty wyglądają na **Biblię Tysiąclecia** (PL, © Pallottinum) i **English Standard Version** (EN, © Crossway). Dotyczy to bazy już dziś, niezależnie od tej propozycji. Migracja przeniosłaby fałszywy zapis licencji do „jedynego źródła prawdy”.
 
-Spichlerz łączy w jednym oknie:
-- Archiwum wiedzy i kanonu,
-- Warsztat badawczy z natychmiastowym wyszukiwaniem FTS5,
-- Most do obrony retorycznej w debacie publicznej (Tarcza Ideologiczna).
+Przed Fazą 3 kurator treści wybiera dla każdego źródła jedno z dwóch:
 
----
+- **zamienić tekst** na wersję rzeczywiście z domeny publicznej (Biblia Gdańska, Biblia Wujka, WEB, Douay-Rheims) — wtedy zmienia się tekst i stan recenzji wraca do `draft`, co jest poprawne;
+- **zachować tekst** i wpisać prawdziwą licencję oraz podstawę prawa cytatu, z `cleared_to_store` ustawionym zgodnie z tą decyzją.
 
-## 5. Trzypanelowy Układ Przestrzenny (Evernote UX w Svelte 5)
-
-Układ opiera się na klasycznym, sprawdzonym podziale na trzy kolumny, idealnie zbalansowanym na ekranach desktopowych i składającym się responsywnie na urządzeniach mobilnych:
-
-```
-┌──────────────────────┬────────────────────────┬────────────────────────────────────────────┐
-│ PANEL 1: DRZEWO      │ PANEL 2: LISTA KART    │ PANEL 3: CZYTNIK I INSPEKTOR DOKUMENTU     │
-│ (Foldery & Filtry)   │ (Wyszukiwarka FTS5)    │ (Aktywny Kanon / List / Źródło)            │
-├──────────────────────┼────────────────────────┼────────────────────────────────────────────┤
-│ 🏛️ Kanon (8)         │ [🔍 Szukaj w FTS5...]  │ 📜 List do Korony #02 (15.10.2026)         │
-│ 📖 Źródła (15)       │ ────────────────────── │ ────────────────────────────────────────── │
-│   • Pismo Święte     │ • List Korona #04      │ Nadawca: Bogdan Zięba  | Odbiorca: G. Braun│
-│   • Magisterium      │   „Oaza Pokoju...”     │ Status: human_approved | Metoda: Tomistycz.│
-│   • Traktaty         │ • Canon 07             │ ────────────────────────────────────────── │
-│ ✉️ Korespondencja (10)│   „Pan Pokoju...”      │ Szanowny Panie Pośle,                      │
-│   • Korona (8)       │ • Canon 06             │ Odwołując się do ewangelicznego Rachunku   │
-│   • Nawrocki (2)     │   „Mit Niepodległ...”  │ Królewskiego (Łk 14, 31-32)...             │
-│ 📰 Publicystyka (4)  │ • Łk 14 (Rachunek)     │                                            │
-│ 🌾 Spichlerz Surowy  │   „Który król...”      │ [ 🔗 POWIĄZANE KARTY ARGUMENTÓW I ŹRÓDEŁ ] │
-│ ──────────────────── │                        │ • Rachunek Królewski (Łk 14, 31-32)        │
-│ TAGI TEMATYCZNE:     │                        │ • V Konwencja Haska (Art. 1, 2, 5)         │
-│ #neutralność (12)    │                        │ • Plakat: Dwie Korony                      │
-│ #imadło (5)          │                        │ ────────────────────────────────────────── │
-│ #rachunek-królewski  │                        │ [ 🛡️ Przekaż do Tarczy ] [ 📋 Kopiuj cytat ]│
-└──────────────────────┴────────────────────────┴────────────────────────────────────────────┘
-```
-
-1. **Panel 1 (Lewa Kolumna – Nawigacja & Tagi):**
-   * Hierarchiczne drzewo notatników odpowiadające strukturze folderów `corpus/`.
-   * Dynamiczne liczniki dokumentów przy każdej kategorii.
-   * Chmura tagów tematycznych (`#neutralność`, `#doktryna-jeża`, `#imadło`, `#kuty-1939`).
-2. **Panel 2 (Środkowa Kolumna – Kartoteka & Szybkie Szukanie):**
-   * Pasek wyszukiwania pełnotekstowego FTS5 z czasem odpowiedzi < 5 ms.
-   * Karty dokumentów ze zwięzłym podglądem (tytuł, data, fragment dopasowania, badge statusu).
-   * Opcje sortowania: chronologicznie, alfabetycznie, wg trafności wyszukiwania.
-3. **Panel 3 (Prawa Kolumna – Czytnik, Edytor i Inspektor Relacji):**
-   * Wyrenderowana treść Markdown z zachowaniem godnej typografii Przymierza Lemiesza.
-   * Pasek metadanych: nadawca/odbiorca, licencja, status weryfikacji.
-   * Dolny panel relacji: karty argumentów i powiązane plakaty z albumu medialnego.
-   * Przyciski akcji: kopiowanie dosłownego cytatu z tokenem `[[src:ID]]`, eksport do PDF oraz bezpośredni zrzut do Tarczy Ideologicznej.
+To samo sprawdzenie dotyczy encyklik (teksty © Libreria Editrice Vaticana) i pozostałych 19 źródeł.
 
 ---
 
-## 6. Sześć Supermocy Spichlerza (Wartość Dodana Ponad Zwykłym Evernote)
+## 6. Plan migracji
 
-Zwykłe aplikacje notatkowe przechowują martwy tekst. **Spichlerz Lemiesza** staje się żywym systemem operacyjnym dla idei ruchu:
+Każda faza to osobny PR, który da się wycofać `git revert`, i każda kończy się zielonym `pnpm check`, `pnpm test`, `pnpm robots` oraz `pnpm smoke`. Ingest nigdy nie usuwa wierszy; przed pierwszym ingestem w produkcji wykonuje się kopię zapasową.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                 UNIKALNE SUPERMOCE SPICHLERZA LEMIESZA                      │
-├──────────────────────┬──────────────────────────────────────────────────────┤
-│ 1. BILINGUAL LENS    │ Natychmiastowy podgląd dwujęzyczny (PL / EN side-by- │
-│                      │ side), idealny dla źródeł łacińskich i traktatów.    │
-├──────────────────────┼──────────────────────────────────────────────────────┤
-│ 2. MOST DO TARCZY    │ Jeden klik: „Wyślij do Tarczy Ideologicznej”         │
-│    (`/shield`)       │ automatycznie ładuje dany cytat do debaty na żywo.   │
-├──────────────────────┼──────────────────────────────────────────────────────┤
-│ 3. PRAWDA CYTATU     │ Weryfikacja zgodności z ROBOT-01 (Verbatim Quotation)│
-│    (Zero Halucynacji)│ Gwarancja, że cytowany fragment istnieje w bazie.    │
-├──────────────────────┼──────────────────────────────────────────────────────┤
-│ 4. TRUST-TIER BADGES │ Wizualny wskaźnik wiarygodności: canonical_source,   │
-│                      │ human_approved, czy surowy draft do obróbki.         │
-├──────────────────────┼──────────────────────────────────────────────────────┤
-│ 5. GRAF POWIĄZAŃ     │ Kliknięcie w przypis w liście natychmiast otwiera    │
-│                      │ pełny tekst źródła w panelu obok bez utraty kontekstu│
-├──────────────────────┼──────────────────────────────────────────────────────┤
-│ 6. OFFLINE-FIRST     │ Całość działa lokalnie na bazie SQLite i plikach     │
-│                      │ Markdown — bez uzależnienia od chmur korporacyjnych. │
-└──────────────────────┴──────────────────────────────────────────────────────┘
-```
+### Faza 0 · Przygotowanie (bez zmian w kodzie)
+1. Zacommitować Canon 09 i nowe listy (`lemiesz_to_korona_05.txt`, `odpna4.txt`) — decyzja autorów, czy są gotowe.
+2. Poprawić `docs/README.md`: usunąć nieistniejące wpisy (`01_Architecture/`, `01_Testing_Strategy.md`, brakujące moduły) albo oznaczyć je jako planowane.
+3. Kurator rozstrzyga §5 dla wszystkich źródeł.
 
----
+### Faza 1 · Kanony (bez zmian w kodzie)
+1. `git mv` kanonów 01, 04–09 do `corpus/canon/` z zachowaniem nazw.
+2. Aktualizacja linków w `docs/`, `src/` (komentarze), `scripts/` i `tests/`.
+3. Rozszerzenie ROBOT-08 na `corpus/`; `pnpm robots` zielone.
 
-## 7. Architektura Komponentów Svelte 5 (Runes Architecture)
+### Faza 2 · Korespondencja
+1. Migracja `008`: przepisanie `correspondence_letters.filename` na ścieżki w `corpus/`.
+2. Konwersja listów Korony (w tym 05 i odpowiedzi na 4) oraz wystąpienia ONZ do `.md` z frontmatter; `_thread.yaml` dla obu wątków.
+3. `src/lib/server/corpus/ingest.ts` dla korespondencji; `KORONA_LETTERS_META` i `fallbackBody` znikają z `koronaSeed.ts`.
+4. `Dockerfile` kopiuje `corpus/`.
+5. Test: ingest do pustej bazy daje te same 8 listów co obecny seed (porównanie `body` i metadanych z eksportem dzisiejszej bazy) plus nowe listy.
 
-Komponent zostanie zaimplementowany w oparciu o czysty, modułowy paradygmat runów Svelte 5 (`$state`, `$derived`, `$effect`) w dedykowanym katalogu `src/lib/components/corpus/`:
+### Faza 3 · Źródła
+1. Migracja `009`: `sources.slug UNIQUE` z uzupełnieniem dla istniejących wierszy.
+2. **Jednorazowy eksport plików z obecnej bazy** (nie ręczne przepisywanie — teksty muszą pozostać dosłowne), następnie ręczne poprawki licencji z Fazy 0.
+3. Ingest źródeł z regułami §3.2; `KORONA_SOURCES`, `POLISH_TRANSLATIONS_FOR_INITIAL_SEED` i `SEED_SOURCES` znikają z kodu.
+4. ROBOT-11 z dowodem porażki; `pnpm corpus:check` w `package.json`.
+5. `/repository`: treść wierszy z `slug` tylko do odczytu (§3.3).
 
-```text
-src/lib/components/corpus/
-├── SpichlerzWorkspace.svelte  # Główny kontener koordynujący stan (activeDocId, activeFilter, searchQuery)
-├── SpichlerzSidebar.svelte    # Panel 1: Drzewo folderów, liczniki, filtr kategorii i tagów
-├── DocCardList.svelte         # Panel 2: Wyszukiwarka FTS5, sortowanie i lista kart wynikowych
-├── DocReader.svelte           # Panel 3: Czytnik Markdown, nagłówek metadanych, widok dwujęzyczny
-├── DocInspector.svelte        # Panel boczny: Powiązane karty argumentów, plakaty, tokeny cytatu
-└── QuickIngestModal.svelte    # Okno szybkiego wrzucenia nowego tekstu do Spichlerza Surowego
-```
-
-### Koordynacja Stanu w Svelte 5:
-* **Synchronizacja z adresem URL:** Wybór dokumentu natychmiast aktualizuje parametr zapytania (np. `/corpus?id=korona-02&lang=pl`), co pozwala dzielić się bezpośrednimi odnośnikami do konkretnych pism między współpracownikami.
-* **Błyskawiczne filtrowanie reaktywne:** Wyszukiwanie pełnotekstowe komunikuje się bezpośrednio z endpointem SvelteKit opartym o wirtualną tabelę `fts_pl` / `fts_en` w SQLite, zwracając wyniki w czasie poniżej 5 milisekund.
+### Faza 4 · Do decyzji później
+Karty argumentów (`KORONA_ARGUMENTS`), publicystyka, teksty kultury, indeksowanie listów w FTS (D6). Każde z nich to osobna propozycja, gdy Fazy 1–3 będą w produkcji.
 
 ---
 
-# CZĘŚĆ III · MATRYCA DECYZYJNA I HARMONOGRAM WDROŻENIA
+## 7. Decyzje do podjęcia
 
----
-
-## 8. Kwestie Otwarte do Konsultacji z Interesariuszami (*Decision Matrix*)
-
-Przed przystąpieniem do migracji i budowy komponentu prosimy interesariuszy o rozstrzygnięcie poniższych kwestii:
-
-| # | Zagadnienie | Opcja A (Rekomendowana) | Opcja B (Alternatywa) | Rationale / Uwagi |
+| # | Zagadnienie | Rekomendacja | Alternatywa | Uzasadnienie |
 |---|---|---|---|---|
-| **D1** | **Główna lokalizacja korpusu na dysku** | `corpus/` w głównym katalogu projektu | `docs/corpus/` wewnątrz drzewa docs | Opcja A daje czysty podział: `src/` (kod aplikacji), `docs/` (inżynieria i testy), `corpus/` (wiedza i doktryna). |
-| **D2** | **Konwencja językowa folderów** | Hybryda z przewagą polskiego (`00_Kanon`, `01_Zrodla_Kanonu`, `02_Korespondencja`) | Czysty angielski (`00_canon`, `01_sources`, `02_correspondence`) | Teksty są w większości polskie, ale klucze w kodzie i bazie są angielskie. |
-| **D3** | **Migracja dotychczasowych listów Korony** | Konwersja z surowych `.txt` na `.md` z nagłówkami YAML | Pozostawienie `.txt` i trzymanie metadanych w osobnym pliku JSON/YAML | Format `.md` z YAML frontmatter jest standardem w SSG i CMS. |
-| **D4** | **Routing i nazwa widoku w UI** | Trasa `/corpus` (nazwa w menu: *„Spichlerz Wiedzy”*) | Trasa `/vault` lub `/archive` | `/corpus` i *„Spichlerz”* idealnie harmonizują z metaforyką Lemiesza. |
-| **D5** | **Workflow dla `99_Spichlerz_Surowy`** | Nowe pliki wpadają do `do_przetworzenia/` i wymagają zatwierdzenia w UI `/review` przed włączeniem do bazy | Skrypt automatycznie ładuje je do bazy ze statusem `status='draft'` | Zabezpiecza przed zatruciem bazy niezweryfikowanymi cytatami (ROBOT-02). |
+| **D1** | Lokalizacja korpusu | `corpus/` w korzeniu | `docs/corpus/` | Czysty podział `src/` · `docs/` · `corpus/`; Dockerfile kopiuje jeden katalog |
+| **D2** | Język nazw katalogów | Angielski ASCII (`canon/`, `sources/`, `correspondence/`, `intake/`); nazwy plików kanonów bez zmian | Polski (`00_Kanon/` …) | Ścieżki są kluczami w kodzie; bez znaków diakrytycznych i spacji w ścieżkach |
+| **D3** | Format listów | `.md` z frontmatter, jeden plik na turę | `.txt` + osobny YAML | Metadane i treść w jednym diffie |
+| **D4** | Numeracja kanonów | Bez zmian (01, 04–09) | Przenumerowanie od 01 | 76 istniejących odwołań; numer kanonu to identyfikator |
+| **D5** | Brama dla `intake/` | PR w Git; `intake/` nigdy nie trafia do bazy; nowe wiersze zawsze jako `draft` | Automatyczny ingest `intake/` jako `draft` | Recenzja treści w PR + recenzja stanu w `/review`; surowe materiały nie trafiają do RAG Tarczy |
+| **D6** | Listy w FTS / RAG | Odłożyć do Fazy 4 | Dodać teraz | Wymaga rozszerzenia `owner_type` w `embeddings` i `review_events` oraz decyzji, czy listy podlegają recenzji |
+| **D7** | Edycja treści korpusu w UI | Tylko w Git; UI zmienia stan recenzji | Edycja w UI z zapisem do plików | Zapis z kontenera produkcyjnego nie trafia do Git — łamie założenie „plik jest właścicielem treści” |
 
 ---
 
-## 9. Plan Realizacji po Zakończeniu Konsultacji
+## 8. Co usunięto z v1 i dlaczego
 
-Po zatwierdzeniu propozycji przez interesariuszy wdrożenie nastąpi w trzech logicznych fazach:
-
-### Faza 1: Restrukturyzacja Plików i Ingestor (Backend)
-1. Utworzenie katalogu `corpus/` i podfolderów zgodnie ze schematem z §2.
-2. Bezpieczna migracja kanonów doktrynalnych (01, 04–08) z zachowaniem kanonów technicznych (02, 03) w `docs/00_Canon/`.
-3. Konwersja 8 listów Korony i wystąpienia ONZ do standardu `.md` z YAML frontmatter.
-4. Utworzenie skryptu `scripts/ingest-corpus.mjs` parsującego pliki i wykonującego `UPSERT` w tabelach SQLite (`sources`, `correspondence_letters`, `fts_pl`, `fts_en`).
-5. Uproszczenie `koronaSeed.ts` i weryfikacja zgodności z Robotami (`npm run robots`).
-
-### Faza 2: Budowa Komponentu Spichlerza Lemiesza (Frontend)
-1. Utworzenie trasy SvelteKit `/corpus/+page.svelte` i loadera serwerowego czytającego z SQLite.
-2. Implementacja modularnych komponentów Svelte 5 w `src/lib/components/corpus/` (`SpichlerzWorkspace`, `SpichlerzSidebar`, `DocCardList`, `DocReader`, `DocInspector`).
-3. Spięcie wyszukiwarki FTS5 z podświetlaniem fraz w czasie rzeczywistym.
-4. Dodanie przycisku szybkiego przekazywania cytatów do Tarczy Ideologicznej (`/shield`).
-
-### Faza 3: Testy i Dokumentacja Końcowa
-1. Testy jednostkowe i integracyjne Svelte 5 / Vitest (`npm run test`).
-2. Sprawdzenie rygorów dostępności a11y i czystości runów Svelte 5 (`npm run check`).
-3. Aktualizacja dokumentacji nadrzędnej (`docs/README.md`, `docs/OPERATIONS.md`).
-
----
-
-> **Podsumowanie Architektoniczne:**  
-> Połączenie **ustrukturyzowanego repozytorium Markdown w Git** jako źródła prawdy, **bazy SQLite z FTS5** jako ultraszybkiego silnika wyszukiwawczo-relacyjnego oraz **„Spichlerza Lemiesza” w Svelte 5** jako eleganckiego, trzypanelowego biurka analityka przeniesie platformę Przymierza Lemiesza na poziom profesjonalnego, nowoczesnego think-tanku cyfrowego.
+- **Część II („Spichlerz Lemiesza”)** — przeniesiona do [Propozycja_Spichlerz_UI.md](Propozycja_Spichlerz_UI.md). UI zależy od Faz 2–3; projektowanie go teraz zamraża model danych, który dopiero się ustala.
+- **„Ephemeral cache” i `db:rebuild`** — sprzeczne z Canon 02 §1.2 (§0, A5).
+- **Przenumerowanie kanonów** — (§0, A4).
+- **Taksonomia folderów źródeł** — druga taksonomia obok `CATEGORIES` (§2).
+- **`key_claims` we frontmatter** — drugi dom faktu (§3.6).
+- **`03_Publicystyka/`, `04_Kultura_i_Edukacja/`** — puste katalogi bez treści i bez decyzji o ingeście; wracają w Fazie 4.
+- **Niezmierzone liczby wydajności** — (§0, A9).
