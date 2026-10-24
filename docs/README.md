@@ -10,15 +10,9 @@
 ```
 docs/
 ├── README.md                         # This file: navigation, conventions, and rules
-├── 00_Canon/                         # Chapter 0: Inviolable rulings, core doctrine, rules of engagement
-│   ├── 01_Ideological_Doctrine.md    # The three tenets, theological/legal foundations, quote truth
+├── 00_Canon/                         # Chapter 0: engineering canon (the doctrinal canons 01, 04–09 live in ../corpus/canon/)
 │   ├── 02_Architecture_Manifesto.md  # SQLite/WAL, Svelte 5 runes, multi-provider LLM, offline-first
-│   ├── 03_Rules_of_Engagement.md     # "One fact, one home", proof-of-failure rule, measurement rule
-│   ├── 04_Hedgehog_Doctrine_Educational_Visual_Canon.md # Educational fable, dual-layer pairs, visual art direction
-│   ├── 05_Metodologia_Obronnosci_Polski.md # Organic defense, landscape hydro-barriers, DAS seismic grid, youth PO & scouting
-│   ├── 06_Dekonstrukcja_Mitu_Niepodleglosci_i_Prawdziwa_Suwerennosc.md # Deconstruction of the independence myth, four illusions, armed neutrality as authentic sovereignty
-│   ├── 07_Pan_Pokoju_i_Dekonstrukcja_Maksymy_Wegecjusza.md # Dominus Pacis (Master of Peace), refutation of Vegetius, Luke 14:31-32 Royal Reckoning
-│   └── 08_Przelamanie_Augustynskiej_Iluzji.md # Overcoming the Augustinian illusion ("war for peace"), Tacitus unmasking, Isaiah 2:4 realism
+│   └── 03_Rules_of_Engagement.md     # "One fact, one home", proof-of-failure rule, measurement rule
 ├── 01_Architecture/                  # Chapter 1: Living technical blueprints and schema specifications
 │   ├── 01_System_Overview.md         # Component diagrams, trust tiers, data flows
 │   ├── 02_Database_Schema.md         # SQLite tables, FTS5 virtual tables, migrations
@@ -43,11 +37,12 @@ docs/
 │   ├── ROBOT-06-sqlite-disk-assertion.md
 │   ├── ROBOT-07-license-and-storage-gate.md
 │   └── ROBOT-08-doc-rot-and-census-gate.md
-├── 99_Raw_Repo/                      # Thematic raw & source materials repository
-│   └── letters/                      # Epistolary correspondence & speech analyses (Korona, Prezydent)
 └── discussions/                      # Consultation logs and debate critiques
     └── implementation_plan_critique.md
 ```
+
+The movement's own texts (doctrinal canons 01, 04–09 and raw intake material, including the letter archive) live
+outside `docs/`, in [corpus/](../corpus/README.md).
 
 ---
 

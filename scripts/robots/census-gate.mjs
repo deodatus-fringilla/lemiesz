@@ -113,7 +113,8 @@ export function runCensus(root) {
 	if (stated && Number(stated[1]) !== claimed) errors.push(`README says the highest robot is ${stated[1]} but the folder holds ${claimed}`);
 
 	// ---- 2. links, anchors and machine-local paths in every document ----------------------
-	const mdFiles = walk(docs, (p) => p.endsWith('.md'));
+	// docs/ and corpus/ (the doctrinal canons and intake material live there since the corpus proposal v3.1).
+	const mdFiles = [docs, path.join(root, 'corpus')].flatMap((d) => walk(d, (p) => p.endsWith('.md')));
 	for (const f of mdFiles) {
 		const rel = path.relative(root, f).replace(/\\/g, '/');
 		const raw = read(f);
@@ -127,6 +128,12 @@ export function runCensus(root) {
 			const resolved = file ? path.resolve(path.dirname(f), decodeURI(file)) : f;
 			if (!exists(resolved)) {
 				errors.push(`${rel}: broken link "${target}"`);
+				continue;
+			}
+			// GitHub line anchors (#L41 or #L41-L47) are valid while the file still has that many lines.
+			const lines = /^L(\d+)(?:-L(\d+))?$/.exec(frag ?? '');
+			if (lines && resolved.endsWith('.md')) {
+				if (Number(lines[2] ?? lines[1]) > read(resolved).split('\n').length) errors.push(`${rel}: link "${target}" points past the end of the file`);
 				continue;
 			}
 			if (frag && resolved.endsWith('.md') && !anchors(read(resolved)).has(decodeURI(frag).toLowerCase())) {
@@ -168,6 +175,8 @@ function selfTest() {
 		['duplicate robot number', { ...good(), 'docs/17_Robots/ROBOT-01-twin.md': spec() }, /duplicate robot number 01/],
 		['broken relative link', { ...good(), 'docs/notes.md': 'See [gone](missing.md).' }, /broken link "missing\.md"/],
 		['broken anchor', { ...good(), 'docs/notes.md': 'See [x](17_Robots/README.md#nope).' }, /heading that does not exist/],
+		['line anchor past the end', { ...good(), 'docs/notes.md': 'See [x](17_Robots/README.md#L40-L90).' }, /past the end of the file/],
+		['broken link in corpus/', { ...good(), 'corpus/canon/01.md': 'See [gone](missing.md).' }, /corpus\/canon\/01\.md: broken link/],
 		['machine-local path', { ...good(), 'docs/notes.md': 'Open C:\\Users\\someone\\x.' }, /machine-local absolute path/]
 	];
 
