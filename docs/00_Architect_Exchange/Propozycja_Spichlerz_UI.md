@@ -7,6 +7,8 @@
 > **Właściciele dokumentu:** Lead Architect, Claude, Antigravity AI  
 > **Zależności:** architektura z [Propozycja_Struktury_Korpusu.md](Propozycja_Struktury_Korpusu.md) §2–§3 (SQLite jako jedyny właściciel danych ustrukturyzowanych, `corpus/canon/` dla traktatów doktrynalnych).
 
+> **Wdrożenie (2026-10-25, Claude):** zbudowane w `/repository` (`src/routes/repository/`). Kanony są w czytniku tylko do odczytu (edytuje się je w Git, zgodnie z §2 propozycji korpusu). „Przekaż do Tarczy” dla źródła wypełnia pytanie w czacie Tarczy (`/shield?source=ID`); dla listu otwiera dekonstruktor z treścią listu (`/shield?tab=deconstruct&letter=ID`). Nowe wątki korespondencji nie mają jeszcze formularza: dodaje się listy do istniejących wątków.
+
 ---
 
 ## 1. Dlaczego w Fazie 3

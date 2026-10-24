@@ -68,6 +68,131 @@ export function getCorrespondenceThread(slug = 'korona'): {
 	return { thread, letters: rows.map(fromLetterRow) };
 }
 
+export function getLetter(id: number): (CorrespondenceLetter & { thread_slug: string; thread_title: string }) | null {
+	const row = db
+		.prepare(
+			`SELECT l.*, t.slug AS thread_slug, t.title AS thread_title
+			 FROM correspondence_letters l JOIN correspondence_threads t ON t.id = l.thread_id WHERE l.id = ?`
+		)
+		.get(id) as (LetterRow & { thread_slug: string; thread_title: string }) | undefined;
+	return row ? { ...fromLetterRow(row), thread_slug: row.thread_slug, thread_title: row.thread_title } : null;
+}
+
+/** Letters across threads, newest thread first and in turn order, optionally narrowed to one thread or a phrase. */
+export function listLetters(options: { threadId?: number; search?: string } = {}): (CorrespondenceLetter & { thread_slug: string })[] {
+	const where: string[] = [];
+	const params: (string | number)[] = [];
+	if (options.threadId) {
+		where.push('l.thread_id = ?');
+		params.push(options.threadId);
+	}
+	if (options.search?.trim()) {
+		where.push('(l.body LIKE ? OR l.summary_pl LIKE ? OR l.summary_en LIKE ? OR l.sender LIKE ?)');
+		const like = `%${options.search.trim()}%`;
+		params.push(like, like, like, like);
+	}
+	const rows = db
+		.prepare(
+			`SELECT l.*, t.slug AS thread_slug FROM correspondence_letters l JOIN correspondence_threads t ON t.id = l.thread_id
+			 ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY t.id DESC, l.turn_number ASC, l.id ASC`
+		)
+		.all(...params) as (LetterRow & { thread_slug: string })[];
+	return rows.map((r) => ({ ...fromLetterRow(r), thread_slug: r.thread_slug }));
+}
+
+export interface LetterInput {
+	thread_id: number;
+	turn_number: number;
+	direction: 'outbound' | 'inbound';
+	sender: string;
+	recipient: string;
+	date_label: string;
+	filename: string;
+	summary_pl: string;
+	summary_en: string;
+	body: string;
+}
+
+/** Field rules for a letter entered in the app; returns the problems (empty = valid). */
+export function validateLetter(input: Partial<LetterInput>, ownId?: number): string[] {
+	const errors: string[] = [];
+	const blank = (v: unknown) => typeof v !== 'string' || v.trim().length === 0;
+	if (!input.thread_id || !db.prepare('SELECT 1 FROM correspondence_threads WHERE id = ?').get(input.thread_id)) {
+		errors.push('Choose an existing thread');
+	}
+	if (!Number.isInteger(input.turn_number) || (input.turn_number ?? 0) < 1) errors.push('Turn must be a whole number from 1');
+	if (input.direction !== 'outbound' && input.direction !== 'inbound') errors.push('Direction must be outbound or inbound');
+	for (const [k, label] of [
+		['sender', 'Sender'],
+		['recipient', 'Recipient'],
+		['date_label', 'Date'],
+		['summary_pl', 'Polish summary'],
+		['summary_en', 'English summary'],
+		['body', 'Letter text']
+	] as const) {
+		if (blank(input[k])) errors.push(`${label} is required`);
+	}
+	if (blank(input.filename) || !/^[\w.-]+$/.test(input.filename!.trim())) {
+		errors.push('File name is required: letters, digits, "_", "-" and "." only');
+	} else {
+		const taken = db.prepare('SELECT id FROM correspondence_letters WHERE filename = ?').get(input.filename!.trim()) as { id: number } | undefined;
+		if (taken && taken.id !== ownId) errors.push(`File name "${input.filename!.trim()}" is already used by another letter`);
+	}
+	return errors;
+}
+
+function letterValues(input: LetterInput) {
+	const body = input.body.replace(/\r\n/g, '\n').trim();
+	return [
+		input.thread_id,
+		input.turn_number,
+		input.direction,
+		input.sender.trim(),
+		input.recipient.trim(),
+		input.date_label.trim(),
+		input.filename.trim(),
+		input.summary_pl.trim(),
+		input.summary_en.trim(),
+		body,
+		JSON.stringify(extractClaimsFromLetter(body, 5))
+	];
+}
+
+/** Adds a letter (key claims are extracted from the text). Throws with the validation problems. */
+export function createLetter(input: LetterInput): number {
+	const errors = validateLetter(input);
+	if (errors.length) throw new Error(errors.join('; '));
+	const res = db
+		.prepare(
+			`INSERT INTO correspondence_letters (thread_id, turn_number, direction, sender, recipient, date_label, filename,
+				summary_pl, summary_en, body, key_claims_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		)
+		.run(...letterValues(input));
+	db.prepare("UPDATE correspondence_threads SET updated_at = datetime('now') WHERE id = ?").run(input.thread_id);
+	return Number(res.lastInsertRowid);
+}
+
+export function updateLetter(id: number, input: LetterInput): void {
+	if (!db.prepare('SELECT 1 FROM correspondence_letters WHERE id = ?').get(id)) throw new Error(`Letter ${id} not found`);
+	const errors = validateLetter(input, id);
+	if (errors.length) throw new Error(errors.join('; '));
+	db.prepare(
+		`UPDATE correspondence_letters SET thread_id = ?, turn_number = ?, direction = ?, sender = ?, recipient = ?, date_label = ?,
+			filename = ?, summary_pl = ?, summary_en = ?, body = ?, key_claims_json = ? WHERE id = ?`
+	).run(...letterValues(input), id);
+	db.prepare("UPDATE correspondence_threads SET updated_at = datetime('now') WHERE id = ?").run(input.thread_id);
+}
+
+export function deleteLetter(id: number): boolean {
+	return db.prepare('DELETE FROM correspondence_letters WHERE id = ?').run(id).changes > 0;
+}
+
+/** The turn a new letter in a thread most likely takes: one after the last. */
+export function nextTurn(threadId: number): number {
+	const r = db.prepare('SELECT MAX(turn_number) AS n FROM correspondence_letters WHERE thread_id = ?').get(threadId) as { n: number | null };
+	return (r.n ?? 0) + 1;
+}
+
 /** Picks which of the 5 non-Hegelian classical methodologies best fits an opponent claim. */
 export function classifyMethodology(claim: string): ClassicalMethodology {
 	const lower = claim.toLowerCase();

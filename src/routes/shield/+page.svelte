@@ -54,6 +54,8 @@
 		if (data.initialTab === 'deconstruct' || data.initialTab === 'dossier') {
 			activeTab = data.initialTab;
 		}
+		if (data.initialLetterBody) deconstructText = data.initialLetterBody;
+		if (data.initialSource && !data.conversationId) input = m.shield_from_source({ work: data.initialSource.label });
 	});
 
 	// If form returned deconstructed claims, switch to deconstruct tab and keep the text.

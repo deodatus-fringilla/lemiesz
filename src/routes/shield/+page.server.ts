@@ -10,7 +10,7 @@ import {
 	listMessages,
 	renameConversation
 } from '$lib/server/shield/conversations';
-import { getCorrespondenceThread, deconstructOpponentLetter } from '$lib/server/correspondence';
+import { getCorrespondenceThread, getLetter, deconstructOpponentLetter } from '$lib/server/correspondence';
 import { mediaForShield } from '$lib/server/media';
 import { postersForArguments } from '$lib/server/posters';
 import { getEmbedder } from '$lib/server/llm/embedder';
@@ -132,6 +132,10 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		label: `${s.work} ${s.section_ref}`
 	}));
 
+	// Handed over from the Repository reader ("Przekaż do Tarczy"): a source to argue from, or a letter to deconstruct.
+	const handedSource = Number(url.searchParams.get('source')) ? getSource(Number(url.searchParams.get('source')), locale) : null;
+	const handedLetter = Number(url.searchParams.get('letter')) ? getLetter(Number(url.searchParams.get('letter'))) : null;
+
 	return {
 		conversationId: conversation?.id ?? null,
 		history,
@@ -139,7 +143,9 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		recent: listConversations(userId),
 		korona,
 		sourcesList,
-		initialTab: initialTab === 'deconstruct' || initialTab === 'dossier' ? initialTab : 'chat'
+		initialTab: handedLetter ? 'deconstruct' : initialTab === 'deconstruct' || initialTab === 'dossier' ? initialTab : 'chat',
+		initialSource: handedSource ? { id: handedSource.id, label: `${handedSource.work} ${handedSource.section_ref}` } : null,
+		initialLetterBody: handedLetter?.body ?? null
 	};
 };
 
