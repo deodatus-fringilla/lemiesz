@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { FakeLlm } from '../llm/fake';
 import { HashEmbedder } from '../llm/embedders/hash';
-import { evaluateAuditor, evaluateRetrieval, formatAuditorReport, formatRetrievalReport, GOLDEN } from './harness';
+import { db, rebuildFts } from '../db';
+import { evaluateAuditor, evaluateRetrieval, formatAuditorReport, formatRetrievalReport, GOLDEN, prepareEvalCorpus } from './harness';
 
 describe('golden set', () => {
 	it('is well-formed: unique ids, both languages, negatives present', () => {
@@ -23,12 +24,6 @@ describe('harness plumbing', () => {
 		expect(en!.recall).toBeGreaterThanOrEqual(0.6);
 		expect(report.negatives.correctlyEmpty).toBe(report.negatives.total);
 		expect(formatRetrievalReport(report)).toMatch(/recall@5/);
-	});
-
-	it('shows why Polish attacks need multilingual vectors: lexical alone cannot reach English sources', async () => {
-		const report = await evaluateRetrieval(null);
-		const pl = report.methods.lexical!.byPair.find((p) => p.pair === 'pl->en');
-		expect(pl?.recall ?? 0).toBeLessThan(0.5);
 	});
 
 	it('runs all three methods when an embedder is present', async () => {
@@ -69,5 +64,21 @@ describe('harness plumbing', () => {
 		const report = await evaluateAuditor(discerning);
 		expect(report.llmCatchRate).toBe(1);
 		expect(report.controlPassRate).toBe(1);
+	});
+});
+
+// Last in the file: it removes texts from this file's throw-away database.
+describe('cross-language retrieval', () => {
+	it('shows why Polish attacks need multilingual vectors: lexical alone cannot reach a source that exists only in English', async () => {
+		// The committed corpus carries Polish translations of the golden sources, which lexical search reaches.
+		// Remove them and the Polish attack lines meet English text only: lexical recall must collapse.
+		prepareEvalCorpus();
+		const expected = [...new Set(GOLDEN.filter((g) => g.locale === 'pl').flatMap((g) => g.expect))];
+		db.prepare(`DELETE FROM source_texts WHERE locale = 'pl' AND source_id IN (${expected.map(() => '?').join(',')})`).run(...expected);
+		rebuildFts();
+		const report = await evaluateRetrieval(null);
+		const pl = report.methods.lexical!.byPair.find((p) => p.pair === 'pl->en');
+		expect(pl, 'the Polish golden lines must now resolve to English-only sources').toBeDefined();
+		expect(pl!.recall).toBeLessThan(0.5);
 	});
 });

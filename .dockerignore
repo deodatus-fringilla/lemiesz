@@ -1,7 +1,8 @@
 node_modules
 build
 .svelte-kit
-data
+data/*
+!data/baseline.sql
 backups
 .git
 .env
@@ -11,3 +12,5 @@ Dockerfile
 docker-compose.yml
 docs
 *.md
+# the doctrinal canons are read by the app (/repository reader)
+!corpus/**/*.md

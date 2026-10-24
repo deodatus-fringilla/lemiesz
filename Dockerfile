@@ -39,6 +39,10 @@ COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 # Operator tool: docker compose exec app node scripts/restore-drill.mjs /data/backups --boot
 COPY --chown=node:node scripts/restore-drill.mjs ./scripts/restore-drill.mjs
+# Starting content of a NEW database (the live one is on the /data volume; DATABASE_BASELINE defaults to this path),
+# and the doctrinal canons the Repository reader shows.
+COPY --chown=node:node data/baseline.sql ./data/baseline.sql
+COPY --chown=node:node corpus ./corpus
 
 USER node
 EXPOSE 3000

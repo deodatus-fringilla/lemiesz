@@ -8,7 +8,17 @@
 	import type { ShieldEvent } from '$lib/server/shield/shield';
 
 	type Evidence = Extract<ShieldEvent, { type: 'sources' }>;
-	type Cite = { n: number; id: number; work: string; section_ref: string; text: string; locale: string; review: string };
+	type Cite = {
+		n: number;
+		id: number;
+		work: string;
+		section_ref: string;
+		text: string;
+		locale: string;
+		review: string;
+		translator: string | null;
+		license: string;
+	};
 	type Msg = {
 		role: 'user' | 'assistant';
 		text: string;
@@ -149,7 +159,9 @@
 							section_ref: c.source.section_ref,
 							text: c.source.text,
 							locale: c.source.locale,
-							review: c.source.review
+							review: c.source.review,
+							translator: c.source.translator,
+							license: c.source.license
 						}));
 						answer.noSource = e.noSource;
 						answer.unverified = e.unverifiedQuotes;
@@ -418,6 +430,7 @@
 											<span class="font-bold text-amber-300">[{c.n}]</span> <span class="font-semibold">{c.work} {c.section_ref}</span>
 											<span class="text-zinc-500">({languageLabel(c.locale)})</span>
 											<blockquote class="mt-0.5 text-zinc-400">„{c.text}”</blockquote>
+											<div class="mt-0.5 text-zinc-500">{c.translator ? `${c.translator} · ` : ''}{m.repo_license()}: {c.license}</div>
 										</li>
 									{/each}
 								</ol>
@@ -547,6 +560,7 @@
 								{#if s.machineTranslated}<p class="text-xs text-amber-300">{m.shield_machine_translation()}</p>{/if}
 								<blockquote class="whitespace-pre-line text-zinc-300">{s.text}</blockquote>
 								<div class="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+									{#if s.translator}<span>{m.f_translator()}: {s.translator}</span>{/if}
 									<span>{m.repo_license()}: {s.license}</span>
 									{#if s.url}
 										<a href={s.url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-sky-400 hover:underline">
@@ -681,6 +695,7 @@
 											<div class="rounded-lg border border-zinc-800/80 bg-zinc-950/50 p-2.5 text-xs">
 												<div class="font-semibold text-zinc-200">{s.work} {s.section_ref}</div>
 												<p class="mt-1 line-clamp-3 text-zinc-400">„{s.text}”</p>
+												<div class="mt-1 text-zinc-500">{s.translator ? `${s.translator} · ` : ''}{m.repo_license()}: {s.license}</div>
 											</div>
 										{/each}
 									</div>
@@ -692,7 +707,7 @@
 			{/if}
 		</section>
 	{:else if activeTab === 'dossier'}
-		<!-- Epistolary Dossier: docs/99_Raw_Repo/letters/Korona/ -->
+		<!-- Epistolary Dossier: corpus/intake/letters_archive/Korona/ (the database is the authority) -->
 		<section class="space-y-6">
 			<div class="rounded-xl border border-amber-500/30 bg-zinc-900/50 p-5">
 				<h2 class="text-xl font-bold text-zinc-100">{m.shield_dossier_title()}</h2>

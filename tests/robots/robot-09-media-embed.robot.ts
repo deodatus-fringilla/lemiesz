@@ -3,11 +3,11 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { db } from '$lib/server/db';
 import { EMBED_HOSTS, createMedia, getMedia, isAllowedEmbed, parseMediaUrl, MediaError } from '$lib/server/media';
-import { SEED_MEDIA } from '$lib/server/seed/mediaSeed';
 import { human } from '$lib/server/review';
 
 // ROBOT-09 — The Media Link & Privacy Embed Gate (docs/17_Robots/ROBOT-09-media-link-privacy-gate.md), offline half.
-// Whether a link is still alive needs the network and is not checked here. Do not weaken an assertion to make it pass.
+// Runs in the baseline project (the database holds data/baseline.sql). Whether a link is still alive needs the network
+// and is not checked here. Do not weaken an assertion to make it pass.
 
 describe('ROBOT-09 · only privacy-respecting hosts can ever be embedded', () => {
 	it('SABOTAGE FIXTURES: foreign hosts, look-alike domains, other schemes and the cookie-setting YouTube embed are all refused', () => {
@@ -45,8 +45,10 @@ describe('ROBOT-09 · only privacy-respecting hosts can ever be embedded', () =>
 		expect(() => createMedia({ title: 'T', artist_or_author: 'A', media_type: 'music', url: 'https://vimeo.com/1' }, human('robot-09'))).toThrow(MediaError);
 	});
 
-	it('every seed link is a valid, canonical, tracking-free link', () => {
-		for (const s of SEED_MEDIA) {
+	it('every stored link of data/baseline.sql is a valid, canonical, tracking-free link', () => {
+		const stored = db.prepare('SELECT url FROM media_assets').all() as { url: string }[];
+		expect(stored.length, 'the baseline project must load data/baseline.sql').toBeGreaterThan(0);
+		for (const s of stored) {
 			const p = parseMediaUrl(s.url);
 			expect(p, s.url).not.toBeNull();
 			expect(p!.url, s.url).toBe(s.url);

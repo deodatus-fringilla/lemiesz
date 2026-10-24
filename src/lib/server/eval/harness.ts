@@ -3,7 +3,7 @@ import type { Embedder } from '$lib/server/llm/embedder';
 import type { LlmProvider } from '$lib/server/llm/provider';
 import { createArgument } from '$lib/server/arguments';
 import { human } from '$lib/server/review';
-import { runSeed } from '$lib/server/seed/seed';
+import { loadBaseline, rebuildFts } from '$lib/server/db';
 import { retrieve, type Thresholds } from '$lib/server/rag/retrieve';
 import { auditCard } from '$lib/server/pipeline/auditor';
 import { forceReview } from '$lib/server/testing';
@@ -14,7 +14,10 @@ export interface GoldenEntry {
 	id: string;
 	locale: string;
 	query: string;
-	expect: string[];
+	/** Source ids (stable primary keys of data/baseline.sql) a good answer must cite. Empty = "no strong source". */
+	expect: number[];
+	/** "work section_ref" of each expected source, checked against the corpus so a wrong id fails loudly. */
+	cites?: string[];
 }
 
 export const GOLDEN: GoldenEntry[] = golden.entries;
@@ -27,10 +30,17 @@ function assertThrowawayDb(): void {
 	}
 }
 
-/** Seeds the starter corpus and marks every text human_approved so retrieval can see it. Throw-away DBs only. */
+/**
+ * Loads the committed corpus (data/baseline.sql) into an empty throw-away database, then marks every text
+ * human_approved so retrieval can see it. Returns "work section_ref" -> source id. Throw-away DBs only.
+ */
 export function prepareEvalCorpus(): Map<string, number> {
 	assertThrowawayDb();
-	runSeed();
+	const { n } = db.prepare('SELECT COUNT(*) AS n FROM sources').get() as { n: number };
+	if (n === 0) {
+		loadBaseline('./data/baseline.sql');
+		rebuildFts();
+	}
 	const rows = db.prepare('SELECT id, work, section_ref FROM sources').all() as { id: number; work: string; section_ref: string }[];
 	for (const r of db.prepare('SELECT source_id AS id, locale FROM source_texts').all() as { id: number; locale: string }[]) {
 		forceReview('source', r.id, r.locale, 'human_approved');
@@ -63,6 +73,22 @@ export interface RetrievalReport {
 	vectorThreshold: { positiveMin: number; negativeMax: number; suggested: number | null } | null;
 }
 
+/**
+ * The source ids an entry expects, after checking each one exists and, when `cites` is given, still is the cited
+ * work: a retitled source must be confirmed in golden.json, never silently counted as a different text.
+ */
+export function goldenSourceIds(e: GoldenEntry, corpus: Map<string, number>): number[] {
+	const byId = new Map([...corpus].map(([label, id]) => [id, label]));
+	e.expect.forEach((id, i) => {
+		if (!byId.has(id)) throw new Error(`Golden entry ${e.id} expects source ${id}, which is not in the corpus`);
+		const cited = e.cites?.[i];
+		if (cited !== undefined && byId.get(id) !== cited) {
+			throw new Error(`Golden entry ${e.id}: source ${id} is "${byId.get(id)}", not "${cited}"`);
+		}
+	});
+	return e.expect;
+}
+
 export async function evaluateRetrieval(
 	embedder: Embedder | null,
 	entries: GoldenEntry[] = GOLDEN
@@ -87,8 +113,7 @@ export async function evaluateRetrieval(
 				thresholds: METHOD_THRESHOLDS[method]
 			});
 			const got = new Set(r.sources.map((s) => s.id));
-			const wanted = e.expect.map((label) => ids.get(label)).filter((x): x is number => x !== undefined);
-			if (wanted.length !== e.expect.length) throw new Error(`Golden entry ${e.id} names an unknown source`);
+			const wanted = goldenSourceIds(e, ids);
 			const hit = wanted.some((id) => got.has(id));
 			if (hit) hits++;
 			else missed.push(e.id);
@@ -116,7 +141,7 @@ export async function evaluateRetrieval(
 		for (const e of positives) {
 			const r = await retrieve({ query: e.query, context: 'shield', limit: 5, embedder });
 			const got = new Set(r.sources.map((s) => s.id));
-			if (!e.expect.some((label) => got.has(ids.get(label)!))) missedE2E.push(e.id);
+			if (!e.expect.some((id) => got.has(id))) missedE2E.push(e.id);
 		}
 		endToEnd = { recall: positives.length ? 1 - missedE2E.length / positives.length : 0, missed: missedE2E };
 	}

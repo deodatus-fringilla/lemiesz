@@ -101,7 +101,8 @@ const migrationModules = import.meta.glob<string>('./migrations/*.sql', {
 	eager: true
 });
 
-export function runMigrations(): void {
+/** Applies pending migrations in name order; returns the names it applied. */
+export function runMigrations(): string[] {
 	db.exec(`
 		CREATE TABLE IF NOT EXISTS _migrations (
 			id INTEGER PRIMARY KEY,
@@ -114,9 +115,8 @@ export function runMigrations(): void {
 		(db.prepare('SELECT name FROM _migrations').all() as { name: string }[]).map((r) => r.name)
 	);
 
-	const sortedMigrations = Object.entries(migrationModules).sort(([a], [b]) => a.localeCompare(b));
-
-	for (const [filepath, sql] of sortedMigrations) {
+	const newlyApplied: string[] = [];
+	for (const [filepath, sql] of Object.entries(migrationModules).sort(([a], [b]) => a.localeCompare(b))) {
 		const name = path.basename(filepath);
 		if (!applied.has(name)) {
 			console.log(`[db] Applying migration: ${name}`);
@@ -124,8 +124,25 @@ export function runMigrations(): void {
 				db.exec(sql);
 				db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(name);
 			})();
+			newlyApplied.push(name);
 		}
 	}
+	return newlyApplied;
+}
+
+/** Name of the newest migration file: data/baseline.sql must have been snapshotted at this migration. */
+export const LATEST_MIGRATION = Object.keys(migrationModules)
+	.map((p) => path.basename(p))
+	.sort((a, b) => a.localeCompare(b))
+	.at(-1)!;
+
+/**
+ * Where a fresh database takes its starting content from (corpus proposal v3.1 §3): a path to a SQL dump, or
+ * 'off' for an empty database (unit tests). Defaults to the committed snapshot ./data/baseline.sql.
+ */
+export function baselinePath(): string | null {
+	const setting = process.env.DATABASE_BASELINE ?? './data/baseline.sql';
+	return setting === 'off' ? null : setting;
 }
 
 /**
@@ -153,24 +170,75 @@ export function ensureFtsTables(): void {
 					tokenize = '${tokenizer}'
 				);
 			`);
-			db.prepare(
-				`INSERT INTO ${table} (owner_type, owner_id, title, content, keywords)
-				 SELECT 'source', st.source_id, s.work || ' ' || s.section_ref, st.text, COALESCE(st.keywords, '')
-				 FROM source_texts st JOIN sources s ON s.id = st.source_id
-				 WHERE st.locale = ?`
-			).run(locale);
-			db.prepare(
-				`INSERT INTO ${table} (owner_type, owner_id, title, content, keywords)
-				 SELECT 'argument', at.argument_id, at.opponent_claim, at.counter_punch, COALESCE(at.keywords, '')
-				 FROM argument_texts at WHERE at.locale = ?`
-			).run(locale);
+			fillFts(locale);
 		})();
 		console.log(`[db] Created FTS table ${table}`);
 	}
 }
 
-runMigrations();
-ensureFtsTables();
+function fillFts(locale: string): void {
+	const table = ftsTable(locale as (typeof LOCALE_CODES)[number]);
+	db.prepare(
+		`INSERT INTO ${table} (owner_type, owner_id, title, content, keywords)
+		 SELECT 'source', st.source_id, s.work || ' ' || s.section_ref, st.text, COALESCE(st.keywords, '')
+		 FROM source_texts st JOIN sources s ON s.id = st.source_id
+		 WHERE st.locale = ?`
+	).run(locale);
+	db.prepare(
+		`INSERT INTO ${table} (owner_type, owner_id, title, content, keywords)
+		 SELECT 'argument', at.argument_id, at.opponent_claim, at.counter_punch, COALESCE(at.keywords, '')
+		 FROM argument_texts at WHERE at.locale = ?`
+	).run(locale);
+}
+
+/**
+ * Rebuilds every per-locale FTS table from the stored texts. Needed after rows were written by SQL rather than
+ * through the app (a baseline load, a data migration). fts_media keeps itself current through triggers.
+ */
+export function rebuildFts(): void {
+	db.transaction(() => {
+		for (const locale of LOCALE_CODES) {
+			db.exec(`DELETE FROM ${ftsTable(locale)}`);
+			fillFts(locale);
+		}
+	})();
+}
+
+/**
+ * A database with no `_migrations` table has never been initialised. Testing this (rather than whether the file
+ * exists) also covers a file left behind by a crash during the first start: the whole initialisation, migrations
+ * and baseline together, is one transaction, so a failure leaves no `_migrations` table and the next start retries.
+ */
+function isUninitialised(): boolean {
+	return !db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '_migrations'").get();
+}
+
+/** Loads a baseline dump into a database whose schema is current; refuses a dump taken at another migration. */
+export function loadBaseline(file: string): void {
+	const sql = fs.readFileSync(file, 'utf8');
+	const taken = /^-- baseline-migration: (\S+)/m.exec(sql)?.[1];
+	if (taken !== LATEST_MIGRATION) {
+		throw new Error(
+			`[FATAL] ${file} was snapshotted at migration "${taken ?? 'unknown'}" but the newest migration is "${LATEST_MIGRATION}". Run \`pnpm db:snapshot\` on the master database.`
+		);
+	}
+	db.exec(sql);
+}
+
+const BASELINE = baselinePath();
+if (isUninitialised() && BASELINE) {
+	console.log(`[db] New database: applying migrations and loading ${BASELINE}`);
+	db.transaction(() => {
+		runMigrations();
+		loadBaseline(BASELINE);
+	})();
+	ensureFtsTables(); // the FTS tables are new here, so they are filled from the loaded rows
+} else {
+	const applied = runMigrations();
+	ensureFtsTables();
+	// A data migration may have written texts directly; the FTS tables must follow.
+	if (applied.length) rebuildFts();
+}
 
 // Clean shutdown: adapter-node emits 'sveltekit:shutdown' after the HTTP server has drained (SIGTERM /
 // SIGINT, e.g. docker stop). Closing the database checkpoints the WAL so the main file is complete.

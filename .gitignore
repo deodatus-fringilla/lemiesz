@@ -27,7 +27,9 @@ vite.config.ts.timestamp-*
 *.db-journal
 *.db-wal
 *.db-shm
-/data
+/data/*
+# The committed starting content of every new database (pnpm db:snapshot)
+!/data/baseline.sql
 /backups
 
 

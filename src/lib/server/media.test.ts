@@ -22,7 +22,6 @@ import {
 	deleteMedia,
 	type MediaInput
 } from './media';
-import { SEED_MEDIA, seedMedia } from './seed/mediaSeed';
 
 const alice = human('alice');
 let n = 0;
@@ -225,15 +224,5 @@ describe('Content Engine: only approved media, only by token', () => {
 		expect(body).not.toContain('Hidden Draft Song');
 		const d = ev.find((e) => e.type === 'done') as Extract<ContentEvent, { type: 'done' }>;
 		expect(getDraft(d.draftId!)!.media).toEqual([approved]);
-	});
-});
-
-describe('seed', () => {
-	it('adds the starter media as drafts, once, with no lyrics stored', () => {
-		expect(seedMedia()).toBe(SEED_MEDIA.length);
-		expect(seedMedia()).toBe(0);
-		const seeded = listMedia({ q: 'Attemis' })[0];
-		expect(seeded).toMatchObject({ status: 'draft', ai_assisted: true, lyrics_or_transcript: null });
-		expect(seeded.production_credits).toMatch(/Suno/);
 	});
 });

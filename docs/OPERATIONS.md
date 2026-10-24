@@ -16,7 +16,11 @@ For whoever runs the server. Architectural invariants live in [02_Architecture_M
 2. **Mode B — local machine or Tailscale:** `docker compose up -d`. Set `APP_BIND` to the Tailscale IP (default `127.0.0.1` = this machine only).
 3. **Mode A — VPS with HTTPS:** set `DOMAIN`, `ORIGIN=https://<domain>`, `ADDRESS_HEADER=X-Forwarded-For`, keep `APP_BIND=127.0.0.1`, then `docker compose --profile vps up -d`.
 4. Open the app, sign in, and look at the **Dashboard**. Every red or amber box says what to fix.
-5. The database starts with ten **draft** seed texts. Nothing is approved. A person must read each text in the Repository and approve it before the Shield or the Content Engine will use it.
+5. A **new** database starts with the committed corpus, `data/baseline.sql` (sources, argument cards, letters, media, posters), loaded once right after the migrations. Its texts are **drafts**: nothing is approved. A person must read each text in the Repository and approve it before the Shield or the Content Engine will use it. An existing database is never touched by the baseline; content changes reach it through migrations. `DATABASE_BASELINE=off` starts empty.
+
+### Content changes and `data/baseline.sql`
+
+The master copy of the content is the architect's local `./data/lemiesz.db`. After editing content in the app (or adding a data migration), run `pnpm db:snapshot` and commit `data/baseline.sql` with the change. The snapshot refuses a database that has not applied every migration; `pnpm test` fails if `data/baseline.sql` was taken at an older migration than the newest file in `src/lib/server/migrations/`. A data migration must be a no-op on an empty database (`UPDATE … WHERE`, `INSERT … SELECT … WHERE EXISTS`), because a new database runs the migrations before it loads the baseline.
 
 The database must live on a **local disk** (SQLite WAL). The app refuses to start on a UNC path or a Linux network mount.
 

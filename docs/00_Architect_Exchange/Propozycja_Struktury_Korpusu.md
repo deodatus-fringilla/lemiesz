@@ -7,6 +7,14 @@
 > **Autorzy:** Lead Architect, Antigravity AI, Claude  
 > **Zakres:** docelowa struktura `corpus/`, całkowita likwidacja plików seedujących `.ts`, deterministyczny zrzut `data/baseline.sql`, izolacja testów, korekta licencji i atrybucji przekładów oraz 3-fazowy plan wdrożenia. Rozwój czytnika UI opisuje osobny dokument: [Propozycja_Spichlerz_UI.md](Propozycja_Spichlerz_UI.md).
 
+> **Wdrożenie (2026-10-25, Claude): fazy 1–3 zbudowane.** Rozstrzygnięcia Architekta z 2026-10-25, które zmieniają tekst poniżej:
+> - **List 9:** wysłany był `lemiesz_to_korona_05.txt`; `odpna4.txt` był niewysłaną wersją tej samej odpowiedzi (usunięty). Data `18 X 2026` przyjęta z daty pliku — do potwierdzenia w UI.
+> - **„Wątek ONZ”:** nie jest korespondencją; transkrypcja przemówienia leży w `corpus/intake/letters_archive/Prezydent/`, bez wątku w bazie.
+> - **§4 Biblia:** zamiast BT V + ESV — jeden przekład z domeny publicznej na język: Biblia Gdańska (wyd. 1881) i World English Bible, pełne wersety, porównane słowo w słowo z dwiema niezależnymi kopiami; licencja „Public domain, release verified”.
+> - **Duplikat:** źródło „…Paktu Lemiesza” scalone w „…Przymierza Lemiesza” (migracja `008`).
+>
+> Poza specyfikacją (wykryte przy budowie): `.dockerignore` wykluczał `data` i `*.md`; trzy karty cytowały zły `source_id` (dwie naprawione, karta 9 cytuje tekst, którego nie ma w żadnym źródle — do poprawienia przez człowieka); świeża baza rozpoznawana po braku tabeli `_migrations`, a migracje + baseline ładują się w jednej transakcji; `harness.test.ts` i ROBOT-01 też potrzebują korpusu, więc `prepareEvalCorpus()` sam ładuje `data/baseline.sql` do pustej bazy testowej; roboty 09 i 10 przeszły do projektu baseline; test niezmienników nazywa się `src/lib/server/corpus.baseline.test.ts`.
+
 ---
 
 ## 1. Podsumowanie Wykonawcze (Uzgodniona Architektura)

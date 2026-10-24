@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GOLDEN, evaluateRetrieval, prepareEvalCorpus, type GoldenEntry } from '$lib/server/eval/harness';
+import { GOLDEN, evaluateRetrieval, goldenSourceIds, prepareEvalCorpus, type GoldenEntry } from '$lib/server/eval/harness';
 
 // ROBOT-04 — The Golden Set Retrieval Gate (docs/17_Robots/ROBOT-04-golden-set-retrieval.md), offline half.
 // Proves the golden set is intact and the harness can detect a miss, with no model download.
@@ -17,10 +17,20 @@ describe('ROBOT-04 · the golden set is intact', () => {
 		expect(negatives.length).toBeGreaterThanOrEqual(4);
 	});
 
-	it('has unique ids and every expected source exists in the seed', () => {
+	it('has unique ids and every expected source exists in data/baseline.sql under the work it cites', () => {
 		expect(new Set(GOLDEN.map((g) => g.id)).size).toBe(GOLDEN.length);
 		const corpus = prepareEvalCorpus();
-		for (const g of positives) for (const label of g.expect) expect(corpus.has(label), `${g.id}: "${label}"`).toBe(true);
+		for (const g of positives) {
+			expect(g.cites?.length, `${g.id}: "cites" must name every expected source`).toBe(g.expect.length);
+			expect(() => goldenSourceIds(g, corpus), g.id).not.toThrow();
+		}
+	});
+
+	it('SABOTAGE FIXTURE: an expected id that now holds a different work is refused, not silently scored', () => {
+		const corpus = prepareEvalCorpus();
+		const moved: GoldenEntry = { id: 'sabotage-retitled', locale: 'en', query: 'q', expect: [5], cites: ['Pacem in Terris (John XXIII, 1963) §112'] };
+		expect(() => goldenSourceIds(moved, corpus)).toThrow(/not "Pacem in Terris/);
+		expect(() => goldenSourceIds({ ...moved, expect: [99999], cites: undefined }, corpus)).toThrow(/not in the corpus/);
 	});
 });
 
@@ -36,7 +46,7 @@ describe('ROBOT-04 · the harness can fail', () => {
 			id: 'sabotage-wrong-source',
 			locale: 'en',
 			query: 'Neutrality means letting foreign armies march through our country',
-			expect: ['Pacem in Terris (John XXIII, 1963) §112']
+			expect: [1]
 		};
 		const onTopicAsNegative: GoldenEntry = {
 			id: 'sabotage-false-negative',

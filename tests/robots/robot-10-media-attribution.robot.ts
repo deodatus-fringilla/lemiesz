@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { db } from '$lib/server/db';
 import { MediaError, createMedia, getMedia, setMediaStatus, updateMedia, validateMedia, type MediaInput } from '$lib/server/media';
-import { SEED_MEDIA } from '$lib/server/seed/mediaSeed';
 import { human, system } from '$lib/server/review';
 
 // ROBOT-10 — The Lyrics & Attribution Gate (docs/17_Robots/ROBOT-10-lyrics-attribution-gate.md).
 // A robot cannot hear audio, so it does not claim lyrics match a recording: it enforces who decided what.
-// Do not weaken an assertion to make it pass.
+// Runs in the baseline project (the database holds data/baseline.sql). Do not weaken an assertion to make it pass.
+
+interface StoredMedia {
+	title: string;
+	ai_assisted: number;
+	production_credits: string | null;
+	lyrics_or_transcript: string | null;
+	lyrics_license: string | null;
+}
+const stored = () =>
+	db.prepare('SELECT title, ai_assisted, production_credits, lyrics_or_transcript, lyrics_license FROM media_assets').all() as StoredMedia[];
 
 const alice = human('alice');
 let n = 0;
@@ -31,8 +40,9 @@ describe('ROBOT-10 · transparent credit', () => {
 		expect(validateMedia(base({ ai_assisted: true, production_credits: 'Suno AI' }))).toEqual([]);
 	});
 
-	it('every seeded AI-assisted track names its tools', () => {
-		for (const s of SEED_MEDIA) if (s.ai_assisted) expect(s.production_credits, s.title).toMatch(/\S{3}/);
+	it('every stored AI-assisted track of data/baseline.sql names its tools', () => {
+		expect(stored().length, 'the baseline project must load data/baseline.sql').toBeGreaterThan(0);
+		for (const s of stored()) if (s.ai_assisted) expect(s.production_credits, s.title).toMatch(/\S{3}/);
 	});
 });
 
@@ -44,8 +54,8 @@ describe('ROBOT-10 · lyrics are stored only when a human cleared them', () => {
 		expect(() => db.prepare("UPDATE media_assets SET lyrics_or_transcript = 'x' WHERE id = ?").run(id)).toThrow(/CHECK/);
 	});
 
-	it('no seed row stores lyrics without a licence', () => {
-		for (const s of SEED_MEDIA) if (s.lyrics_or_transcript) expect(s.lyrics_license, s.title).toBeTruthy();
+	it('no stored row of data/baseline.sql holds lyrics without a licence', () => {
+		for (const s of stored()) if (s.lyrics_or_transcript) expect(s.lyrics_license, s.title).toBeTruthy();
 	});
 });
 

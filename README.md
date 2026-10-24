@@ -40,7 +40,9 @@ pnpm dev
 ```
 
 First start creates `./data/lemiesz.db` (must be a **local** disk — SQLite WAL), applies migrations
-and seeds the starter corpus as **drafts**. Approve texts in the Repository after reading them.
+and loads the committed corpus `data/baseline.sql`; its texts are **drafts**. Approve texts in the Repository
+after reading them. After changing content, run `pnpm db:snapshot` and commit `data/baseline.sql`
+(see [docs/OPERATIONS.md](docs/OPERATIONS.md)). The doctrinal canons live in [corpus/](corpus/README.md).
 
 To sign in you need a user: set `ADMIN_USERNAME` and `ADMIN_PASSWORD` (12+ characters) before the
 first start, or use `AUTH_DISABLED=true` for local development only (ignored in production).
@@ -50,11 +52,12 @@ first start, or use `AUTH_DISABLED=true` for local development only (ignored in 
 | Command | What it does |
 | :-- | :-- |
 | `pnpm check` | svelte-check / TypeScript |
-| `pnpm test` | unit + integration tests (offline, throw-away database) |
+| `pnpm test` | unit + integration tests (offline, throw-away database): project `unit` on an empty database, project `baseline` on one loaded from `data/baseline.sql` |
+| `pnpm db:snapshot` | writes `data/baseline.sql` from the master database `./data/lemiesz.db` (read-only); commit it with every content change |
 | `pnpm build && pnpm smoke` | starts the built server and tests auth, review rules and pages over real HTTP |
 | `node scripts/mock-llm.mjs 4901` | a fake OpenAI-compatible model for trying the Shield UI without an API key (set `LLM_CHAT_BASE_URL=http://127.0.0.1:4901/v1`, `LLM_CHAT_API_KEY=x`, `LLM_CHAT_MODEL=mock`) |
 | `node scripts/restore-drill.mjs <backup> --live <db> --boot` | proves a backup can be restored (also runs inside the container) |
-| `pnpm eval` | quality run with the **real** local embedder: recall@5 per method and language pair, threshold calibration, and a network check that every seed quote is verbatim on its cited page. Writes `data/eval-report.txt`. Also evaluates the auditor if `LLM_AUDITOR_*` is set. First run downloads the embedding model (~100 MB). |
+| `pnpm eval` | quality run with the **real** local embedder: recall@5 per method and language pair, threshold calibration, and a network check that every source marked `verbatim_url_check` is verbatim on its cited page. Writes `data/eval-report.txt`. Also evaluates the auditor if `LLM_AUDITOR_*` is set. First run downloads the embedding model (~100 MB). |
 
 ## Deploy
 

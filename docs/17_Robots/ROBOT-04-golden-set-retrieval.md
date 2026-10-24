@@ -25,7 +25,7 @@ The Shield and Repository rely on hybrid search: SQLite FTS5 (BM25) plus multili
 ## 2. Invariant Rules
 
 1. **Golden set.** At least 20 entries in both languages with at least 4 off-topic negatives. Currently 16 positives (10 en, 6 pl) plus 4 negatives. The target is 30–50 real attack lines; the set is a starter, and `RAG_VECTOR_MIN=0.79` is calibrated on it with a thin margin (worst positive 0.806, best negative 0.772).
-2. **Every expected source exists** in the seed corpus (offline half).
+2. **Every expected source exists** in the committed corpus, `data/baseline.sql` (offline half). `eval/golden.json` names each expected source by its stable id and, in `cites`, by `work section_ref`; an id that now holds a different work fails loudly instead of being scored against the wrong text.
 3. **Recall.** With the real embedder, hybrid recall@5 and end-to-end recall (real thresholds) must be at least 95% (`pnpm eval`).
 4. **Off-topic rejection.** Every negative must return tier `none` ("no strong source"): the model never improvises an answer.
 5. **Local.** Runs with the in-process ONNX embedder; the only network use is the first model download.

@@ -6,3 +6,5 @@ import path from 'node:path';
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lemiesz-test-'));
 process.env.DATABASE_PATH = path.join(dir, 'test.db');
 process.env.AUTH_DISABLED = 'true';
+// Unit tests and isolated robots build their own fixtures on an EMPTY database (corpus proposal v3.1 §3.3).
+process.env.DATABASE_BASELINE = 'off';

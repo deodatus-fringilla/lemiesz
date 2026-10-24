@@ -33,7 +33,7 @@ ROBOT-01 enforces that **no quotation can enter an argument card, and no citatio
 5. **No phantom citations.** `CitationStreamer` strips `[[src:ID]]` / `[[quote:ID]]` tokens whose ID is not in the retrieved set, including tokens split across stream chunks, and expands `[[quote:ID]]` only from database text.
 6. **Typed quotations are flagged.** `findUnverifiedQuotes` flags a quoted passage of 40+ characters in a Shield answer that is in none of the retrieved sources.
 
-Not covered by this robot: whether a seed row is verbatim on the *publisher's* page. That needs the network and is `pnpm eval` (`seed/verify.eval.ts`).
+Not covered by this robot: whether a stored source marked `verbatim_url_check` is verbatim on the *publisher's* page. That needs the network and is `pnpm eval` (`seed/verify.eval.ts`).
 
 ---
 

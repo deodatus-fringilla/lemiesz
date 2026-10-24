@@ -100,6 +100,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 					original_locale: s.original_locale,
 					locale: s.activeText.locale,
 					text: s.activeText.text,
+					translator: s.activeText.translator ?? null,
 					isFallback: s.isFallback,
 					origin: s.activeText.origin,
 					review: s.activeText.review,

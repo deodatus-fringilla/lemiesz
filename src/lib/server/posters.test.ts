@@ -109,26 +109,4 @@ describe('Campaign Posters & Series Architecture (Canon 04)', () => {
 		});
 		expect(errors.some((e) => e.includes('Layer must be one of'))).toBe(true);
 	});
-
-	it('idempotently seeds Doktryna Jeza series via seedPosterSeries', async () => {
-		const { seedPosterSeries } = await import('./seed/seriesSeed');
-		const res1 = seedPosterSeries();
-		expect(res1.postersAdded).toBeGreaterThanOrEqual(0);
-
-		// Second run must be no-op (0 posters added)
-		const res2 = seedPosterSeries();
-		expect(res2.postersAdded).toBe(0);
-
-		const series = getSeries('doktryna-jeza', true);
-		expect(series.planet).not.toBeNull();
-		expect(series.planet?.image_path).toBe('/images/doktryna-jeza/hedgehog_planet_hero.jpg');
-		expect(series.satellites.length).toBe(8);
-		expect(series.pairs.length).toBe(4);
-
-		for (const pair of series.pairs) {
-			expect(pair.allegory).toBeDefined();
-			expect(pair.realism).toBeDefined();
-			expect(pair.moral_quote_pl).toBeTruthy();
-		}
-	});
 });

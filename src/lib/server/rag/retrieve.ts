@@ -64,6 +64,8 @@ export interface EvidenceSource {
 	original_locale: string;
 	locale: string;
 	text: string;
+	/** The named translation or edition of `text` (shown with the licence: art. 34 pr. aut.); null when not recorded. */
+	translator: string | null;
 	/** Not in the requested output language: the UI must label it (plan §8.2 j). */
 	isFallback: boolean;
 	origin: Origin;
@@ -205,7 +207,10 @@ function loadSource(id: number, outputLocale: string, ctx: UseContext, trust: Tr
 		| { id: number; work: string; section_ref: string; url: string | null; license: string; cleared_to_store: number; original_locale: string }
 		| undefined;
 	if (!s) return null;
-	const rows = db.prepare('SELECT locale, text, review, origin FROM source_texts WHERE source_id = ?').all(id) as (TextInfo & { text: string })[];
+	const rows = db.prepare('SELECT locale, text, review, origin, translator FROM source_texts WHERE source_id = ?').all(id) as (TextInfo & {
+		text: string;
+		translator: string | null;
+	})[];
 	const pick = pickAllowed(rows, outputLocale, s.original_locale, ctx, trust);
 	if (!pick) return null;
 	return {
@@ -218,6 +223,7 @@ function loadSource(id: number, outputLocale: string, ctx: UseContext, trust: Tr
 		original_locale: s.original_locale,
 		locale: pick.row.locale,
 		text: pick.row.text,
+		translator: pick.row.translator,
 		isFallback: pick.isFallback,
 		origin: pick.row.origin,
 		review: pick.row.review,

@@ -8,7 +8,7 @@
 |---|---|
 | **Number** | 10 |
 | **Tier** | Backend (Vitest, offline) |
-| **Guarded code** | `src/lib/server/media.ts` (`validateMedia`, `setMediaStatus`, `updateMedia`), the CHECK constraints in `src/lib/server/migrations/005_media.sql`, `src/lib/server/seed/mediaSeed.ts` |
+| **Guarded code** | `src/lib/server/media.ts` (`validateMedia`, `setMediaStatus`, `updateMedia`), the CHECK constraints in `src/lib/server/migrations/005_media.sql`, the media rows of `data/baseline.sql` |
 | **Executable** | `tests/robots/robot-10-media-attribution.robot.ts` |
 | **Run** | `pnpm robots` · sabotage proof: `pnpm robots:sabotage` |
 | **Guards** | Honest credit for AI-assisted work, lawful storage of lyrics, human authority over what is public |
@@ -27,9 +27,9 @@ An earlier draft of this robot promised to confirm that stored lyrics "match the
 ## 2. Invariant Rules
 
 1. **Credit.** `ai_assisted = 1` requires non-empty `production_credits` naming the tools. Enforced in `validateMedia` and by a database CHECK.
-2. **Lyrics need a decision.** `lyrics_or_transcript` is stored only with `lyrics_cleared_to_store = 1` **and** `lyrics_license` of at least 5 characters. Enforced in code and by a database CHECK. No seed row stores lyrics.
+2. **Lyrics need a decision.** `lyrics_or_transcript` is stored only with `lyrics_cleared_to_store = 1` **and** `lyrics_license` of at least 5 characters. Enforced in code and by a database CHECK. No row of `data/baseline.sql` stores lyrics without a licence.
 3. **Humans approve.** A `system` actor cannot set `human_approved` (`MediaError`); the approver and time are recorded.
-4. **Drafts first.** Every new asset, including seeds, is a `draft`.
+4. **Drafts first.** Every new asset is a `draft`.
 5. **Edits withdraw approval.** Changing credits, lyrics, licence, title, artist, link or genre of an approved asset sends it back to `draft` and clears the reviewer.
 6. **Cues are human-written** (`linkMedia` refuses a non-human actor and a malformed cue); the Content Engine copies them from the database and never invents one. Covered in `src/lib/server/media.test.ts`.
 

@@ -1,44 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { runSeed } from './seed/seed';
-import { seedMedia } from './seed/mediaSeed';
-import { seedKoronaCorpus } from './seed/koronaSeed';
-import {
-	classifyMethodology,
-	deconstructOpponentLetter,
-	extractClaimsFromLetter,
-	getCorrespondenceThread
-} from './correspondence';
-import { listPosters } from './posters';
+import { classifyMethodology } from './correspondence';
 import { runChecks } from './content/checks';
 
 describe('Korona Epistolary Corpus & Classical Methodologies', () => {
-	it('idempotently seeds the Korona correspondence, bilingual cards, sources, and campaign posters', () => {
-		runSeed();
-		seedMedia();
-		const first = seedKoronaCorpus();
-		expect(first.sourcesAdded).toBeGreaterThanOrEqual(8);
-		expect(first.argumentsAdded).toBeGreaterThanOrEqual(8);
-		expect(first.postersAdded).toBe(2);
-		expect(first.lettersAdded).toBe(8);
-
-		// Second run must be a no-op
-		const second = seedKoronaCorpus();
-		expect(second.sourcesAdded).toBe(0);
-		expect(second.argumentsAdded).toBe(0);
-		expect(second.postersAdded).toBe(0);
-		expect(second.lettersAdded).toBe(0);
-
-		const { thread, letters } = getCorrespondenceThread('korona');
-		expect(thread).not.toBeNull();
-		expect(letters).toHaveLength(8);
-		expect(letters[0].filename).toBe('lemiesz_to_korona_01.txt');
-		expect(letters[7].filename).toBe('korona_odp_04.txt');
-
-		const posters = listPosters();
-		expect(posters.map((p) => p.image_path)).toEqual(
-			expect.arrayContaining(['/images/two_crowns_hero.jpg', '/images/kaszanka_sacred_life.jpg'])
-		);
-	});
 
 	it('classifies opponent claims into the 5 non-Hegelian Classical Methodologies', () => {
 		expect(classifyMethodology('Zasada Si vis pacem, para bellum i lekcja 1939 roku.')).toBe('thomistic_disputation');
@@ -51,22 +15,6 @@ describe('Korona Epistolary Corpus & Classical Methodologies', () => {
 		expect(classifyMethodology('Zgadzam się z Panem i szanuję wspólny cel, jakim jest niebycie pionkiem.')).toBe(
 			'chivalrous_polemics'
 		);
-	});
-
-	it('extracts polemical claims from korona_odp_04.txt and deconstructs them with retrieved cards', async () => {
-		const { letters } = getCorrespondenceThread('korona');
-		const odp4 = letters.find((l) => l.filename === 'korona_odp_04.txt')!;
-		const claims = extractClaimsFromLetter(odp4.body, 5);
-		expect(claims.length).toBeGreaterThanOrEqual(3);
-
-		const deconstructed = await deconstructOpponentLetter({
-			text: odp4.body,
-			locale: 'pl',
-			includeDrafts: true,
-			maxClaims: 4
-		});
-		expect(deconstructed.length).toBeGreaterThanOrEqual(3);
-		expect(deconstructed.some((c) => c.arguments.length > 0 || c.sources.length > 0)).toBe(true);
 	});
 
 	it('validates epistolary letter structure in Content Engine checks', () => {

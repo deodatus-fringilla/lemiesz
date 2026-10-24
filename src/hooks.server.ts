@@ -11,22 +11,11 @@ import {
 	type SessionUser
 } from '$lib/server/auth';
 import { startBackupScheduler } from '$lib/server/backup';
-import { runSeed } from '$lib/server/seed/seed';
-import { seedMedia } from '$lib/server/seed/mediaSeed';
-import { seedKoronaCorpus } from '$lib/server/seed/koronaSeed';
-import { seedPosterSeries } from '$lib/server/seed/seriesSeed';
 
 // ---- startup -------------------------------------------------------------
+// A new database gets its starting content from data/baseline.sql when $lib/server/db opens it (no seed code).
 ensureBootstrapAdmin();
 purgeExpiredSessions();
-try {
-	runSeed();
-	seedMedia();
-	seedKoronaCorpus();
-	seedPosterSeries();
-} catch (e) {
-	console.error('[hooks] Startup seed error:', e);
-}
 startBackupScheduler();
 if (process.env.NODE_ENV === 'production' && !process.env.ORIGIN && !process.env.PROTOCOL_HEADER) {
 	console.warn(

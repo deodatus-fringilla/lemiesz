@@ -1,7 +1,5 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { db } from './db';
-import { runSeed } from './seed/seed';
-import { SEED_SOURCES } from './seed/seedData';
 import { validateIngestionChecklist, type IngestionChecklistItem } from './seed/checklist';
 import {
 	createSource,
@@ -34,39 +32,6 @@ function make(overrides: Partial<IngestionChecklistItem> = {}) {
 		alice
 	);
 }
-
-describe('seed', () => {
-	beforeAll(() => {
-		runSeed();
-	});
-
-	it('ingests every seed row as a draft — nothing is pre-approved', () => {
-		const rows = db.prepare('SELECT review FROM source_texts').all() as { review: string }[];
-		expect(rows.length).toBe(SEED_SOURCES.length);
-		expect(rows.every((r) => r.review === 'draft')).toBe(true);
-	});
-
-	it('passes the ingestion checklist for every seed row', () => {
-		for (const item of SEED_SOURCES) expect(validateIngestionChecklist(item).errors).toEqual([]);
-	});
-
-	it('contains real citations, not invented ones (regression: v1 seed cited wrong paragraphs)', () => {
-		const refs = SEED_SOURCES.map((s) => `${s.work} ${s.section_ref}`).join('\n');
-		expect(refs).toMatch(/Pacem in Terris.*§112/);
-		expect(refs).toMatch(/Gaudium et Spes.*§78/);
-		expect(refs).not.toMatch(/Gaudium et Spes.*§79\b(?! \(para)/);
-	});
-
-	it('flags AI placeholders instead of presenting them as movement text', () => {
-		const placeholders = SEED_SOURCES.filter((s) => /PLACEHOLDER/.test(s.work));
-		expect(placeholders.length).toBeGreaterThan(0);
-		for (const p of placeholders) expect(p.origin).toBe('ai_drafted');
-	});
-
-	it('is idempotent on a non-empty database', () => {
-		expect(runSeed().seeded).toBe(0);
-	});
-});
 
 describe('ingestion checklist', () => {
 	const ok: IngestionChecklistItem = {
@@ -197,12 +162,21 @@ describe('full-text search', () => {
 	});
 
 	it('finds exact section references', () => {
+		make({
+			work: 'Gaudium et Spes (fixture)',
+			section_ref: '§78',
+			original_locale: 'la',
+			locale: 'en',
+			origin: 'official_translation',
+			license: 'Holy See, with attribution',
+			text: 'A fixture text about peace and disarmament.'
+		});
 		const hits = searchFts('en', 'Gaudium 78');
-		// English rows come from the verbatim seed
 		expect(hits.length + searchFts('en', 'Gaudium').length).toBeGreaterThan(0);
 	});
 
 	it('uses English stemming', () => {
+		// the English fixture above holds "disarmament"
 		expect(searchFts('en', 'disarming').length + searchFts('en', 'disarmament').length).toBeGreaterThan(0);
 	});
 

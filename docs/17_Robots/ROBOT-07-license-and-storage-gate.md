@@ -8,7 +8,7 @@
 |---|---|
 | **Number** | 07 |
 | **Tier** | Backend (Vitest, offline) |
-| **Guarded code** | `src/lib/server/seed/checklist.ts` (`validateIngestionChecklist`), the seed in `seed/seedData.ts`, and the `sources.cleared_to_store` schema default |
+| **Guarded code** | `src/lib/server/seed/checklist.ts` (`validateIngestionChecklist`), every stored text of the committed corpus `data/baseline.sql` (the robot runs on a database loaded from it), and the `sources.cleared_to_store` schema default |
 | **Executable** | `tests/robots/robot-07-license-storage.robot.ts` |
 | **Run** | `pnpm robots` · sabotage proof: `pnpm robots:sabotage` |
 | **Guards** | Copyright compliance, attribution discipline, safe text storage |
@@ -34,10 +34,10 @@ Storing full texts of copyrighted books, articles or translations without permis
 
 Structural rules:
 
-6. **No back door.** Every production caller of `createSource` (the seed, `POST /api/sources`, the repository page action) goes through the checklist; the robot scans `src/` and fails if a caller does not import it. `createSource` itself does not validate: enforcement is at the boundary.
-7. **Defaults are closed.** The `sources.cleared_to_store` column defaults to `0`, and every seed row passes the checklist and is created as `draft`.
+6. **No back door.** Every production caller of `createSource` (`POST /api/sources`, the repository page action) goes through the checklist; the robot scans `src/` and fails if a caller does not import it. `createSource` itself does not validate: enforcement is at the boundary.
+7. **Defaults are closed.** The `sources.cleared_to_store` column defaults to `0`, and every stored text of `data/baseline.sql` passes the checklist.
 
-Not covered: periodic re-fetching of seed URLs to detect retracted passages (needs the network; verbatim-on-page checking is `pnpm eval` `seed/verify.eval.ts`, 7/7 rows on 2026-10-01 per the transfer letter), and a licence vocabulary. Both are possible follow-ups.
+Not covered: periodic re-fetching of source URLs to detect retracted passages (needs the network; verbatim-on-page checking is `pnpm eval` `seed/verify.eval.ts`, it checks the sources marked `verbatim_url_check`), and a licence vocabulary. Both are possible follow-ups.
 
 ---
 

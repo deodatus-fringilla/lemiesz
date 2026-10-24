@@ -2,11 +2,55 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { db } from '$lib/server/db';
-import { validateIngestionChecklist, type IngestionChecklistItem } from '$lib/server/seed/checklist';
-import { SEED_SOURCES } from '$lib/server/seed/seedData';
+import { validateIngestionChecklist, type Category, type IngestionChecklistItem } from '$lib/server/seed/checklist';
+import type { Origin } from '$lib/server/review';
+import type { AnySupportedLocale } from '$lib/i18n/locales';
 
 // ROBOT-07 — The License & Cleared-to-Store Gate (docs/17_Robots/ROBOT-07-license-and-storage-gate.md).
-// Wraps seed/checklist.ts. Do not weaken an assertion to make it pass.
+// Wraps seed/checklist.ts. Runs in the baseline project: the database holds data/baseline.sql.
+// Do not weaken an assertion to make it pass.
+
+interface StoredText {
+	work: string;
+	section_ref: string;
+	category: Category;
+	url: string | null;
+	license: string;
+	cleared_to_store: number;
+	original_locale: AnySupportedLocale;
+	updated_by: string | null;
+	text: string;
+	locale: AnySupportedLocale;
+	origin: Origin;
+	keywords: string | null;
+	translator: string | null;
+}
+
+/** Every stored text of the corpus, as the checklist item it would have been at ingestion. */
+function storedItems(): IngestionChecklistItem[] {
+	const rows = db
+		.prepare(
+			`SELECT s.work, s.section_ref, s.category, s.url, s.license, s.cleared_to_store, s.original_locale, s.updated_by,
+			        st.text, st.locale, st.origin, st.keywords, st.translator
+			 FROM sources s JOIN source_texts st ON st.source_id = s.id ORDER BY s.id, st.locale`
+		)
+		.all() as StoredText[];
+	return rows.map((r) => ({
+		work: r.work,
+		section_ref: r.section_ref,
+		category: r.category,
+		url: r.url ?? undefined,
+		license: r.license,
+		cleared_to_store: r.cleared_to_store === 1,
+		original_locale: r.original_locale,
+		reviewer: r.updated_by ?? '',
+		text: r.text,
+		locale: r.locale,
+		origin: r.origin,
+		keywords: r.keywords ?? undefined,
+		translator: r.translator ?? undefined
+	}));
+}
 
 const valid: IngestionChecklistItem = {
 	work: 'Hague Convention (V) (1907)',
@@ -50,11 +94,13 @@ describe('ROBOT-07 · nothing is stored without a documented licence and a named
 	});
 });
 
-describe('ROBOT-07 · the seed and the schema obey the same rules', () => {
-	it('every seed row passes the checklist', () => {
-		for (const item of SEED_SOURCES) {
+describe('ROBOT-07 · the committed corpus and the schema obey the same rules', () => {
+	it('every stored text of data/baseline.sql passes the checklist', () => {
+		const items = storedItems();
+		expect(items.length, 'the baseline project must load data/baseline.sql').toBeGreaterThan(0);
+		for (const item of items) {
 			const r = validateIngestionChecklist(item);
-			expect(r.valid, `${item.work} ${item.section_ref}: ${r.errors.join('; ')}`).toBe(true);
+			expect(r.valid, `${item.work} ${item.section_ref} (${item.locale}): ${r.errors.join('; ')}`).toBe(true);
 		}
 	});
 
@@ -79,6 +125,6 @@ describe('ROBOT-07 · the seed and the schema obey the same rules', () => {
 		};
 		walk('src');
 		expect(callers.length).toBeGreaterThan(0);
-		for (const p of callers) expect(fs.readFileSync(p, 'utf8'), p).toMatch(/validateIngestionChecklist|runSeed/);
+		for (const p of callers) expect(fs.readFileSync(p, 'utf8'), p).toMatch(/validateIngestionChecklist/);
 	});
 });

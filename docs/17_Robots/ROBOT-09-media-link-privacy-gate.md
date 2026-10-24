@@ -29,7 +29,7 @@ Embedding a YouTube or Spotify player lets that company set cookies and see the 
 3. **Second lock:** the database CHECK rejects any other `embed_url`.
 4. **CSP equals code:** the production `frame-src` hosts are exactly `EMBED_HOSTS`. The smoke test also checks the header on the built server.
 5. **One iframe, one source:** every `<iframe>` in the app takes its `src` from a record's `embed_url`.
-6. **Seeds are canonical:** every seed link parses to itself.
+6. **The committed corpus is canonical:** every media link in `data/baseline.sql` parses to itself.
 
 ### Not covered
 * **Link liveness (HTTP 200) and uploader-disabled embedding.** Needs the network. Observed 2026-10-01: the *Rota* seed's embedding is disabled by the uploader, which no offline check can see. A future on-demand script (`oEmbed` request per approved asset) could; it is not part of `pnpm robots`.

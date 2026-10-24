@@ -96,8 +96,8 @@ try {
 
 	r = await fetch(`${BASE}/api/sources`, authed);
 	const list = await r.json();
-	check('API with a session lists seeded sources', r.status === 200 && list.total >= 7, JSON.stringify(list).slice(0, 200));
-	check('seeded sources are all drafts', list.sources.every((s) => Object.values(s.translations).every((t) => t.review === 'draft')));
+	check('API with a session lists the baseline sources', r.status === 200 && list.total >= 7, JSON.stringify(list).slice(0, 200));
+	check('baseline sources are all drafts', list.sources.every((s) => Object.values(s.translations).every((t) => t.review === 'draft')));
 
 	r = await fetch(`${BASE}/repository`, authed);
 	check('repository page renders (Polish by default)', r.status === 200 && (await r.text()).includes('Repozytorium'));
@@ -107,7 +107,7 @@ try {
 		check('page ' + page + ' renders', r.status === 200, String(r.status));
 	}
 	r = await fetch(BASE + '/review', authed);
-	check('review queue lists the seeded drafts', (await r.text()).includes('Pacem in Terris'));
+	check('review queue lists the baseline drafts', (await r.text()).includes('Pacem in Terris'));
 
 	// Editing text via API cannot smuggle in an approval
 	const id = list.sources[0].id;
@@ -161,7 +161,7 @@ try {
 	check('first event is sources', c.events[0]?.type === 'sources', JSON.stringify(c.events[0]).slice(0, 120));
 	check('draft sources are not retrieved: "no strong source", model not needed', c.events[0].data.tier === 'none' && c.events.at(-1).data.noSource === true);
 
-	// …while the approved text is found. (Approve a known seed row, then ask about it.)
+	// …while the approved text is found. (Approve a known baseline row, then ask about it.)
 	const pit = list.sources.find((s) => s.work.startsWith('Pacem in Terris') && s.section_ref === '§127');
 	r = await fetch(`${BASE}/api/sources/${pit.id}/review`, {
 		method: 'POST',
@@ -200,7 +200,7 @@ try {
 	check('export of a missing draft is 404', r.status === 404, String(r.status));
 
 	// ---- Phase 5: headers, dashboard, backup + restore drill, password change ----
-	r = await fetch(`${BASE}/`, authed);
+	r = await fetch(`${BASE}/dashboard`, authed);
 	const html = await r.text();
 	check('dashboard renders its health sections', r.status === 200 && html.includes('Kopie zapasowe'), String(r.status));
 	check('security headers are set', r.headers.get('x-content-type-options') === 'nosniff' && r.headers.get('x-frame-options') === 'DENY' && !!r.headers.get('referrer-policy'));
@@ -211,7 +211,7 @@ try {
 	// ---- Phase 6: media library ----
 	r = await fetch(`${BASE}/media`, authed);
 	const mediaHtml = await r.text();
-	check('page /media renders the seeded media as unapproved drafts', r.status === 200 && mediaHtml.includes('Iluzja Wolności') && /Wersja robocza|Draft/.test(mediaHtml), String(r.status));
+	check('page /media renders the baseline media as unapproved drafts', r.status === 200 && mediaHtml.includes('Iluzja Wolności') && /Wersja robocza|Draft/.test(mediaHtml), String(r.status));
 	r = await fetch(`${BASE}/media?m=1`, authed);
 	const player = await r.text();
 	check('a selected item plays through the no-cookie embed only', r.status === 200 && /<iframe[^>]+src="https:\/\/(www\.youtube-nocookie\.com|open\.spotify\.com)\/embed\//.test(player) && !/<iframe[^>]+src="https:\/\/www\.youtube\.com/.test(player));
@@ -221,7 +221,7 @@ try {
 	r = await fetch(`${BASE}/settings`, authed);
 	check('settings page renders', r.status === 200, String(r.status));
 
-	r = await fetch(`${BASE}/?/backup`, {
+	r = await fetch(`${BASE}/dashboard?/backup`, {
 		method: 'POST',
 		headers: { ...authed.headers, accept: 'text/html', 'content-type': 'application/x-www-form-urlencoded', origin: BASE },
 		body: '',

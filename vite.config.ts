@@ -56,8 +56,22 @@ export default defineConfig({
 		})
 	],
 	test: {
-		// Gives every test run its own throw-away database (never ./data).
-		setupFiles: ['./vitest.setup.ts'],
-		include: ['src/**/*.test.ts']
+		// Every test file gets its own throw-away database (never ./data). Corpus proposal v3.1 §3.3:
+		// `unit` starts EMPTY and builds its own fixtures; `baseline` starts from data/baseline.sql.
+		projects: [
+			{
+				extends: true,
+				test: {
+					name: 'unit',
+					setupFiles: ['./vitest.setup.ts'],
+					include: ['src/**/*.test.ts'],
+					exclude: ['src/**/*.baseline.test.ts', '**/node_modules/**']
+				}
+			},
+			{
+				extends: true,
+				test: { name: 'baseline', setupFiles: ['./vitest.baseline.setup.ts'], include: ['src/**/*.baseline.test.ts'] }
+			}
+		]
 	}
 });
