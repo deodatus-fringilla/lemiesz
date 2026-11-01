@@ -24,6 +24,10 @@ docs/
 │   ├── 03_Content_Engine.md          # Phase 4: Multi-platform generators (X, FB, Shorts, Press)
 │   ├── 04_Review_Queue.md            # Phase 2/5: Human approval, stale cascades, audit logs
 │   └── 05_Media_and_Culture.md       # Phase 6: Songs, videos, cultural assets, lyrics FTS5
+├── 03_EGM/                           # Chapter 3: Spec-Driven Development via Elephant-Goldfish Model
+│   ├── 01_EGM_Elephant_Goldfish_Model_Guide.md # Master guide, Google methodology, 10:38 gate, tutorial
+│   ├── designs/                      # Living specifications drafted by Elephant
+│   └── reviews/                      # Zero-context Goldfish review audits & findings
 ├── 10_Harness/                       # Test strategy, benchmarks, and live status ledger
 │   ├── 01_Testing_Strategy.md        # 4 testing tiers, local execution instructions
 │   └── 02_Harness_Ledger.md          # Live pass/fail tracker (measured facts with dates)

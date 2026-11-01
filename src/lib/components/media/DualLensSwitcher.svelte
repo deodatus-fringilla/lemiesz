@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { BookOpen, Shield } from 'lucide-svelte';
+	import BookOpen from 'lucide-svelte/icons/book-open';
+	import Shield from 'lucide-svelte/icons/shield';
 	import { m } from '$lib/paraglide/messages.js';
 
 	let {

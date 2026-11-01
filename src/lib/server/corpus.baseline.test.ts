@@ -50,6 +50,7 @@ describe('data/baseline.sql is current and complete', () => {
 		const plArgs = (db.prepare("SELECT COUNT(*) AS n FROM argument_texts WHERE locale = 'pl'").get() as { n: number }).n;
 		expect(count('fts_pl')).toBe(pl + plArgs);
 		expect(count('fts_media')).toBe(count('media_assets'));
+		expect(count('fts_meetings')).toBe(count('meeting_minutes'));
 	});
 });
 

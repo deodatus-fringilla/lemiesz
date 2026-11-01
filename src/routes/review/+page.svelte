@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { CheckSquare, Image, Music2 } from 'lucide-svelte';
+	import CheckSquare from 'lucide-svelte/icons/check-square';
+	import Image from 'lucide-svelte/icons/image';
+	import Music2 from 'lucide-svelte/icons/music-2';
 	import { m } from '$lib/paraglide/messages.js';
 	import ReviewBadge from '$lib/components/ReviewBadge.svelte';
 	import { languageLabel, mediaStatusLabel } from '$lib/i18n/labels';

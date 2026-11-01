@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { CircleAlert, Info, TriangleAlert } from 'lucide-svelte';
+	import CircleAlert from 'lucide-svelte/icons/circle-alert';
+	import Info from 'lucide-svelte/icons/info';
+	import TriangleAlert from 'lucide-svelte/icons/triangle-alert';
 	import { m } from '$lib/paraglide/messages.js';
 	import { languageLabel, reviewLabel } from '$lib/i18n/labels';
 
@@ -60,7 +62,7 @@
 		</section>
 	{/if}
 
-	<div class="grid grid-cols-2 gap-4 md:grid-cols-6">
+	<div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
 		{#each tiles as tile (tile.label)}
 			<div class={card}><div class="text-3xl font-bold text-amber-400">{tile.value}</div><div class="mt-1 text-xs text-zinc-400">{tile.label}</div></div>
 		{/each}

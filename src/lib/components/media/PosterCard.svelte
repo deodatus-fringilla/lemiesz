@@ -1,6 +1,7 @@
 yy<script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Layers, Sparkles } from 'lucide-svelte';
+	import Layers from 'lucide-svelte/icons/layers';
+	import Sparkles from 'lucide-svelte/icons/sparkles';
 	import type { PosterRecord } from '$lib/server/posters';
 	import { m } from '$lib/paraglide/messages.js';
 	import { mediaStatusLabel, posterThemeLabel } from '$lib/i18n/labels';

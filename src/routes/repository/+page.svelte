@@ -1,7 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { BookOpen, Check, Columns2, Copy, ExternalLink, Library, Mail, Plus, Search, Shield } from 'lucide-svelte';
+	import BookOpen from 'lucide-svelte/icons/book-open';
+	import Check from 'lucide-svelte/icons/check';
+	import Columns2 from 'lucide-svelte/icons/columns-2';
+	import Copy from 'lucide-svelte/icons/copy';
+	import ExternalLink from 'lucide-svelte/icons/external-link';
+	import Library from 'lucide-svelte/icons/library';
+	import Mail from 'lucide-svelte/icons/mail';
+	import Plus from 'lucide-svelte/icons/plus';
+	import Search from 'lucide-svelte/icons/search';
+	import Shield from 'lucide-svelte/icons/shield';
 	import { m } from '$lib/paraglide/messages.js';
 	import ReviewBadge from '$lib/components/ReviewBadge.svelte';
 	import { categoryLabel, languageLabel, originLabel, reviewLabel } from '$lib/i18n/labels';

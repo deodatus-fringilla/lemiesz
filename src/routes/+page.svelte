@@ -1,207 +1,133 @@
 <script lang="ts">
-	import { ArrowRight, ChevronDown, CookingPot, Coins, Grape, Hammer, LayoutDashboard, Link, LogIn, Shield, Swords, Users, VolumeX } from 'lucide-svelte';
+	import ArrowRight from 'lucide-svelte/icons/arrow-right';
+	import Swords from 'lucide-svelte/icons/swords';
+	import Wheat from 'lucide-svelte/icons/wheat';
 	import { m } from '$lib/paraglide/messages.js';
-	import {
-		SAMUEL8_REF,
-		SAMUEL8_TRANSLATION,
-		consequences,
-		lordAnswers,
-		request,
-		samuelPrays,
-		samuelTells,
-		type ConsequenceKey
-	} from '$lib/content/samuel8';
+	import HeroCarousel from '$lib/components/HeroCarousel.svelte';
 
 	let { data } = $props();
-
-	const icons: Record<ConsequenceKey, typeof Swords> = {
-		army: Swords,
-		labour: Hammer,
-		daughters: CookingPot,
-		land: Grape,
-		tithe_harvest: Coins,
-		servants: Users,
-		slavery: Link,
-		silence: VolumeX
-	};
-	const titles: Record<ConsequenceKey, () => string> = {
-		army: m.landing_c_army,
-		labour: m.landing_c_labour,
-		daughters: m.landing_c_daughters,
-		land: m.landing_c_land,
-		tithe_harvest: m.landing_c_tithe_harvest,
-		servants: m.landing_c_servants,
-		slavery: m.landing_c_slavery,
-		silence: m.landing_c_silence
-	};
 </script>
 
 <svelte:head>
-	<meta name="description" content={m.landing_lead()} />
-	<meta property="og:image" content="/images/two_crowns_hero.jpg" />
+	<title>Przymierze Lemiesza — Dwie korony. Jeden wybór.</title>
+	<meta name="description" content={m.landing_close_body()} />
+	<meta property="og:image" content="/images/kaszanka_sacred_life.jpg" />
 </svelte:head>
 
-<!-- HERO -->
-<section class="relative isolate flex min-h-[92vh] items-end overflow-hidden">
-	<img
-		src="/images/two_crowns_hero.jpg"
-		alt={m.landing_hero_alt()}
-		class="absolute inset-0 -z-20 h-full w-full object-cover object-center"
-		fetchpriority="high"
-	/>
-	<div class="absolute inset-0 -z-10 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-zinc-950/10"></div>
-	<div class="absolute inset-0 -z-10 bg-gradient-to-r from-zinc-950/70 via-transparent to-transparent"></div>
+<!-- HERO CAROUSEL: HOME OVERVIEW -->
+<HeroCarousel currentId="home" />
 
-	<div class="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 sm:pb-24">
-		<p class="text-xs font-semibold tracking-[0.25em] text-amber-400 uppercase">{m.landing_eyebrow()}</p>
-		<h1 class="mt-4 font-serif text-5xl leading-[1.05] font-bold tracking-tight text-zinc-50 sm:text-7xl">
-			{m.landing_title_a()}<br /><span class="text-amber-400">{m.landing_title_b()}</span>
-		</h1>
-		<p class="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300">{m.landing_lead()}</p>
-
-		<div class="mt-8 flex flex-wrap items-center gap-3">
-			<a href="#warning" class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-400">
-				{m.landing_cta_read()} <ChevronDown class="h-4 w-4" />
-			</a>
-			{#if data.user}
-				<a href="/dashboard" class="inline-flex items-center gap-2 rounded-lg border border-zinc-600 bg-zinc-950/50 px-5 py-2.5 text-sm font-semibold text-zinc-100 backdrop-blur hover:border-amber-500/60">
-					<LayoutDashboard class="h-4 w-4" /> {m.landing_cta_dashboard()}
-				</a>
-			{:else}
-				<a href="/login" class="inline-flex items-center gap-2 rounded-lg border border-zinc-600 bg-zinc-950/50 px-5 py-2.5 text-sm font-semibold text-zinc-100 backdrop-blur hover:border-amber-500/60">
-					<LogIn class="h-4 w-4" /> {m.landing_cta_signin()}
-				</a>
-			{/if}
-		</div>
-	</div>
-</section>
-
-<!-- THE REQUEST & THE ANSWER (vv. 4–10) -->
-<section id="warning" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6">
-	<p class="text-center text-xs font-semibold tracking-[0.25em] text-zinc-500 uppercase">{SAMUEL8_REF}</p>
-	<div class="mt-10 grid gap-8 lg:grid-cols-2">
-		<article class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 sm:p-8">
-			<h2 class="text-sm font-semibold tracking-widest text-zinc-400 uppercase">{m.landing_request_title()}</h2>
-			<p class="mt-4 font-serif text-xl leading-relaxed text-zinc-200">
-				{#each request as v (v.n)}<sup class="mr-1 font-sans text-xs text-amber-500/80">{v.n}</sup>{v.text}{' '}{/each}
+<!-- MANIFESTO & THE COVENANT OF THE PLOWSHARE -->
+<section class="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24">
+	<div class="grid gap-12 lg:grid-cols-2 lg:items-center">
+		<div>
+			<span class="text-xs font-semibold tracking-[0.25em] text-amber-400 uppercase">Doktryna Pokoju</span>
+			<h2 class="mt-3 font-serif text-3xl font-bold tracking-tight text-white sm:text-5xl">
+				{m.home_manifesto_title()}
+			</h2>
+			<p class="mt-6 text-lg leading-relaxed text-zinc-300">
+				{m.home_manifesto_lead()}
 			</p>
-		</article>
 
-		<article class="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-zinc-900/60 to-zinc-950 p-6 sm:p-8">
-			<h2 class="text-sm font-semibold tracking-widest text-amber-300 uppercase">{m.landing_answer_title()}</h2>
-			<p class="mt-4 leading-relaxed text-zinc-300">
-				{#each samuelPrays as v (v.n)}<sup class="mr-1 text-xs text-amber-500/80">{v.n}</sup>{v.text}{' '}{/each}
-			</p>
-			<blockquote class="mt-4 border-l-2 border-amber-500/60 pl-4 font-serif text-xl leading-relaxed text-zinc-100">
-				{#each lordAnswers as v, i (i)}{#if i > 0}<sup class="mr-1 font-sans text-xs text-amber-500/80">{v.n}</sup>{/if}{v.text}{' '}{/each}
+			<blockquote class="mt-8 border-l-2 border-amber-500/60 pl-6 font-serif text-xl italic leading-relaxed text-zinc-200">
+				{m.home_manifesto_quote()}
+				<span class="mt-2 block font-sans text-xs tracking-wider text-amber-400 not-italic uppercase">Księga Izajasza 2, 4</span>
 			</blockquote>
-			<p class="mt-4 leading-relaxed text-zinc-300">
-				<sup class="mr-1 text-xs text-amber-500/80">{samuelTells.n}</sup>{samuelTells.text}
-			</p>
-		</article>
-	</div>
-</section>
-
-<!-- THE COST OF THE CROWN (vv. 11–18) -->
-<section class="border-y border-zinc-900 bg-zinc-900/30">
-	<div class="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-		<div class="max-w-3xl">
-			<p class="text-xs font-semibold tracking-[0.25em] text-rose-400/90 uppercase">{m.landing_cost_eyebrow()}</p>
-			<h2 class="mt-3 font-serif text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl">{m.landing_cost_title()}</h2>
-			<p class="mt-4 text-lg leading-relaxed text-zinc-400">{m.landing_cost_intro()}</p>
 		</div>
 
-		<ol class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-			{#each consequences as c, i (c.key)}
-				{@const Icon = icons[c.key]}
-				<li
-					class="group relative flex flex-col rounded-xl border p-5 transition-colors {c.climax
-						? 'border-rose-500/40 bg-rose-950/20 hover:border-rose-400/70 lg:col-span-2'
-						: 'border-zinc-800 bg-zinc-950/60 hover:border-amber-500/40'}"
-				>
-					<div class="flex items-center justify-between">
-						<span class="flex h-10 w-10 items-center justify-center rounded-lg border {c.climax ? 'border-rose-500/40 bg-rose-500/10 text-rose-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-400'}">
-							<Icon class="h-5 w-5" />
-						</span>
-						<span class="font-mono text-xs text-zinc-500">{String(i + 1).padStart(2, '0')} · {c.ref}</span>
-					</div>
-					<h3 class="mt-4 text-lg font-semibold {c.climax ? 'text-rose-200' : 'text-zinc-100'}">{titles[c.key]()}</h3>
-					<p class="mt-2 font-serif leading-relaxed {c.climax ? 'text-xl text-zinc-200' : 'text-zinc-400'}">
-						{#each c.verses as v (v.n)}<sup class="mr-1 font-sans text-[10px] text-zinc-500">{v.n}</sup>{v.text}{' '}{/each}
-					</p>
-				</li>
-			{/each}
-		</ol>
+		<div class="grid gap-6">
+			<!-- PŁUG -->
+			<div class="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-zinc-900/60 to-zinc-950 p-6 sm:p-8">
+				<div class="flex items-center gap-3">
+					<span class="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-400">
+						<Wheat class="h-5 w-5" />
+					</span>
+					<h3 class="font-serif text-2xl font-bold text-amber-300">Droga Lemiesza</h3>
+				</div>
+				<p class="mt-4 text-sm leading-relaxed text-zinc-300">
+					Praca, rodzina, rola i własny warsztat. Płód Lemiesza karmi naród, buduje akumulację rodzimego kapitału i zapewnia schronienie w chwili kryzysu. Prawdziwa obronność to niestrawny jeż na własnej ziemi.
+				</p>
+			</div>
 
-		<p class="mt-12 text-center font-serif text-sm tracking-[0.2em] text-zinc-500 uppercase sm:text-base">{m.landing_tally()}</p>
-	</div>
-</section>
-
-<!-- THE HEDGEHOG DOCTRINE: SECURITY ARCHITECTURE -->
-<section class="border-b border-zinc-900 bg-zinc-950 px-4 py-20 sm:px-6">
-	<div class="mx-auto max-w-7xl">
-		<div class="max-w-3xl">
-			<p class="text-xs font-semibold tracking-[0.25em] text-amber-400 uppercase">{m.landing_hedgehog_eyebrow()}</p>
-			<h2 class="mt-3 font-serif text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl">{m.landing_hedgehog_title()}</h2>
-			<p class="mt-4 text-lg leading-relaxed text-zinc-300">{m.landing_hedgehog_lead()}</p>
-		</div>
-
-		<div class="mt-12 grid gap-6 md:grid-cols-2">
-			<!-- SPARTA ILLUSION -->
+			<!-- MIECZ -->
 			<div class="rounded-2xl border border-rose-500/30 bg-rose-950/10 p-6 sm:p-8">
 				<div class="flex items-center gap-3">
 					<span class="flex h-10 w-10 items-center justify-center rounded-lg border border-rose-500/40 bg-rose-500/10 text-rose-300">
 						<Swords class="h-5 w-5" />
 					</span>
-					<h3 class="font-serif text-2xl font-bold text-rose-200">{m.landing_hedgehog_sparta_title()}</h3>
+					<h3 class="font-serif text-2xl font-bold text-rose-200">Droga Miecza</h3>
 				</div>
-				<ul class="mt-6 space-y-4 text-sm text-zinc-300">
-					<li class="flex items-start gap-2.5">
-						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
-						<span>{m.landing_hedgehog_sparta_1()}</span>
-					</li>
-					<li class="flex items-start gap-2.5">
-						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
-						<span>{m.landing_hedgehog_sparta_2()}</span>
-					</li>
-					<li class="flex items-start gap-2.5">
-						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
-						<span>{m.landing_hedgehog_sparta_3()}</span>
-					</li>
-					<li class="flex items-start gap-2.5">
-						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
-						<span>{m.landing_hedgehog_sparta_4()}</span>
-					</li>
-				</ul>
+				<p class="mt-4 text-sm leading-relaxed text-zinc-400">
+					Wyścig zbrojeń na zagraniczny kredyt, oddanie klucza do pokoju obcym sztabom, drenaż demografii i rola poligonu atomowego dla odległych hegemorów morskich.
+				</p>
 			</div>
+		</div>
+	</div>
+</section>
 
-			<!-- HEDGEHOG DOCTRINE -->
-			<div class="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-zinc-900/60 to-zinc-950 p-6 sm:p-8">
-				<div class="flex items-center gap-3">
-					<span class="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-400">
-						<Shield class="h-5 w-5" />
-					</span>
-					<h3 class="font-serif text-2xl font-bold text-amber-300">{m.landing_hedgehog_jeza_title()}</h3>
+<!-- THREE PILLARS OVERVIEW -->
+<section class="border-y border-zinc-900 bg-zinc-900/30 py-16 sm:py-24">
+	<div class="mx-auto max-w-7xl px-4 sm:px-6">
+		<div class="max-w-3xl">
+			<span class="text-xs font-semibold tracking-[0.25em] text-amber-400 uppercase">Trzy Wymiary</span>
+			<h2 class="mt-3 font-serif text-3xl font-bold tracking-tight text-white sm:text-5xl">{m.home_pillars_title()}</h2>
+			<p class="mt-4 text-lg leading-relaxed text-zinc-300">{m.home_pillars_lead()}</p>
+		</div>
+
+		<div class="mt-12 grid gap-6 sm:grid-cols-3">
+			<a
+				href="/neutralna-polska"
+				class="group relative flex flex-col justify-between rounded-2xl border border-zinc-800 bg-zinc-950/70 p-6 sm:p-8 transition-all hover:border-amber-500/60 hover:bg-zinc-900/40"
+			>
+				<div>
+					<span class="text-xs font-semibold uppercase tracking-wider text-amber-400">Architektura Bezpieczeństwa</span>
+					<h3 class="mt-3 font-serif text-2xl font-bold text-white group-hover:text-amber-300 transition-colors">
+						Neutralna Polska
+					</h3>
+					<p class="mt-3 text-sm text-zinc-400 leading-relaxed">
+						Doktryna Jeża zamiast zadłużonej Sparty. Teoria gier, asymetryczna obrona terenu, schrony i V Konwencja Haska.
+					</p>
 				</div>
-				<ul class="mt-6 space-y-4 text-sm text-zinc-200">
-					<li class="flex items-start gap-2.5">
-						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
-						<span>{m.landing_hedgehog_jeza_1()}</span>
-					</li>
-					<li class="flex items-start gap-2.5">
-						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
-						<span>{m.landing_hedgehog_jeza_2()}</span>
-					</li>
-					<li class="flex items-start gap-2.5">
-						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
-						<span>{m.landing_hedgehog_jeza_3()}</span>
-					</li>
-					<li class="flex items-start gap-2.5">
-						<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
-						<span>{m.landing_hedgehog_jeza_4()}</span>
-					</li>
-				</ul>
-			</div>
+				<span class="mt-8 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+					Odkryj doktrynę <ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-1" />
+				</span>
+			</a>
+
+			<a
+				href="/za-i-przeciw"
+				class="group relative flex flex-col justify-between rounded-2xl border border-zinc-800 bg-zinc-950/70 p-6 sm:p-8 transition-all hover:border-amber-500/60 hover:bg-zinc-900/40"
+			>
+				<div>
+					<span class="text-xs font-semibold uppercase tracking-wider text-amber-400">1 Księga Samuela 8</span>
+					<h3 class="mt-3 font-serif text-2xl font-bold text-white group-hover:text-amber-300 transition-colors">
+						Za i Przeciw
+					</h3>
+					<p class="mt-3 text-sm text-zinc-400 leading-relaxed">
+						Cena korony wyliczona punkt po punkcie: synowie, córki, ziemia, dziesięcina i wolność. Dwie korony i rachunek kosztów.
+					</p>
+				</div>
+				<span class="mt-8 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+					Przeczytaj analizę <ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-1" />
+				</span>
+			</a>
+
+			<a
+				href="/polskie-mocarstwo"
+				class="group relative flex flex-col justify-between rounded-2xl border border-zinc-800 bg-zinc-950/70 p-6 sm:p-8 transition-all hover:border-amber-500/60 hover:bg-zinc-900/40"
+			>
+				<div>
+					<span class="text-xs font-semibold uppercase tracking-wider text-amber-400">Geopolityka i Suwerenność</span>
+					<h3 class="mt-3 font-serif text-2xl font-bold text-white group-hover:text-amber-300 transition-colors">
+						Polskie Mocarstwo
+					</h3>
+					<p class="mt-3 text-sm text-zinc-400 leading-relaxed">
+						Imadło geopolityczne i dekonstrukcja mitu niepodległości. Prawdziwa suwerenność oparta na płodności i rodzimym kapitale.
+					</p>
+				</div>
+				<span class="mt-8 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+					Zobacz dekonstrukcję <ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-1" />
+				</span>
+			</a>
 		</div>
 	</div>
 </section>
@@ -214,11 +140,10 @@
 		<h2 class="font-serif text-3xl font-bold tracking-tight text-zinc-50 sm:text-4xl">{m.landing_close_title()}</h2>
 		<p class="mt-6 text-lg leading-relaxed text-zinc-300">{m.landing_close_body()}</p>
 		<a
-			href={data.user ? '/dashboard' : '/login'}
+			href={data?.user ? '/dashboard' : '/login'}
 			class="mt-10 inline-flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-300 hover:bg-amber-500/20"
 		>
-			{data.user ? m.landing_cta_dashboard() : m.landing_cta_signin()} <ArrowRight class="h-4 w-4" />
+			{data?.user ? m.landing_cta_dashboard() : m.landing_cta_signin()} <ArrowRight class="h-4 w-4" />
 		</a>
-		<p class="mt-12 text-xs text-zinc-600">{m.landing_translation_note({ translation: `${SAMUEL8_REF}, ${SAMUEL8_TRANSLATION}` })}</p>
 	</div>
 </section>

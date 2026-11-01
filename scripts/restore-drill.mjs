@@ -55,8 +55,9 @@ fs.copyFileSync(backup, restored);
 check('backup copied to a fresh location (no -wal/-shm files carried over)', fs.existsSync(restored) && !fs.existsSync(restored + '-wal'));
 
 let server;
+let db;
 try {
-	const db = new Database(restored, { readonly: true, fileMustExist: true });
+	db = new Database(restored, { readonly: true, fileMustExist: true });
 	const one = (sql, ...p) => db.prepare(sql).get(...p);
 	const all = (sql, ...p) => db.prepare(sql).all(...p);
 
@@ -79,7 +80,7 @@ try {
 	}
 
 	// ---- 3. full-text indexes agree with stored texts -----------------------------
-	for (const fts of [...tables].filter((t) => /^fts_[a-z]+$/.test(t) && t !== 'fts_media')) {
+	for (const fts of [...tables].filter((t) => /^fts_[a-z]+$/.test(t) && t !== 'fts_media' && t !== 'fts_meetings')) {
 		const locale = fts.slice(4);
 		const indexed = one(`SELECT COUNT(*) AS c FROM ${fts} WHERE owner_type = 'source'`).c;
 		const stored = one('SELECT COUNT(*) AS c FROM source_texts WHERE locale = ?', locale).c;
@@ -99,8 +100,14 @@ try {
 		check(`fts_media: ${indexed} indexed media = ${stored} stored`, indexed === stored);
 	}
 
+	if (tables.has('fts_meetings') && tables.has('fts_meetings_docsize')) {
+		const indexed = one('SELECT COUNT(*) AS c FROM fts_meetings_docsize').c;
+		const stored = one('SELECT COUNT(*) AS c FROM meeting_minutes').c;
+		check(`fts_meetings: ${indexed} indexed meetings = ${stored} stored`, indexed === stored);
+	}
+
 	const counts = {};
-	for (const t of ['sources', 'source_texts', 'arguments', 'argument_texts', 'users', 'review_events', 'media_assets']) {
+	for (const t of ['sources', 'source_texts', 'arguments', 'argument_texts', 'users', 'review_events', 'media_assets', 'meeting_minutes', 'kuznia_deliberations']) {
 		if (tables.has(t)) counts[t] = one(`SELECT COUNT(*) AS c FROM ${t}`).c;
 	}
 	console.log('      row counts:', JSON.stringify(counts));
@@ -116,7 +123,6 @@ try {
 		}
 		live.close();
 	}
-	db.close();
 
 	// ---- 5. boot the built app on the restored copy ---------------------------------
 	if (flag('--boot')) {
@@ -138,6 +144,7 @@ try {
 } catch (e) {
 	check('drill ran without errors', false, e.message);
 } finally {
+	try { db?.close(); } catch {}
 	server?.kill();
 	await new Promise((r) => setTimeout(r, 300));
 	fs.rmSync(dir, { recursive: true, force: true });

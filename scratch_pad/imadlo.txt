@@ -1,0 +1,21 @@
+To, z jakiego materiału wykonane jest imadło, zależy od jego rodzaju, ale najczęściej jest to żeliwo (szare lub sferoidalne) w modelach ślusarskich lub stal stopowa/narzędziowa w wysokiej jakości imadłach maszynowych.
+
+Co jest mocniejsze od materiału imadła?
+
+Mówiąc o „mocniejszym” materiale, inżynierowie biorą pod uwagę dwa parametry: twardość (odporność na wgniecenia i zarysowania) oraz wytrzymałość na rozciąganie/ściskanie (odporność na pękanie pod wpływem siły).
+Materiały znacznie mocniejsze i twardsze od typowego imadła to:
+• Węglik spiekany (widia): Niezwykle twardy materiał narzędziowy, używany m.in. do produkcji wierteł do betonu i ostrzy skrawających.
+• Stal szybkotnąca (HSS) hartowana: Specjalna stal narzędziowa o bardzo wysokiej twardości i odporności na odkształcenia.
+• Ceramika narzędziowa (np. tlenek glinu, azotek krzemu): Używana w przemyśle do obróbki najtwardszych stali.
+• Diament (naturalny lub syntetyczny): Najtwardszy znany materiał, całkowicie odporny na ściskanie przez jakiekolwiek imadło.
+
+Co musi znaleźć się między szczękami, aby pękło pokrętło lub gwint śruby?
+
+Aby podczas dokręcania imadła doszło do zniszczenia jego mechanizmu (zerwania gwintu śruby pociągowej lub złamania pokrętła), spełnione muszą być dwa warunki dotyczące obiektu umieszczonego między szczękami:
+1. Materiał musi być nieściśliwy i twardszy od korpusu imadła: Między szczękami musi znaleźć się przedmiot, który nie ulegnie zgnieceniu, spłaszczeniu ani pęknięciu pod wpływem generowanego nacisku. Idealnym przykładem jest gruby blok z hartowanej stali narzędziowej, węglika spiekanego lub wałek z łożyska tocznego.
+2. Brak plastyczności: Przedmiot nie może „poddać się” sile imadła. Gdy dokręcasz śrubę, a materiał stawia absolutny opór (szczęki całkowicie się zatrzymują), cała energia mechaniczna i naprężenia przenoszą się na gwint śruby pociągowej oraz na pokrętło (rękojeść).
+Jak dochodzi do uszkodzenia?
+Jeśli między szczęki włożysz niezniszczalny stalowy blok i użyjesz przedłużki (np. stalowej rury nałożonej na pokrętło, tzw. dźwigni), zwielokrotnisz siłę nacisku. W pewnym momencie stalowy blok pozostanie nienaruszony, a pod wpływem gigantycznego naprężenia:
+• Gwint śruby ścina się (zwoje gwintu zostają zerwane),
+• Lub pokrętło (rączka) pęka/zgina się w miejscu przyłożenia siły,
+• W tańszych imadłach żeliwnych najczęściej pęka jednak sam sztywny, ale kruchy korpus (tylna część imadła).

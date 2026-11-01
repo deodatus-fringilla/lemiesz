@@ -43,3 +43,12 @@ Przymierze Lemiesza is an ideological repository and rhetorical shield. Credibil
 - No LLM may invent, embellish, or paraphrase a quotation inside quotation marks.
 - Quotation tokens (`[[src:ID]]`) in streaming output must be resolved to database-stored, human-verified text only.
 - Any output that fails the verbatim substring check must be intercepted or visually flagged before public exposure.
+
+
+---
+
+## D6 · AI Coding Agent Directives (AGENTS.md)
+All AI assistants (Antigravity, Claude, Copilot, Cursor) are bound by the project invariants defined in [AGENTS.md](../../AGENTS.md), [CLAUDE.md](../../CLAUDE.md), and [.github/copilot-instructions.md](../../.github/copilot-instructions.md).
+- **Component Modularity:** Never produce 500+ line monolithic components. Write small, focused components (<100–150 lines) in `src/lib/components/`.
+- **Data Recycling:** Never duplicate data. Reuse `sources`, `media_assets`, `arguments`, and `meeting_minutes`.
+- **Svelte 5 Runes:** Strict adherence to modern Svelte 5 `$state()`, `$derived()`, `$props()`, `$effect()`.

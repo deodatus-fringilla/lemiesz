@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+/* Mobile-first base: small-screen defaults, enhanced with sm/md/lg/xl in components. */
+@layer base {
+	html {
+		-webkit-text-size-adjust: 100%;
+		-webkit-tap-highlight-color: transparent;
+	}
+	body {
+		overflow-wrap: anywhere;
+	}
+	img,
+	video,
+	svg {
+		max-width: 100%;
+	}
+	/* 16px form controls on phones stop iOS Safari zooming the page on focus. */
+	input,
+	select,
+	textarea {
+		font-size: max(16px, 1em);
+	}
+	@media (min-width: 640px) {
+		input,
+		select,
+		textarea {
+			font-size: inherit;
+		}
+	}
+	button,
+	a,
+	summary {
+		touch-action: manipulation;
+	}
+}

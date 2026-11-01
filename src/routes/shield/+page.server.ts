@@ -11,6 +11,7 @@ import {
 	renameConversation
 } from '$lib/server/shield/conversations';
 import { getCorrespondenceThread, getLetter, deconstructOpponentLetter } from '$lib/server/correspondence';
+import { listMeetingsForThread } from '$lib/server/meetings';
 import { mediaForShield } from '$lib/server/media';
 import { postersForArguments } from '$lib/server/posters';
 import { getEmbedder } from '$lib/server/llm/embedder';
@@ -142,6 +143,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		restoredEvidence,
 		recent: listConversations(userId),
 		korona,
+		koronaMeetings: korona?.thread ? listMeetingsForThread(korona.thread.id) : [],
 		sourcesList,
 		initialTab: handedLetter ? 'deconstruct' : initialTab === 'deconstruct' || initialTab === 'dossier' ? initialTab : 'chat',
 		initialSource: handedSource ? { id: handedSource.id, label: `${handedSource.work} ${handedSource.section_ref}` } : null,

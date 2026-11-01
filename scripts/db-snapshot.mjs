@@ -25,7 +25,9 @@ export const BASELINE_TABLES = [
 	'campaign_posters',
 	'argument_poster_links',
 	'argument_media_links',
-	'review_events'
+	'review_events',
+	'meeting_minutes',
+	'kuznia_deliberations'
 ];
 
 /** @param {unknown} v */

@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { replaceState } from '$app/navigation';
-	import { Check, Copy, Download, ExternalLink, TriangleAlert, X } from 'lucide-svelte';
+	import Check from 'lucide-svelte/icons/check';
+	import Copy from 'lucide-svelte/icons/copy';
+	import Download from 'lucide-svelte/icons/download';
+	import ExternalLink from 'lucide-svelte/icons/external-link';
+	import TriangleAlert from 'lucide-svelte/icons/triangle-alert';
+	import X from 'lucide-svelte/icons/x';
 	import { m } from '$lib/paraglide/messages.js';
 	import ReviewBadge from '$lib/components/ReviewBadge.svelte';
 	import { checkLabel, languageLabel, platformLabel, toneLabel } from '$lib/i18n/labels';

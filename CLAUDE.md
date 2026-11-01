@@ -1,0 +1,37 @@
+# CLAUDE.md · Guidelines for Claude Code
+
+See [AGENTS.md](AGENTS.md) for the full authoritative architectural rules and invariants.
+
+## Essential Commands
+
+- **Development:** `pnpm dev` (runs local server on `http://localhost:3000`)
+- **Typecheck & Svelte Check:** `pnpm check` (must pass with 0 errors / 0 warnings)
+- **Run Tests:** `pnpm test`
+- **Recompile i18n:** `pnpm paraglide`
+- **Database Snapshot:** `pnpm db:snapshot` (required after schema or baseline content changes)
+- **Production Build:** `pnpm build`
+
+## Non-Negotiable Architecture Rules
+
+1. **NO Monolithic Components:**
+   - Never create 500–800+ line files.
+   - Route pages (`+page.svelte`) must be lean orchestrators (<80–120 lines).
+   - Break features into small, focused, single-responsibility components (<100–150 lines) in `src/lib/components/`.
+
+2. **Data Model Recycling (Zero Duplication):**
+   - Do NOT create duplicate databases or tables.
+   - Always reuse existing tables:
+     - `sources` (Scripture, poetry, treaties, canonical texts)
+     - `media_assets` (music, YouTube/Spotify tracks, artwork, paintings)
+     - `arguments` (debate cards, counter-punches)
+     - `meeting_minutes` (minutes, tactical deliberations, ToDo action items)
+
+3. **Svelte 5 Runes Only:**
+   - Use `$state()`, `$derived()`, `$props()`, `$effect()`.
+   - Never use Svelte 3/4 stores in UI components or legacy `let:` slot syntax.
+
+4. **Trust Rules & SQLite WAL:**
+   - Human authority: only authenticated humans can set `status = 'human_approved'`.
+   - Edits reset status to `'draft'`.
+   - Verbatim citations only (`[[src:ID]]`).
+   - SQLite WAL runs strictly on local disks.

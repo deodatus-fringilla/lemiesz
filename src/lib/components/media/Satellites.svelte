@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { ArrowLeft, ArrowRight, Check, Copy, Download, Sparkles } from 'lucide-svelte';
+	import ArrowLeft from 'lucide-svelte/icons/arrow-left';
+	import ArrowRight from 'lucide-svelte/icons/arrow-right';
+	import Check from 'lucide-svelte/icons/check';
+	import Copy from 'lucide-svelte/icons/copy';
+	import Download from 'lucide-svelte/icons/download';
+	import Sparkles from 'lucide-svelte/icons/sparkles';
 	import type { PosterRecord, SatellitePair } from '$lib/server/posters';
 	import { m } from '$lib/paraglide/messages.js';
 	import DualLensSwitcher from './DualLensSwitcher.svelte';

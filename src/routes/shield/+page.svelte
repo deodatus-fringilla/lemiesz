@@ -1,6 +1,19 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Copy, Check, ExternalLink, FileText, History, Mail, MessageSquareQuote, PenLine, Search, Send, Sparkles, Trash2, TriangleAlert } from 'lucide-svelte';
+	import Copy from 'lucide-svelte/icons/copy';
+	import Check from 'lucide-svelte/icons/check';
+	import ExternalLink from 'lucide-svelte/icons/external-link';
+	import FileText from 'lucide-svelte/icons/file-text';
+	import History from 'lucide-svelte/icons/history';
+	import Mail from 'lucide-svelte/icons/mail';
+	import MessageSquareQuote from 'lucide-svelte/icons/message-square-quote';
+	import PenLine from 'lucide-svelte/icons/pen-line';
+	import Search from 'lucide-svelte/icons/search';
+	import Send from 'lucide-svelte/icons/send';
+	import ScrollText from 'lucide-svelte/icons/scroll-text';
+	import Sparkles from 'lucide-svelte/icons/sparkles';
+	import Trash2 from 'lucide-svelte/icons/trash-2';
+	import TriangleAlert from 'lucide-svelte/icons/triangle-alert';
 	import { replaceState } from '$app/navigation';
 	import { m } from '$lib/paraglide/messages.js';
 	import ReviewBadge from '$lib/components/ReviewBadge.svelte';
@@ -711,10 +724,56 @@
 	{:else if activeTab === 'dossier'}
 		<!-- Epistolary Dossier: corpus/intake/letters_archive/Korona/ (the database is the authority) -->
 		<section class="space-y-6">
-			<div class="rounded-xl border border-amber-500/30 bg-zinc-900/50 p-5">
-				<h2 class="text-xl font-bold text-zinc-100">{m.shield_dossier_title()}</h2>
-				<p class="mt-1 text-sm text-zinc-300">{m.shield_dossier_intro()}</p>
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-amber-500/30 bg-zinc-900/50 p-5">
+				<div>
+					<h2 class="text-xl font-bold text-zinc-100">{m.shield_dossier_title()}</h2>
+					<p class="mt-1 text-sm text-zinc-300">{m.shield_dossier_intro()}</p>
+				</div>
+				<a
+					href="/spichlerz?thread_id={data.korona?.thread?.id ?? 1}"
+					class="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/20 shrink-0"
+				>
+					<ScrollText class="h-4 w-4" />
+					{m.shield_dossier_add_meeting_btn()}
+				</a>
 			</div>
+
+			{#if data.koronaMeetings && data.koronaMeetings.length > 0}
+				<div class="rounded-xl border border-purple-500/30 bg-purple-500/5 p-4 space-y-3">
+					<div class="flex items-center justify-between">
+						<h3 class="flex items-center gap-2 text-sm font-bold text-purple-300">
+							<ScrollText class="h-4 w-4" />
+							{m.shield_tab_dossier_meetings()} ({data.koronaMeetings.length})
+						</h3>
+						<a href="/spichlerz?thread_id={data.korona?.thread?.id ?? 1}" class="text-xs text-amber-400 hover:underline">
+							Otwórz rejestr narad →
+						</a>
+					</div>
+					<div class="grid gap-3 sm:grid-cols-2">
+						{#each data.koronaMeetings as mtg}
+							<div class="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3.5 space-y-2 text-xs">
+								<div class="flex items-start justify-between gap-2">
+									<h4 class="font-bold text-zinc-200 leading-snug">{mtg.title}</h4>
+									<span class="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400 shrink-0">{mtg.meeting_date}</span>
+								</div>
+								<p class="text-zinc-400 line-clamp-2">{mtg.summary}</p>
+								<div class="flex items-center justify-between pt-1 border-t border-zinc-800/80 text-[11px]">
+									<span class="text-purple-400 font-medium">
+										{#if mtg.letter_turn}
+											Po liście #{mtg.letter_turn}
+										{:else}
+											Narada do wątku
+										{/if}
+									</span>
+									{#if mtg.action_items.length > 0}
+										<span class="text-amber-400/90">{mtg.action_items.filter(a => a.status === 'done').length}/{mtg.action_items.length} zrobione</span>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
 			<div class="space-y-4">
 				{#each data.korona?.letters ?? [] as letter (letter.id)}

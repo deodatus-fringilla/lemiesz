@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Columns2, PenLine, Plus, Search, Sparkles } from 'lucide-svelte';
+	import Columns2 from 'lucide-svelte/icons/columns-2';
+	import PenLine from 'lucide-svelte/icons/pen-line';
+	import Plus from 'lucide-svelte/icons/plus';
+	import Search from 'lucide-svelte/icons/search';
+	import Sparkles from 'lucide-svelte/icons/sparkles';
 	import { m } from '$lib/paraglide/messages.js';
 	import ReviewBadge from '$lib/components/ReviewBadge.svelte';
 	import { languageLabel, originLabel, reviewLabel } from '$lib/i18n/labels';

@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ExternalLink, Image, Music2, Search, TriangleAlert } from 'lucide-svelte';
+	import ExternalLink from 'lucide-svelte/icons/external-link';
+	import Image from 'lucide-svelte/icons/image';
+	import Music2 from 'lucide-svelte/icons/music-2';
+	import Search from 'lucide-svelte/icons/search';
+	import TriangleAlert from 'lucide-svelte/icons/triangle-alert';
 	import { m } from '$lib/paraglide/messages.js';
 	import { genreLabel, mediaStatusLabel, mediaTypeLabel, posterThemeLabel } from '$lib/i18n/labels';
 	import PosterCard from '$lib/components/media/PosterCard.svelte';
