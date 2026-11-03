@@ -16,6 +16,8 @@
 	import Music from 'lucide-svelte/icons/music';
 	import Settings from 'lucide-svelte/icons/settings';
 	import Menu from 'lucide-svelte/icons/menu';
+	import PanelRightClose from 'lucide-svelte/icons/panel-right-close';
+	import PanelRightOpen from 'lucide-svelte/icons/panel-right-open';
 	import X from 'lucide-svelte/icons/x';
 	import { m } from '$lib/paraglide/messages.js';
 	import { locales, setLocale } from '$lib/paraglide/runtime.js';
@@ -26,6 +28,27 @@
 
 	/** Mobile-first: the menu is a closed drawer on phones/tablets; from `xl` it is a persistent panel. */
 	let menuOpen = $state(false);
+
+	/** Desktop (xl+): the persistent panel can be hidden to give content the full width. Remembered per browser. */
+	const PANEL_KEY = 'nav-panel-hidden';
+	let panelHidden = $state(false);
+
+	$effect(() => {
+		try {
+			panelHidden = localStorage.getItem(PANEL_KEY) === '1';
+		} catch {
+			// Storage can be blocked (private mode, disabled site data); the panel then simply starts visible.
+		}
+	});
+
+	function togglePanel() {
+		panelHidden = !panelHidden;
+		try {
+			localStorage.setItem(PANEL_KEY, panelHidden ? '1' : '0');
+		} catch {
+			// Not persisted; the toggle still works for this page view.
+		}
+	}
 
 	const topicNav = $derived([
 		{ href: '/neutralna-polska', label: m.nav_neutral_poland() },
@@ -121,6 +144,19 @@
 					{/each}
 				</div>
 
+				<!-- Desktop toggle for the persistent panel (xl+) -->
+				<button
+					type="button"
+					onclick={togglePanel}
+					class="hidden min-h-9 min-w-9 cursor-pointer items-center justify-center rounded-lg border border-zinc-800 text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-100 xl:flex"
+					aria-label={panelHidden ? m.nav_panel_show() : m.nav_panel_hide()}
+					title={panelHidden ? m.nav_panel_show() : m.nav_panel_hide()}
+					aria-expanded={!panelHidden}
+					aria-controls="side-menu"
+				>
+					{#if panelHidden}<PanelRightOpen class="h-4 w-4" />{:else}<PanelRightClose class="h-4 w-4" />{/if}
+				</button>
+
 				<!-- Drawer toggle: hidden once the panel is persistent (xl) -->
 				<button
 					type="button"
@@ -172,7 +208,7 @@
 		id="side-menu"
 		class="fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col gap-3 overflow-y-auto bg-zinc-950 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl transition-transform duration-200 {menuOpen
 			? 'visible translate-x-0'
-			: 'invisible translate-x-full'} xl:visible xl:inset-y-auto xl:top-20 xl:right-6 xl:w-64 xl:translate-x-0 xl:overflow-visible xl:bg-transparent xl:p-0 xl:shadow-none"
+			: 'invisible translate-x-full'} {panelHidden ? 'xl:hidden' : 'xl:visible'} xl:inset-y-auto xl:top-20 xl:right-6 xl:w-64 xl:translate-x-0 xl:overflow-visible xl:bg-transparent xl:p-0 xl:shadow-none"
 		aria-label="Szybka nawigacja"
 	>
 		<div class="flex items-center justify-between px-1 xl:hidden">
@@ -258,7 +294,7 @@
 			{@render children()}
 		</main>
 	{:else}
-		<main class="mx-auto w-full max-w-7xl min-w-0 flex-1 px-3 py-5 sm:px-6 sm:py-8 xl:pr-72">
+		<main class="mx-auto w-full max-w-7xl min-w-0 flex-1 px-3 py-5 sm:px-6 sm:py-8 {panelHidden ? '' : 'xl:pr-72'}">
 			{@render children()}
 		</main>
 	{/if}
