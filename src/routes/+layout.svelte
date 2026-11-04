@@ -12,6 +12,7 @@
 	import MessageSquareQuote from 'lucide-svelte/icons/message-square-quote';
 	import PenLine from 'lucide-svelte/icons/pen-line';
 	import Archive from 'lucide-svelte/icons/archive';
+	import Feather from 'lucide-svelte/icons/feather';
 	import Flame from 'lucide-svelte/icons/flame';
 	import Music from 'lucide-svelte/icons/music';
 	import Settings from 'lucide-svelte/icons/settings';
@@ -71,6 +72,7 @@
 		{ href: '/shield', label: m.nav_shield(), icon: MessageSquareQuote, badge: 0 },
 		{ href: '/kuznia', label: m.nav_kuznia(), icon: Flame, badge: 0 },
 		{ href: '/spichlerz', label: m.nav_spichlerz(), icon: Archive, badge: 0 },
+		{ href: '/redakcja', label: m.nav_journal(), icon: Feather, badge: 0 },
 		{ href: '/content', label: m.nav_content(), icon: PenLine, badge: 0 },
 		{ href: '/media', label: m.nav_media(), icon: Music, badge: 0 },
 		{ href: '/repository', label: m.nav_repository(), icon: BookOpen, badge: 0 },

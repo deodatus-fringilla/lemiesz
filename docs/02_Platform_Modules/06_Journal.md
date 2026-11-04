@@ -1,6 +1,18 @@
 # Module 06 · Journal "Lemiesz. Czy Neutralność jest możliwa? Rozprawy geoideologiczne"
 
-> **Status:** step 1 of 4 (data layer) implemented. Editorial back-office, public pages and hardening follow.
+> **Status:** steps 1 (data layer) and 2 (editorial back-office, `/redakcja`, behind login) implemented.
+> Public pages (step 3) and hardening (step 4) follow.
+
+## Back-office (`/redakcja`)
+
+* **Rozprawy:** list of every article and language with calibre, state and approvals; "new article" form.
+  `/redakcja/[id]?lang=pl|en` edits one language: working copy, review → publish panel, citation check, calibre /
+  author / tags / twin, delete (only while nothing is live).
+* **Biblioteka:** add, edit, approve, flag and delete links. The public note is required. YouTube/Spotify addresses
+  still become players; everything else is a plain link.
+* **One-person team:** set `JOURNAL_HEAVY_REVIEWERS=1` in `.env`; set it back to 2 when a second editor joins. Every
+  approval records who gave it.
+* **Citations need approved sources:** a `[[src:ID]]` resolves only to a source text approved in Weryfikacja.
 
 Two public sections fed from the same database:
 

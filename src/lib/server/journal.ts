@@ -16,6 +16,9 @@ export type TextStatus = 'draft' | 'human_approved' | 'flagged';
 
 export class JournalError extends Error {}
 
+/** Media types offered for Biblioteka links (a subset of MEDIA_TYPES). */
+export const LINK_TYPES = ['article', 'podcast', 'film', 'video', 'painting', 'music', 'poetry', 'speech'] as const;
+
 /** Distinct human approvals a revision needs: one for light calibre, two for heavy (JOURNAL_HEAVY_REVIEWERS overrides). */
 export function requiredApprovals(caliber: Caliber): number {
 	if (caliber === 'light') return 1;
@@ -138,6 +141,55 @@ export function saveText(
 			updated_at = datetime('now') WHERE article_id = ? AND locale = ?`
 	).run(input.title.trim(), input.lead?.trim() ?? '', input.body, ai, revision, articleId, locale);
 	return { changed: true, revision };
+}
+
+/**
+ * Changes calibre, author or tags. A calibre change alters who must approve, so every language's working copy gets a
+ * new revision (earlier approvals no longer count) and a twin of the new calibre is unlinked.
+ */
+export function updateArticleMeta(id: number, input: { caliber?: Caliber; author?: string | null; tags?: string | null }, actor: Actor): void {
+	requireHuman(actor, 'edit journal articles');
+	const a = getArticle(id);
+	if (!a) throw new JournalError(`Article ${id} not found`);
+	const caliber = input.caliber ?? a.caliber;
+	if (!(CALIBERS as readonly string[]).includes(caliber)) throw new JournalError(`Calibre must be one of: ${CALIBERS.join(', ')}`);
+	const author = input.author === undefined ? a.author : input.author?.trim() || null;
+	const tags = input.tags === undefined ? a.tags : input.tags?.trim() || null;
+	db.transaction(() => {
+		db.prepare("UPDATE journal_articles SET caliber = ?, author = ?, tags = ?, updated_at = datetime('now') WHERE id = ?").run(caliber, author, tags, id);
+		if (caliber !== a.caliber) {
+			db.prepare("UPDATE journal_article_texts SET revision = revision + 1, status = 'draft', updated_at = datetime('now') WHERE article_id = ?").run(id);
+			const twin = a.twin_id ? getArticle(a.twin_id) : null;
+			if (twin && twin.caliber === caliber) db.prepare('UPDATE journal_articles SET twin_id = NULL WHERE id IN (?, ?)').run(id, twin.id);
+		}
+	})();
+}
+
+export function listLocales(articleId: number): string[] {
+	return (db.prepare('SELECT locale FROM journal_article_texts WHERE article_id = ? ORDER BY locale DESC').all(articleId) as { locale: string }[]).map((r) => r.locale);
+}
+
+/** Who approved the current revision of one language. */
+export function listApprovals(articleId: number, locale: string): { approved_by: string; approved_at: string }[] {
+	const text = getText(articleId, locale);
+	if (!text) return [];
+	return db
+		.prepare('SELECT approved_by, approved_at FROM journal_approvals WHERE article_id = ? AND locale = ? AND revision = ? ORDER BY approved_at')
+		.all(articleId, locale, text.revision) as { approved_by: string; approved_at: string }[];
+}
+
+/** Articles of the other calibre that could be this one's twin, with a title in the given language if there is one. */
+export function twinCandidates(articleId: number, locale: string): { id: number; title: string }[] {
+	const a = getArticle(articleId);
+	if (!a) return [];
+	return db
+		.prepare(
+			`SELECT j.id, COALESCE(
+				(SELECT title FROM journal_article_texts t WHERE t.article_id = j.id AND t.locale = ?),
+				(SELECT title FROM journal_article_texts t WHERE t.article_id = j.id ORDER BY t.locale DESC LIMIT 1)) AS title
+			 FROM journal_articles j WHERE j.caliber <> ? AND j.id <> ? ORDER BY j.updated_at DESC`
+		)
+		.all(locale, a.caliber, a.id) as { id: number; title: string }[];
 }
 
 /** Records one person's approval of the current revision; the text becomes human_approved once enough people agree. */

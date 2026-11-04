@@ -3,6 +3,9 @@ import { db } from './db';
 import { human, system } from './review';
 import {
 	approveText,
+	listApprovals,
+	twinCandidates,
+	updateArticleMeta,
 	createArticle,
 	deleteArticle,
 	flagText,
@@ -17,7 +20,7 @@ import {
 	setTwin,
 	unpublishText
 } from './journal';
-import { findCitationProblems } from './journal-citations';
+import { describeCitations, findCitationProblems } from './journal-citations';
 
 const ania = human('ania');
 const bartek = human('bartek');
@@ -178,5 +181,33 @@ describe('journal articles', () => {
 		const id = article('heavy');
 		approveText(id, 'pl', ania);
 		expect(listForEditors().find((r) => r.id === id)).toMatchObject({ status: 'draft', approvals: 1, required: 2, published_revision: null });
+	});
+
+	it('a calibre change starts a new revision (old approvals stop counting) and drops a twin of the same calibre', () => {
+		const light = article('light');
+		const heavy = article('heavy');
+		setTwin(light, heavy, ania);
+		approveText(light, 'pl', ania);
+		expect(listApprovals(light, 'pl').map((a) => a.approved_by)).toEqual(['ania']);
+		updateArticleMeta(light, { caliber: 'heavy', author: ' Bogdan Zięba ', tags: 'neutralność' }, ania);
+		expect(getArticle(light)).toMatchObject({ caliber: 'heavy', author: 'Bogdan Zięba', tags: 'neutralność', twin_id: null });
+		expect(getArticle(heavy)!.twin_id).toBeNull();
+		expect(getText(light, 'pl')).toMatchObject({ status: 'draft', revision: 2 });
+		expect(listApprovals(light, 'pl')).toEqual([]);
+		expect(() => updateArticleMeta(light, { author: 'x' }, system('pipeline'))).toThrow();
+	});
+
+	it('offers twins of the other calibre only, and labels citations for the editor', () => {
+		const light = article('light');
+		const heavy = article('heavy');
+		const candidates = twinCandidates(light, 'pl').map((c) => c.id);
+		expect(candidates).toContain(heavy);
+		expect(candidates).not.toContain(light);
+		const src = approvedSource();
+		const info = describeCitations(`A [[src:${src}]] B [[src:${src}]] C [[quote:424242]]`, 'pl');
+		expect(info).toEqual([
+			{ token: `[[src:${src}]]`, kind: 'src', id: src, label: 'Konwencja haska — Art. 1', problem: null },
+			{ token: '[[quote:424242]]', kind: 'quote', id: 424242, label: null, problem: 'unknown_source' }
+		]);
 	});
 });

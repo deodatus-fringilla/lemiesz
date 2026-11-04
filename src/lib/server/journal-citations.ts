@@ -34,3 +34,24 @@ export function findCitationProblems(body: string, locale: string): CitationProb
 	}
 	return problems;
 }
+
+export interface CitationInfo {
+	token: string;
+	kind: 'src' | 'quote';
+	id: number;
+	/** "Work — section" when the source exists. */
+	label: string | null;
+	problem: CitationProblem['reason'] | null;
+}
+
+/** Each distinct token with a readable label and its problem (if any), for the editor's citation panel. */
+export function describeCitations(body: string, locale: string): CitationInfo[] {
+	const problems = new Map(findCitationProblems(body, locale).map((p) => [p.token, p.reason]));
+	const seen = new Set<string>();
+	return citationIds(body).flatMap((c) => {
+		if (seen.has(c.token)) return [];
+		seen.add(c.token);
+		const s = db.prepare('SELECT work, section_ref FROM sources WHERE id = ?').get(c.id) as { work: string; section_ref: string } | undefined;
+		return [{ ...c, label: s ? `${s.work} — ${s.section_ref}` : null, problem: problems.get(c.token) ?? null }];
+	});
+}
