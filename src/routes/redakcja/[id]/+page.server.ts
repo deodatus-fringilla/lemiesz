@@ -7,6 +7,7 @@ import {
 	countedApprovalsOf,
 	deleteArticle,
 	flagText,
+	unflagText,
 	getArticle,
 	getText,
 	listApprovals,
@@ -98,6 +99,11 @@ export const actions: Actions = {
 		const id = articleId(params);
 		const locale = str(await request.formData(), 'locale') || 'pl';
 		return attempt(() => flagText(id, locale, human(locals.user!.username)));
+	},
+	unflag: async ({ params, request, locals }) => {
+		const id = articleId(params);
+		const locale = str(await request.formData(), 'locale') || 'pl';
+		return attempt(() => unflagText(id, locale, human(locals.user!.username)));
 	},
 	publish: async ({ params, request, locals }) => {
 		const id = articleId(params);

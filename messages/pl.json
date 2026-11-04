@@ -716,7 +716,6 @@
 	"journal_approve_revision": "Zatwierdzam wersję {revision}",
 	"journal_approved_by_you": "Zatwierdzone przez Ciebie",
 	"journal_blocked_citations": "Najpierw popraw przypisy oznaczone na czerwono.",
-	"journal_flagged_hint": "Tekst oznaczony do poprawy: zapisz zmiany, aby móc go zatwierdzić.",
 	"journal_publish": "Opublikuj",
 	"journal_unpublish": "Wycofaj z publikacji",
 	"journal_unpublish_confirm": "Wycofać ten tekst z publikacji? Czytelnicy przestaną go widzieć.",
@@ -790,5 +789,14 @@
 	"pub_not_found_title": "Nie znaleziono tej rozprawy",
 	"pub_not_found_text": "Mogła zostać wycofana albo adres jest błędny.",
 	"pub_error_title": "Coś poszło nie tak",
-	"pub_error_text": "Spróbuj ponownie za chwilę."
+	"pub_error_text": "Spróbuj ponownie za chwilę.",
+	"nav_journal_public": "Czasopismo",
+	"journal_steps_title": "Jak opublikować",
+	"journal_step_saved": "Tekst zapisany (wersja {revision})",
+	"journal_step_approved": "Zatwierdzony ({have}/{need})",
+	"journal_step_published": "Opublikowany: widoczny w Czasopiśmie",
+	"journal_unflag": "Cofnij „do poprawy”",
+	"journal_flag_confirm": "Oznaczyć tekst jako wymagający poprawy? Nie da się go opublikować, dopóki nie cofniesz oznaczenia albo nie zapiszesz zmian.",
+	"journal_flag_hint": "Zatrzymuje publikację, dopóki tekst nie zostanie poprawiony",
+	"journal_flagged_hint_v2": "Oznaczony do poprawy: popraw i zapisz tekst albo cofnij oznaczenie."
 }

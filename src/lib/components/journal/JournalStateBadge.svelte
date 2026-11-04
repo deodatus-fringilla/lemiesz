@@ -6,8 +6,18 @@
 		status,
 		revision,
 		published_revision,
-		approvals = 0
-	}: { status: 'draft' | 'human_approved' | 'flagged'; revision: number; published_revision: number | null; approvals?: number } = $props();
+		approvals = 0,
+		required = 1
+	}: {
+		status: 'draft' | 'human_approved' | 'flagged';
+		revision: number;
+		published_revision: number | null;
+		/** Approvals of the current revision that count. */
+		approvals?: number;
+		required?: number;
+	} = $props();
+	// Ready = enough approvals right now (the stored status can lag behind a changed JOURNAL_HEAVY_REVIEWERS).
+	const ready = $derived(status !== 'flagged' && approvals >= required);
 
 	const live = $derived(published_revision !== null);
 	const liveIsCurrent = $derived(published_revision === revision);
@@ -16,7 +26,7 @@
 			? liveIsCurrent
 				? m.journal_state_live()
 				: m.journal_state_live_newer({ revision })
-			: status === 'human_approved'
+			: ready
 				? m.journal_state_ready()
 				: status === 'flagged'
 					? m.journal_state_flagged()
@@ -29,7 +39,7 @@
 			? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
 			: status === 'flagged'
 				? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
-				: status === 'human_approved' || live || approvals > 0
+				: ready || live || approvals > 0
 					? 'border-sky-500/40 bg-sky-500/10 text-sky-300'
 					: 'border-zinc-700 bg-zinc-800/60 text-zinc-300'
 	);

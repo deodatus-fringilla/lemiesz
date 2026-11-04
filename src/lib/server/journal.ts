@@ -237,6 +237,13 @@ export function flagText(articleId: number, locale: string, actor: Actor): void 
 	if (!r.changes) throw new JournalError(`Article ${articleId} (${locale}) not found`);
 }
 
+/** Takes back "needs changes" without editing: the text returns to review, and its approvals still count. */
+export function unflagText(articleId: number, locale: string, actor: Actor): void {
+	requireHuman(actor, 'unflag journal articles');
+	const r = db.prepare("UPDATE journal_article_texts SET status = 'draft', updated_at = datetime('now') WHERE article_id = ? AND locale = ? AND status = 'flagged'").run(articleId, locale);
+	if (!r.changes) throw new JournalError(`Article ${articleId} (${locale}) is not flagged`);
+}
+
 /** Puts the approved current revision online. Refuses anything not approved by enough people for this calibre. */
 export function publishText(articleId: number, locale: string, actor: Actor): void {
 	requireHuman(actor, 'publish journal articles');
@@ -244,14 +251,16 @@ export function publishText(articleId: number, locale: string, actor: Actor): vo
 	const text = getText(articleId, locale);
 	if (!article || !text) throw new JournalError(`Article ${articleId} (${locale}) not found`);
 	const approvals = countedApprovals(articleId, locale, text.revision);
-	if (text.status !== 'human_approved' || approvals < requiredApprovals(article.caliber)) {
+	// Readiness is decided by the approvals that count right now, not by a status stored at approval time: if the
+	// required number changes (JOURNAL_HEAVY_REVIEWERS), an already approved revision must not get stuck.
+	if (text.status === 'flagged' || approvals < requiredApprovals(article.caliber)) {
 		throw new JournalError(`Revision ${text.revision} is not approved (${approvals}/${requiredApprovals(article.caliber)} approvals)`);
 	}
 	// A cited source may have lost its approval since: check again at the moment of publishing.
 	const problems = findCitationProblems(text.body, locale);
 	if (problems.length) throw new JournalError(`Citations that no longer resolve to approved sources: ${problems.map((p) => p.token).join(', ')}`);
 	db.prepare(
-		`UPDATE journal_article_texts SET published_title = title, published_lead = lead, published_body = body,
+		`UPDATE journal_article_texts SET status = 'human_approved', published_title = title, published_lead = lead, published_body = body,
 			published_revision = revision, published_at = datetime('now'), published_by = ? WHERE article_id = ? AND locale = ?`
 	).run(actor.name, articleId, locale);
 }

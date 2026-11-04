@@ -19,6 +19,7 @@ import {
 	saveText,
 	setTwin,
 	unpublishText,
+	unflagText,
 	countedApprovalsOf
 } from './journal';
 import { describeCitations, findCitationProblems } from './journal-citations';
@@ -227,5 +228,27 @@ describe('journal articles', () => {
 		} finally {
 			process.env.AUTH_DISABLED = 'true';
 		}
+	});
+
+	it('does not get stuck when the required number of approvals is lowered after approving (the reported dead end)', () => {
+		const id = article('heavy');
+		expect(approveText(id, 'pl', ania).approved).toBe(false); // 1 of 2: stored status stays draft
+		process.env.JOURNAL_HEAVY_REVIEWERS = '1';
+		publishText(id, 'pl', ania); // 1 of 1 now: publishable without approving again
+		expect(getPublishedArticle(getArticle(id)!.slug, 'pl')).not.toBeNull();
+		expect(getText(id, 'pl')!.status).toBe('human_approved');
+	});
+
+	it('"needs changes" can be undone without editing, and the approvals still count', () => {
+		const id = article();
+		approveText(id, 'pl', ania);
+		flagText(id, 'pl', ania);
+		expect(() => publishText(id, 'pl', ania)).toThrow(/not approved/);
+		unflagText(id, 'pl', ania);
+		expect(getText(id, 'pl')!.status).toBe('draft');
+		publishText(id, 'pl', ania);
+		expect(getPublishedArticle(getArticle(id)!.slug, 'pl')).not.toBeNull();
+		expect(() => unflagText(id, 'pl', ania)).toThrow(/not flagged/);
+		expect(() => unflagText(id, 'pl', system('pipeline'))).toThrow();
 	});
 });

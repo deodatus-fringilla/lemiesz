@@ -66,7 +66,8 @@
 	const topicNav = $derived([
 		{ href: '/neutralna-polska', label: m.nav_neutral_poland() },
 		{ href: '/za-i-przeciw', label: m.nav_pros_and_cons() },
-		{ href: '/polskie-mocarstwo', label: m.nav_polish_power() }
+		{ href: '/polskie-mocarstwo', label: m.nav_polish_power() },
+		{ href: '/czasopismo', label: m.nav_journal_public() }
 	]);
 
 	const publicPages = ['/', '/neutralna-polska', '/za-i-przeciw', '/polskie-mocarstwo'];

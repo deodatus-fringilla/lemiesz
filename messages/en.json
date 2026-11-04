@@ -716,7 +716,6 @@
 	"journal_approve_revision": "I approve version {revision}",
 	"journal_approved_by_you": "Approved by you",
 	"journal_blocked_citations": "Fix the citations marked in red first.",
-	"journal_flagged_hint": "Marked as needing changes: save an edit to be able to approve it.",
 	"journal_publish": "Publish",
 	"journal_unpublish": "Unpublish",
 	"journal_unpublish_confirm": "Unpublish this text? Readers will no longer see it.",
@@ -790,5 +789,14 @@
 	"pub_not_found_title": "Treatise not found",
 	"pub_not_found_text": "It may have been withdrawn, or the address is wrong.",
 	"pub_error_title": "Something went wrong",
-	"pub_error_text": "Please try again in a moment."
+	"pub_error_text": "Please try again in a moment.",
+	"nav_journal_public": "Journal",
+	"journal_steps_title": "How to publish",
+	"journal_step_saved": "Text saved (version {revision})",
+	"journal_step_approved": "Approved ({have}/{need})",
+	"journal_step_published": "Published: visible in the Journal",
+	"journal_unflag": "Undo \"needs changes\"",
+	"journal_flag_confirm": "Mark this text as needing changes? It cannot be published until you undo the mark or save changes.",
+	"journal_flag_hint": "Stops publication until the text is fixed",
+	"journal_flagged_hint_v2": "Marked as needing changes: fix and save the text, or undo the mark."
 }
