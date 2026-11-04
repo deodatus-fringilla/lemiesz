@@ -12,8 +12,9 @@
 		letters,
 		initialLetterId,
 		title = '',
+		highlight = '',
 		onclose
-	}: { letters: ReaderLetter[]; initialLetterId?: number; title?: string; onclose: () => void } = $props();
+	}: { letters: ReaderLetter[]; initialLetterId?: number; title?: string; highlight?: string; onclose: () => void } = $props();
 
 	const rounds = $derived(buildRounds(letters));
 	let chosen = $state<number | null>(null);
@@ -48,8 +49,8 @@
 
 		{#if round}
 			<div class="grid min-h-0 flex-1 grid-cols-1 divide-y divide-zinc-800 overflow-y-auto md:h-[70dvh] md:grid-cols-2 md:divide-x md:divide-y-0 md:overflow-hidden">
-				<LetterPage letter={round.letter} kind="letter" />
-				<LetterPage letter={round.response} kind="response" />
+				<LetterPage letter={round.letter} kind="letter" {highlight} />
+				<LetterPage letter={round.response} kind="response" {highlight} />
 			</div>
 		{/if}
 

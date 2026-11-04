@@ -88,7 +88,7 @@
 		{/snippet}
 		{#snippet workspace()}
 			<SpichlerzWorkspace
-				entry={activeEntry} {viewMode} {zenMode} {allOpenTasks}
+				entry={activeEntry} {viewMode} {zenMode} {allOpenTasks} {searchQuery}
 				ontogglezen={() => (zenMode = !zenMode)}
 				onedit={(e) => { editingEntry = e; modalOpen = true; }}
 				onopenreader={activeEntry?.entry_type === 'letter' ? () => (readerOpen = true) : undefined}
@@ -99,7 +99,7 @@
 </div>
 
 {#if readerOpen && activeEntry?.entry_type === 'letter'}
-	<LetterReader letters={threadLetters} initialLetterId={activeEntry.id} title={activeEntry.thread_title ?? ''} onclose={() => (readerOpen = false)} />
+	<LetterReader letters={threadLetters} initialLetterId={activeEntry.id} highlight={searchQuery} title={activeEntry.thread_title ?? ''} onclose={() => (readerOpen = false)} />
 {/if}
 
 <SpichlerzEditorModal open={modalOpen} {editingEntry} threads={data.threads} letters={data.letters} mediaList={data.mediaList} sourcesList={data.sourcesList} onclose={() => (modalOpen = false)} />

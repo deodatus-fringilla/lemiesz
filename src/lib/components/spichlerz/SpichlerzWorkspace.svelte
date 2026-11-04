@@ -2,6 +2,7 @@
 	import { marked } from 'marked';
 	import Maximize2 from 'lucide-svelte/icons/maximize-2';
 	import Minimize2 from 'lucide-svelte/icons/minimize-2';
+	import { highlight } from '$lib/actions/highlight';
 	import { m } from '$lib/paraglide/messages.js';
 	import type { ActionItem, SpichlerzEntry } from '$lib/server/spichlerz';
 	import SpichlerzActionItems from './SpichlerzActionItems.svelte';
@@ -12,6 +13,7 @@
 		viewMode,
 		zenMode,
 		allOpenTasks,
+		searchQuery = '',
 		ontogglezen,
 		onedit,
 		onopenreader,
@@ -20,6 +22,7 @@
 		entry: SpichlerzEntry | null;
 		viewMode: 'note' | 'radar';
 		zenMode: boolean;
+		searchQuery?: string;
 		allOpenTasks: { meetingId: number; meetingTitle: string; item: ActionItem; index: number }[];
 		ontogglezen: () => void;
 		onedit: (entry: SpichlerzEntry) => void;
@@ -57,7 +60,7 @@
 		<SpichlerzToolbar {entry} {zenMode} {ontogglezen} {onedit} {onopenreader} />
 
 		<!-- Summary Callout -->
-		<div class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-relaxed text-zinc-200">
+		<div use:highlight={{ query: searchQuery, key: entry.uid }} class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-relaxed text-zinc-200">
 			<strong class="text-amber-400">{m.meetings_summary()}:</strong> {entry.summary}
 		</div>
 
@@ -88,7 +91,7 @@
 		{/if}
 
 		<!-- Full Markdown / Text Body -->
-		<div class="prose prose-invert prose-sm max-w-none rounded-xl border border-zinc-800/80 bg-zinc-950/80 p-4 sm:p-5 leading-relaxed text-zinc-200 break-words whitespace-pre-wrap">
+		<div use:highlight={{ query: searchQuery, key: entry.uid, scroll: true }} class="prose prose-invert prose-sm max-w-none rounded-xl border border-zinc-800/80 bg-zinc-950/80 p-4 sm:p-5 leading-relaxed text-zinc-200 break-words whitespace-pre-wrap">
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html marked(entry.body)}
 		</div>
