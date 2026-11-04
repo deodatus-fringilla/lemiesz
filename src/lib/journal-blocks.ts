@@ -22,7 +22,8 @@ export const BLOCK_LIMITS = {
 	blocksPerColumn: 100,
 	mdChars: 60_000,
 	headingChars: 300,
-	totalChars: 400_000
+	// ~75 pages. Kept well below the server's 512 KB request limit (Polish letters take 2 bytes, JSON adds escapes).
+	totalChars: 150_000
 };
 
 export class BlockError extends Error {}

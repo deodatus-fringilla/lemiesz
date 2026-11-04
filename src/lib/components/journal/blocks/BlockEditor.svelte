@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
 	import { m } from '$lib/paraglide/messages.js';
 	import type { Block } from '$lib/journal-blocks';
 	import type { CitableSource } from '$lib/server/journal-citations';
@@ -46,6 +47,10 @@
 		const warn = (e: BeforeUnloadEvent) => e.preventDefault();
 		window.addEventListener('beforeunload', warn);
 		return () => window.removeEventListener('beforeunload', warn);
+	});
+	// beforeunload covers closing the tab; in-app links (language tabs, menu, "back") need SvelteKit's own guard.
+	beforeNavigate((nav) => {
+		if (dirty && nav.type !== 'leave' && !confirm(m.blocks_leave_confirm())) nav.cancel();
 	});
 	const tab = (on: boolean) => `rounded-md px-3 py-1 font-medium transition ${on ? 'bg-amber-500/20 text-amber-300' : 'text-zinc-400 hover:text-zinc-200'}`;
 </script>

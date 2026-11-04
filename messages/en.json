@@ -842,5 +842,6 @@
 	"blocks_preview_loading": "Refreshing preview…",
 	"blocks_unsaved": "Unsaved changes",
 	"blocks_save_first": "Save your changes first: you approve and publish the saved version.",
-	"journal_new_hint": "You will write the content in the block editor right after the draft is created."
+	"journal_new_hint": "You will write the content in the block editor right after the draft is created.",
+	"blocks_leave_confirm": "You have unsaved changes in the article. Leave without saving?"
 }

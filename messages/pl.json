@@ -842,5 +842,6 @@
 	"blocks_preview_loading": "Odświeżam podgląd…",
 	"blocks_unsaved": "Niezapisane zmiany",
 	"blocks_save_first": "Najpierw zapisz zmiany: zatwierdzasz i publikujesz zapisaną wersję.",
-	"journal_new_hint": "Treść napiszesz w edytorze bloków zaraz po utworzeniu szkicu."
+	"journal_new_hint": "Treść napiszesz w edytorze bloków zaraz po utworzeniu szkicu.",
+	"blocks_leave_confirm": "Masz niezapisane zmiany w artykule. Wyjść bez zapisywania?"
 }
