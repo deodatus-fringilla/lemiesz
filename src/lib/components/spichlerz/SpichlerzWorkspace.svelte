@@ -14,6 +14,7 @@
 		allOpenTasks,
 		ontogglezen,
 		onedit,
+		onopenreader,
 		onselectentry
 	}: {
 		entry: SpichlerzEntry | null;
@@ -22,6 +23,7 @@
 		allOpenTasks: { meetingId: number; meetingTitle: string; item: ActionItem; index: number }[];
 		ontogglezen: () => void;
 		onedit: (entry: SpichlerzEntry) => void;
+		onopenreader?: () => void;
 		onselectentry: (uid: string) => void;
 	} = $props();
 </script>
@@ -52,7 +54,7 @@
 			{m.spichlerz_empty_selection()}
 		</div>
 	{:else}
-		<SpichlerzToolbar {entry} {zenMode} {ontogglezen} {onedit} />
+		<SpichlerzToolbar {entry} {zenMode} {ontogglezen} {onedit} {onopenreader} />
 
 		<!-- Summary Callout -->
 		<div class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-relaxed text-zinc-200">

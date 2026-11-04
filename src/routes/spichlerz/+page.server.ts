@@ -16,6 +16,7 @@ import {
 } from '$lib/server/spichlerz';
 import { listCorrespondenceThreads } from '$lib/server/correspondence';
 import { db } from '$lib/server/db';
+import type { ReaderLetter } from '$lib/components/letters/letter-reader';
 
 export const load: PageServerLoad = ({ url, locals }) => {
 	const category = url.searchParams.get('category') as MeetingCategory | null;
@@ -39,6 +40,12 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		)
 		.all() as { id: number; thread_id: number; turn_number: number; direction: string; date_label: string }[];
 
+	const readerLetters = db
+		.prepare(
+			'SELECT id, thread_id, turn_number, direction, sender, recipient, date_label, filename, body FROM correspondence_letters ORDER BY thread_id, turn_number'
+		)
+		.all() as ReaderLetter[];
+
 	const mediaList = db
 		.prepare('SELECT id, title, artist_or_author FROM media_assets ORDER BY id DESC')
 		.all() as { id: number; title: string; artist_or_author: string }[];
@@ -59,6 +66,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		tags,
 		threads,
 		letters,
+		readerLetters,
 		mediaList,
 		sourcesList,
 		activeCategory: (category || 'all') as MeetingCategory | 'all',

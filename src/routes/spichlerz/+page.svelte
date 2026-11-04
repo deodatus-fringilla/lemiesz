@@ -7,6 +7,7 @@
 	import SpichlerzSidebar from '$lib/components/spichlerz/SpichlerzSidebar.svelte';
 	import SpichlerzList from '$lib/components/spichlerz/SpichlerzList.svelte';
 	import SpichlerzWorkspace from '$lib/components/spichlerz/SpichlerzWorkspace.svelte';
+	import LetterReader from '$lib/components/letters/LetterReader.svelte';
 	import SpichlerzEditorModal from '$lib/components/spichlerz/SpichlerzEditorModal.svelte';
 
 	let { data, form } = $props();
@@ -19,6 +20,7 @@
 	let zenMode = $state(false);
 	let mobileTab = $state<'notebooks' | 'list' | 'workspace'>('workspace');
 	let modalOpen = $state(false);
+	let readerOpen = $state(false);
 	let editingEntry = $state<SpichlerzEntry | null>(null);
 
 	$effect(() => {
@@ -39,6 +41,7 @@
 
 	const selectedUid = $derived(selectedUidOverride ?? data.selectedUid ?? filteredEntries[0]?.uid ?? null);
 	const activeEntry = $derived(filteredEntries.find((e) => e.uid === selectedUid) ?? filteredEntries[0] ?? null);
+	const threadLetters = $derived(data.readerLetters.filter((l) => l.thread_id === activeEntry?.thread_id));
 	const allOpenTasks = $derived(
 		data.entries.flatMap((e) =>
 			e.action_items
@@ -88,10 +91,15 @@
 				entry={activeEntry} {viewMode} {zenMode} {allOpenTasks}
 				ontogglezen={() => (zenMode = !zenMode)}
 				onedit={(e) => { editingEntry = e; modalOpen = true; }}
+				onopenreader={activeEntry?.entry_type === 'letter' ? () => (readerOpen = true) : undefined}
 				onselectentry={(uid) => { selectedUidOverride = uid; viewMode = 'note'; }}
 			/>
 		{/snippet}
 	</SpichlerzLayout>
 </div>
+
+{#if readerOpen && activeEntry?.entry_type === 'letter'}
+	<LetterReader letters={threadLetters} initialLetterId={activeEntry.id} title={activeEntry.thread_title ?? ''} onclose={() => (readerOpen = false)} />
+{/if}
 
 <SpichlerzEditorModal open={modalOpen} {editingEntry} threads={data.threads} letters={data.letters} mediaList={data.mediaList} sourcesList={data.sourcesList} onclose={() => (modalOpen = false)} />

@@ -22,12 +22,14 @@
 		entry,
 		zenMode,
 		ontogglezen,
-		onedit
+		onedit,
+		onopenreader
 	}: {
 		entry: SpichlerzEntry;
 		zenMode: boolean;
 		ontogglezen: () => void;
 		onedit: (entry: SpichlerzEntry) => void;
+		onopenreader?: () => void;
 	} = $props();
 </script>
 
@@ -128,6 +130,16 @@
 					</button>
 				</form>
 			{:else}
+				{#if onopenreader}
+					<button
+						type="button"
+						onclick={onopenreader}
+						class="inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 whitespace-nowrap"
+					>
+						<BookOpen class="h-3.5 w-3.5" />
+						<span>{m.letter_reader_open()}</span>
+					</button>
+				{/if}
 				<a
 					href="/shield?tab=dossier"
 					class="inline-flex items-center gap-1 rounded-lg border border-crimson-500/40 bg-crimson-500/10 px-2.5 py-1 text-xs font-semibold text-crimson-300 hover:bg-crimson-500/20 whitespace-nowrap"
