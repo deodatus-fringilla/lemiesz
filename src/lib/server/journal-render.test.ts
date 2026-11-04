@@ -88,3 +88,19 @@ describe('renderBlocks', () => {
 		expect(callout.html).not.toMatch(/<script/i);
 	});
 });
+
+describe('images inside columns', () => {
+	it('are always as wide as their column, whatever size the editor chose', async () => {
+		const { renderBlocks } = await import('./journal-render');
+		const { createPoster, setPosterStatus } = await import('./posters');
+		const { setImageMeta } = await import('./journal-images');
+		const { human } = await import('./review');
+		const id = createPoster({ title: 'K', artist_or_author: 'S', image_path: `/images/test/col-${Date.now()}.jpg` }, human('t'));
+		setImageMeta(id, { alt_pl: 'opis' }, human('t'));
+		setPosterStatus(id, 'human_approved', human('t'));
+		const { blocks } = renderBlocks([{ type: 'columns', columns: [[{ type: 'image', imageId: id, size: 'full' }], [{ type: 'text', md: 'x' }]] }, { type: 'image', imageId: id, size: 'full' }], 'pl');
+		const col = blocks[0] as { columns: { type: string; size?: string }[][] };
+		expect(col.columns[0][0]).toMatchObject({ type: 'image', size: 'column' });
+		expect(blocks[1]).toMatchObject({ type: 'image', size: 'full' }); // outside columns the choice stands
+	});
+});

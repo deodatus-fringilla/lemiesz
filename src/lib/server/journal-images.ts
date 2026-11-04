@@ -152,15 +152,30 @@ export function setImageMeta(id: number, input: { alt_pl?: string; alt_en?: stri
 	).run(next.alt_pl, next.alt_en, next.license, id);
 }
 
-/** Registers an uploaded (already stored) file in the library as a draft image. Credit and licence are required. */
-export function registerUpload(
-	input: { path: string; width: number; height: number; title: string; artist: string; license: string; alt: string; locale: string; caption?: string },
-	actor: Actor
-): number {
+export interface UploadFields {
+	title: string;
+	artist: string;
+	license: string;
+	alt: string;
+	locale: string;
+	caption?: string;
+}
+
+/** Checks an upload's description before anything is stored (so a refused upload leaves no file behind). */
+export function assertUploadFields(input: UploadFields, actor: Actor): void {
 	if (actor.kind !== 'human') throw new Error('Only a signed-in person may upload images');
 	if (!input.title.trim() || !input.artist.trim()) throw new Error('Title and author are required');
 	if (!input.license.trim()) throw new Error('The licence is required for an uploaded image');
 	if (!input.alt.trim()) throw new Error('The alternative text (description for blind readers) is required');
+}
+
+/** Registers an uploaded (already stored) file in the library as a draft image, in one transaction. */
+export function registerUpload(input: UploadFields & { path: string; width: number; height: number }, actor: Actor): number {
+	assertUploadFields(input, actor);
+	return db.transaction(() => registerUploadRow(input, actor))();
+}
+
+function registerUploadRow(input: UploadFields & { path: string; width: number; height: number }, actor: Actor): number {
 	const existing = db.prepare('SELECT id FROM campaign_posters WHERE image_path = ?').get(input.path) as { id: number } | undefined;
 	if (existing) return existing.id; // the same picture uploaded twice is one library entry
 	const en = input.locale === 'en';

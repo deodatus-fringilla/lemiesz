@@ -138,6 +138,8 @@ export function renderBlocks(blocks: Block[], locale: string): { blocks: Rendere
 				return renderImage(b, locale) ?? { type: 'html', html: '' };
 		}
 	};
-	const out = blocks.map((b): RenderedBlock => (b.type === 'columns' ? { type: 'columns', columns: b.columns.map((c) => c.map(content)) } : content(b)));
+	// Inside a column an image can only be as wide as the column ("full screen" would break out of the grid).
+	const inColumn = (b: ContentBlock): RenderedContent => content(b.type === 'image' ? { ...b, size: 'column' } : b);
+	const out = blocks.map((b): RenderedBlock => (b.type === 'columns' ? { type: 'columns', columns: b.columns.map((c) => c.map(inColumn)) } : content(b)));
 	return { blocks: out, notes: r.notes };
 }

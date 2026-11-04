@@ -52,6 +52,23 @@ export function verifyBackup(file: string): { tables: number; sources: number } 
 	}
 }
 
+/**
+ * Copies the uploads folder. On the same disk files are hard-linked (no extra space: uploads never change, their names
+ * are content fingerprints), so 14 backups do not mean 14 copies; on another disk they are copied.
+ */
+function copyUploads(from: string, to: string): void {
+	fs.mkdirSync(to, { recursive: true });
+	for (const f of fs.readdirSync(from)) {
+		const src = path.join(from, f);
+		const dst = path.join(to, f);
+		try {
+			fs.linkSync(src, dst);
+		} catch {
+			fs.copyFileSync(src, dst);
+		}
+	}
+}
+
 /** lemiesz-<stamp>.db -> lemiesz-<stamp>.uploads/ (the journal's uploaded images at that moment). */
 export const uploadsCopyOf = (dbFile: string) => dbFile.replace(/\.db$/, '.uploads');
 
@@ -80,7 +97,7 @@ export async function createBackup(dir = backupDir(), keep = Number(process.env.
 		verifyBackup(dest);
 		// Uploaded journal images live as files next to the database, not in it: copy them alongside.
 		const uploads = uploadsDir();
-		if (fs.existsSync(uploads)) fs.cpSync(uploads, uploadsCopyOf(dest), { recursive: true });
+		if (fs.existsSync(uploads)) copyUploads(uploads, uploadsCopyOf(dest));
 	} catch (e) {
 		fs.rmSync(dest, { force: true });
 		fs.rmSync(uploadsCopyOf(dest), { recursive: true, force: true });

@@ -37,6 +37,7 @@ function jpeg(w: number, h: number, withExif = true): Buffer {
 		Buffer.from([0xff, 0xd8]),
 		seg(0xe0, Buffer.from('JFIF\0\x01\x01\0\0\x01\0\x01\0\0', 'binary')),
 		...(withExif ? [seg(0xe1, Buffer.from('Exif\0\0GPS 52.2297N 21.0122E', 'binary'))] : []),
+		seg(0xee, Buffer.from('Adobe\0\x64\0\0\0\0\x02', 'binary')),
 		seg(0xfe, Buffer.from('comment: camera XYZ')),
 		seg(0xc0, sof),
 		Buffer.from([0xff, 0xda, 0x00, 0x02, 0x11, 0x22, 0xff, 0xd9])
@@ -74,6 +75,7 @@ describe('uploaded images', () => {
 		const j = stripMetadata(jpeg(64, 48), 'jpeg');
 		expect(j.toString('binary')).not.toMatch(/GPS|camera XYZ/);
 		expect(j.toString('binary')).toContain('JFIF');
+		expect(j.toString('binary')).toContain('Adobe'); // APP14 colour transform kept (CMYK/Adobe JPEGs need it)
 		expect(dimensions(j, 'jpeg')).toEqual({ width: 64, height: 48 });
 		const p = stripMetadata(png(4, 4, [Buffer.from('Author\0Jan Kowalski GPS')]), 'png');
 		expect(p.toString('binary')).not.toContain('GPS');

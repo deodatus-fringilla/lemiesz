@@ -59,8 +59,10 @@ export function stripMetadata(b: Buffer, type: ImageType): Buffer {
 			if (marker === 0xda) return Buffer.concat([...out, b.subarray(i)]); // image data follows: copy the rest
 			const len = b.readUInt16BE(i + 2);
 			const seg = b.subarray(i, i + 2 + len);
-			const drop = (marker >= 0xe1 && marker <= 0xef) || marker === 0xfe; // APP1..APP15 (EXIF, XMP…) and comments; APP0 (JFIF) and APP2 (ICC) stay
-			if (!(drop && marker !== 0xe2)) out.push(seg);
+			// Drop APP1..APP15 (EXIF, XMP, camera data…) and comments. Keep APP0 (JFIF), APP2 (ICC colour profile) and
+			// APP14 (Adobe colour transform: without it CMYK/Adobe JPEGs show wrong colours).
+			const drop = ((marker >= 0xe1 && marker <= 0xef) || marker === 0xfe) && marker !== 0xe2 && marker !== 0xee;
+			if (!drop) out.push(seg);
 			i += 2 + len;
 		}
 		return Buffer.concat([...out, b.subarray(i)]);

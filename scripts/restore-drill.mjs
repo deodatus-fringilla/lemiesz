@@ -110,6 +110,15 @@ try {
 	console.log('      row counts:', JSON.stringify(counts));
 	check('at least one user can sign in after a restore', (counts.users ?? 0) > 0);
 
+	// Uploaded journal images are files: the backup's .uploads/ folder must hold every one the database refers to.
+	const cols = tables.has('campaign_posters') ? db.prepare('PRAGMA table_info(campaign_posters)').all().map((c) => c.name) : [];
+	if (cols.includes('origin')) {
+		const wanted = db.prepare("SELECT image_path FROM campaign_posters WHERE origin = 'upload'").all().map((r) => path.basename(r.image_path));
+		const folder = backup.replace(/\.db$/, '.uploads');
+		const missing = wanted.filter((f) => !fs.existsSync(path.join(folder, f)));
+		check(`uploaded images: ${wanted.length - missing.length}/${wanted.length} present in ${path.basename(folder)}`, missing.length === 0, missing.slice(0, 5).join(', '));
+	}
+
 	// ---- 4. compare with the live database -----------------------------------------
 	if (livePath) {
 		const live = new Database(livePath, { readonly: true, fileMustExist: true });

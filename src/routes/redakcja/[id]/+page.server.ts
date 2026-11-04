@@ -23,7 +23,7 @@ import {
 } from '$lib/server/journal';
 import { describeCitations, listCitableSources } from '$lib/server/journal-citations';
 import { renderBlocks } from '$lib/server/journal-render';
-import { listJournalImages, registerUpload, setImageMeta } from '$lib/server/journal-images';
+import { assertUploadFields, listJournalImages, registerUpload, setImageMeta } from '$lib/server/journal-images';
 import { ImageUploadError, inspectUpload, storeUpload } from '$lib/server/image-files';
 import { setPosterStatus } from '$lib/server/posters';
 import { BlockError, validateBlocks } from '$lib/journal-blocks';
@@ -108,12 +108,12 @@ export const actions: Actions = {
 		const file = d.get('file');
 		if (!(file instanceof File)) return fail(400, { error: 'No image was sent' });
 		try {
+			const fields = { title: str(d, 'title'), artist: str(d, 'artist'), license: str(d, 'license'), alt: str(d, 'alt'), locale: str(d, 'locale') || 'pl', caption: str(d, 'caption') };
+			const actor = human(locals.user!.username);
+			assertUploadFields(fields, actor); // refuse before anything is written
 			const img = inspectUpload(Buffer.from(await file.arrayBuffer()));
 			const path = storeUpload(img.bytes, img.type);
-			const id = registerUpload(
-				{ path, width: img.width, height: img.height, title: str(d, 'title'), artist: str(d, 'artist'), license: str(d, 'license'), alt: str(d, 'alt'), locale: str(d, 'locale') || 'pl', caption: str(d, 'caption') },
-				human(locals.user!.username)
-			);
+			const id = registerUpload({ ...fields, path, width: img.width, height: img.height }, actor);
 			return { uploaded: id };
 		} catch (e) {
 			if (e instanceof ImageUploadError || e instanceof Error) return fail(400, { error: e.message });

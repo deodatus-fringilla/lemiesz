@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { human, system } from './review';
 import { createPoster, getPoster, setPosterStatus } from './posters';
-import { findImageProblems, getJournalImage, registerUpload, renderImage, setImageMeta, webVersion } from './journal-images';
+import { assertUploadFields, findImageProblems, getJournalImage, registerUpload, renderImage, setImageMeta, webVersion } from './journal-images';
 import { approveText, createArticle, publishText } from './journal';
 
 const ania = human('ania');
@@ -63,5 +63,10 @@ describe('journal images', () => {
 		const id = registerUpload(base, ania);
 		expect(getJournalImage(id)).toMatchObject({ origin: 'upload', status: 'draft', width: 800, height: 600, license: 'CC BY 4.0', alt_pl: 'Pole w słońcu' });
 		expect(registerUpload(base, ania)).toBe(id);
+	});
+
+	it('refuses an incomplete upload description before any file is written', () => {
+		expect(() => assertUploadFields({ title: 'x', artist: 'y', license: '', alt: 'z', locale: 'pl' }, ania)).toThrow(/licence/);
+		expect(() => assertUploadFields({ title: 'x', artist: 'y', license: 'own', alt: 'z', locale: 'pl' }, ania)).not.toThrow();
 	});
 });
