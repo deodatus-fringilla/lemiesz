@@ -18,7 +18,7 @@
 		"eval": "vitest run --config vitest.eval.config.ts",
 		"robots": "node scripts/robots/run.mjs",
 		"robots:sabotage": "node scripts/robots/sabotage.mjs",
-		"paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy cookie baseLocale --silent"
+		"paraglide": "node scripts/paraglide.mjs"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.7",
