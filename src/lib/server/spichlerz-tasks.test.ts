@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { db } from './db';
 import { addSpichlerzTask, createSpichlerzEntry, deleteSpichlerzEntry, getSpichlerzEntry, quickCapture } from './spichlerz';
 import { clearDoneTasks, deleteTask, editTask, listAllTasks, restoreTask, setTaskStatus } from './spichlerz-tasks';
 
@@ -96,5 +97,18 @@ describe('Spichlerz tasks by stable id', () => {
 		expect(restored).toMatchObject({ id: 'r1', task: 'b', status: 'pending' });
 		expect(restored.evil).toBeUndefined();
 		expect(() => restoreTask(id, { id: '', task: 'x' } as never, 0)).toThrow();
+	});
+
+	it('keeps one inbox identified by its flag, even after its title changes', () => {
+		const inbox = quickCapture({ text: 'pierwsze' });
+		db.prepare('UPDATE meeting_minutes SET title = ? WHERE id = ?').run('Zmieniony tytuł', inbox.id);
+		const again = quickCapture({ text: 'drugie' });
+		expect(again.id).toBe(inbox.id);
+		expect(getSpichlerzEntry(inbox.id)?.is_backlog).toBe(true);
+		expect(() => deleteSpichlerzEntry(inbox.id)).toThrow();
+		// The database itself refuses, even for a raw delete, and a second inbox is impossible.
+		expect(() => db.prepare('DELETE FROM meeting_minutes WHERE id = ?').run(inbox.id)).toThrow(/inbox/);
+		const other = createSpichlerzEntry({ title: 'inna', body: 'x' });
+		expect(() => db.prepare('UPDATE meeting_minutes SET is_inbox = 1 WHERE id = ?').run(other.id)).toThrow(/UNIQUE/);
 	});
 });

@@ -13,7 +13,7 @@ export const MEETING_CATEGORIES = [
 export type MeetingCategory = (typeof MEETING_CATEGORIES)[number];
 export type SpichlerzCategory = MeetingCategory;
 
-/** Title of the auto-created note that holds quick-captured tasks (the ToDo inbox). */
+/** Default title of the ToDo inbox. The inbox is identified by `meeting_minutes.is_inbox`, never by this title. */
 export const BACKLOG_TITLE = 'Podręczny rejestr zadań (Backlog)';
 
 export const COLOR_TAGS = ['zinc', 'amber', 'purple', 'blue', 'emerald', 'rose'] as const;
@@ -71,10 +71,11 @@ export type MeetingMinute = SpichlerzEntry;
 type SpichlerzRow = Omit<SpichlerzEntry, 'action_items' | 'is_pinned'> & {
 	action_items_json: string;
 	is_pinned: number;
+	is_inbox?: number;
 };
 
 function fromRow(r: SpichlerzRow): SpichlerzEntry {
-	const { action_items_json, is_pinned, ...rest } = r;
+	const { action_items_json, is_pinned, is_inbox, ...rest } = r;
 	let action_items: SpichlerzEntry['action_items'] = [];
 	try {
 		const parsed: ActionItem[] = JSON.parse(action_items_json || '[]');
@@ -93,7 +94,7 @@ function fromRow(r: SpichlerzRow): SpichlerzEntry {
 		...rest,
 		uid: `m-${r.id}`,
 		entry_type: 'minute',
-		is_backlog: r.title === BACKLOG_TITLE,
+		is_backlog: is_inbox === 1,
 		is_pinned: Boolean(is_pinned),
 		color_tag: COLOR_TAGS.includes(rest.color_tag as ColorTag) ? (rest.color_tag as ColorTag) : 'zinc',
 		action_items
@@ -622,11 +623,11 @@ export function quickCapture(input: {
 	};
 
 	const backlog = db
-		.prepare('SELECT id, action_items_json FROM meeting_minutes WHERE title = ? LIMIT 1')
-		.get(BACKLOG_TITLE) as { id: number; action_items_json: string } | undefined;
+		.prepare('SELECT id, action_items_json FROM meeting_minutes WHERE is_inbox = 1')
+		.get() as { id: number; action_items_json: string } | undefined;
 
 	if (!backlog) {
-		return createSpichlerzEntry({
+		const inbox = createSpichlerzEntry({
 			title: BACKLOG_TITLE,
 			category: 'operational',
 			is_pinned: true,
@@ -637,6 +638,8 @@ export function quickCapture(input: {
 			action_items: [newTask],
 			created_by: input.created_by || 'admin'
 		});
+		db.prepare('UPDATE meeting_minutes SET is_inbox = 1 WHERE id = ?').run(inbox.id);
+		return getSpichlerzEntry(inbox.id)!;
 	}
 
 	let items: ActionItem[] = [];
