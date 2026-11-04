@@ -51,15 +51,16 @@
 	<button
 		type="button"
 		onclick={ontodoradar}
-		class="flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-xs font-medium transition {viewMode === 'radar'
+		class="flex w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-xs font-medium transition {viewMode === 'radar'
 			? 'border-amber-500/40 bg-amber-500/15 text-amber-300'
 			: 'border-zinc-800 bg-zinc-950/60 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100'}"
 	>
-		<span class="flex items-center gap-2 truncate">
+		<!-- Wraps instead of truncating: the sidebar column is only 180px wide on xl screens. -->
+		<span class="flex min-w-0 items-center gap-2 text-left leading-tight">
 			<CheckSquare class="h-3.5 w-3.5 shrink-0 text-amber-400" />
-			<span class="truncate">{m.spichlerz_todo_radar()}</span>
+			<span class="min-w-0 break-words">{m.spichlerz_todo_radar()}</span>
 		</span>
-		<span class="rounded-full bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-amber-300">
+		<span class="shrink-0 rounded-full bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-amber-300">
 			{openTasksCount}
 		</span>
 	</button>
