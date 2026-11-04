@@ -22,3 +22,32 @@ export function groupPairs(articles: PublishedSummary[]): TreatisePair[] {
 	}
 	return pairs;
 }
+
+/** What groupEditorRows needs of a back-office row: which article and language it is, its calibre and its twin. */
+interface EditorRowLike {
+	id: number;
+	twin_id: number | null;
+	locale: string;
+	caliber: 'light' | 'heavy';
+}
+export interface EditorPair<T> {
+	key: string;
+	locale: string;
+	light: T | null;
+	heavy: T | null;
+}
+
+/** The id shared by the two twins of a rozprawe (the lower of the two article ids). */
+export const rozprawaId = (r: { id: number; twin_id: number | null }): number => Math.min(r.id, r.twin_id ?? r.id);
+
+/** Groups back-office rows (one per article and language) into one row per rozprawe and language, keeping the order of first appearance. */
+export function groupEditorRows<T extends EditorRowLike>(rows: T[]): EditorPair<T>[] {
+	const pairs = new Map<string, EditorPair<T>>();
+	for (const r of rows) {
+		const key = `${rozprawaId(r)}-${r.locale}`;
+		const pair = pairs.get(key) ?? { key, locale: r.locale, light: null, heavy: null };
+		pair[r.caliber] = r;
+		pairs.set(key, pair);
+	}
+	return [...pairs.values()];
+}

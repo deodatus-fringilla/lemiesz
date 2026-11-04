@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Feather from 'lucide-svelte/icons/feather';
 	import { m } from '$lib/paraglide/messages.js';
+	import { rozprawaId } from '$lib/journal-pairs';
 	import JournalArticleTable from '$lib/components/journal/JournalArticleTable.svelte';
 	import JournalNewArticleForm from '$lib/components/journal/JournalNewArticleForm.svelte';
 	import JournalLinkForm from '$lib/components/journal/JournalLinkForm.svelte';
@@ -11,7 +12,7 @@
 	let { data, form } = $props();
 	let checking = $state(false);
 	const tabs = $derived([
-		{ id: 'rozprawy', label: m.journal_tab_articles(), n: new Set(data.articles.map((a) => a.id)).size },
+		{ id: 'rozprawy', label: m.journal_tab_articles(), n: new Set(data.articles.map(rozprawaId)).size },
 		{ id: 'biblioteka', label: m.journal_tab_library(), n: data.links.length }
 	]);
 	const err = (which: string) => (form?.form === which || (!form?.form && which === 'article') ? (form?.error ?? null) : null);

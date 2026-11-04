@@ -23,3 +23,13 @@ describe('groupPairs', () => {
 		expect(rows.map((r) => (r.heavy ?? r.light)?.slug)).toEqual(['new', 'old-h']);
 	});
 });
+
+import { groupEditorRows } from './journal-pairs';
+
+describe('groupEditorRows', () => {
+	const row = (id: number, caliber: 'light' | 'heavy', twin_id: number | null, locale = 'pl') => ({ id, caliber, twin_id, locale });
+	it('puts twins of the same language in one row and keeps first-seen order', () => {
+		const rows = groupEditorRows([row(3, 'heavy', null), row(2, 'heavy', 1), row(1, 'light', 2), row(1, 'light', 2, 'en')]);
+		expect(rows.map((r) => [r.light?.id ?? null, r.heavy?.id ?? null, r.locale])).toEqual([[null, 3, 'pl'], [1, 2, 'pl'], [1, null, 'en']]);
+	});
+});
