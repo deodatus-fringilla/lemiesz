@@ -7,13 +7,13 @@
 	import SpichlerzTaskRow from './SpichlerzTaskRow.svelte';
 	import SpichlerzUndoToast from './SpichlerzUndoToast.svelte';
 	import { UndoToast, createTaskOps } from './task-ops.svelte';
+	import { today as clock } from './today.svelte';
 	import { countTasks } from './task-groups';
 
 	let { entryId, entryTitle = '', items }: { entryId: number; entryTitle?: string; items: TaskItem[] } = $props();
 
 	const toast = new UndoToast();
 	const ops = createTaskOps(toast);
-	const today = new Date().toLocaleDateString('sv-SE');
 	const tasks = $derived<RadarTask[]>(items.map((item) => ({ entryId, entryTitle, item })));
 	const counts = $derived(countTasks(tasks));
 </script>
@@ -27,7 +27,7 @@
 
 	{#if tasks.length > 0}
 		<ul class="space-y-1.5">
-			{#each tasks as t (t.item.id)}<SpichlerzTaskRow task={t} {ops} {today} />{/each}
+			{#each tasks as t (t.item.id)}<SpichlerzTaskRow task={t} {ops} today={clock.value} />{/each}
 		</ul>
 	{:else}
 		<p class="text-xs italic text-zinc-500">{m.meetings_no_items()}</p>

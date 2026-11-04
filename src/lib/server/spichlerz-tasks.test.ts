@@ -111,4 +111,15 @@ describe('Spichlerz tasks by stable id', () => {
 		const other = createSpichlerzEntry({ title: 'inna', body: 'x' });
 		expect(() => db.prepare('UPDATE meeting_minutes SET is_inbox = 1 WHERE id = ?').run(other.id)).toThrow(/UNIQUE/);
 	});
+
+	it("stamps the user's local completion date, ignoring malformed dates", () => {
+		const id = noteWithTasks('a', 'b');
+		const [a, b] = ids(id);
+		setTaskStatus(id, a, 'done', '2026-11-05');
+		setTaskStatus(id, b, 'done', "2026-11-05'; DROP");
+		const [ta, tb] = getSpichlerzEntry(id)!.action_items;
+		expect(ta.completed_at).toBe('2026-11-05');
+		expect(tb.completed_at).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+		expect(tb.completed_at).not.toContain('DROP');
+	});
 });

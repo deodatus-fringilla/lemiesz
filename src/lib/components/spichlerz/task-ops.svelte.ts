@@ -2,6 +2,7 @@ import { deserialize } from '$app/forms';
 import { invalidateAll } from '$app/navigation';
 import { m } from '$lib/paraglide/messages.js';
 import type { RadarTask, TaskItem } from '$lib/server/spichlerz-tasks';
+import { today } from './today.svelte';
 
 /** One transient message at a time, with an optional undo that stays available for a few seconds. */
 export class UndoToast {
@@ -40,7 +41,7 @@ export function createTaskOps(toast: UndoToast) {
 	const fail = () => toast.show(m.task_error(), undefined, true);
 
 	async function setDone(t: RadarTask, done: boolean, quiet = false) {
-		const r = await post('setTaskStatus', { entryId: t.entryId, taskId: t.item.id, status: done ? 'done' : 'pending' });
+		const r = await post('setTaskStatus', { entryId: t.entryId, taskId: t.item.id, status: done ? 'done' : 'pending', completedOn: today.value });
 		if (!r.ok) return fail();
 		if (!quiet) toast.show(done ? m.task_toast_done() : m.task_toast_reopened(), () => setDone(t, !done, true));
 	}

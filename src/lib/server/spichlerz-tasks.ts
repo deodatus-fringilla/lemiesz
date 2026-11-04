@@ -16,6 +16,7 @@ export interface RadarTask {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function load(entryId: number): SpichlerzEntry {
 	const entry = getSpichlerzEntry(entryId);
@@ -36,13 +37,17 @@ export function listAllTasks(): RadarTask[] {
 	);
 }
 
-export function setTaskStatus(entryId: number, taskId: string, status: 'pending' | 'done'): void {
+/**
+ * `completedOn` is the user's local date (the server may run in UTC, which would stamp a task done just after
+ * local midnight with yesterday's date). Anything that is not a plain YYYY-MM-DD falls back to the server date.
+ */
+export function setTaskStatus(entryId: number, taskId: string, status: 'pending' | 'done', completedOn?: string): void {
 	const entry = load(entryId);
 	const idx = indexOfTask(entry, taskId);
 	const items = entry.action_items.map((t, i) => {
 		if (i !== idx) return t;
 		const next: TaskItem = { ...t, status };
-		if (status === 'done') next.completed_at = today();
+		if (status === 'done') next.completed_at = completedOn && ISO_DATE.test(completedOn) ? completedOn : today();
 		else delete next.completed_at;
 		return next;
 	});

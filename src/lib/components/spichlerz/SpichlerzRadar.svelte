@@ -8,6 +8,7 @@
 	import SpichlerzTaskRow from './SpichlerzTaskRow.svelte';
 	import SpichlerzUndoToast from './SpichlerzUndoToast.svelte';
 	import { UndoToast, createTaskOps } from './task-ops.svelte';
+	import { today as clock } from './today.svelte';
 	import { assigneesOf, countTasks, filterByAssignee, groupOpenTasks, sortedDone, type DueGroup, type TaskTab } from './task-groups';
 
 	let {
@@ -30,11 +31,10 @@
 	let tab = $state<TaskTab>('open');
 	let assignee = $state('');
 
-	const today = new Date().toLocaleDateString('sv-SE');
 	const counts = $derived(countTasks(tasks));
 	const people = $derived(assigneesOf(tasks));
 	const filtered = $derived(filterByAssignee(tasks, assignee));
-	const groups = $derived(groupOpenTasks(filtered, today));
+	const groups = $derived(groupOpenTasks(filtered, clock.value));
 	const done = $derived(sortedDone(filtered));
 	const tabs = $derived<{ id: TaskTab; label: string; n: number }[]>([
 		{ id: 'open', label: m.task_tab_open(), n: counts.open },
@@ -97,7 +97,7 @@
 				{groupLabel[g.group]()} <span class="font-mono">({g.tasks.length})</span>
 			</h3>
 			<ul class="space-y-1.5">
-				{#each g.tasks as t (`${t.entryId}-${t.item.id}`)}<SpichlerzTaskRow task={t} {ops} {today} {onselectentry} />{/each}
+				{#each g.tasks as t (`${t.entryId}-${t.item.id}`)}<SpichlerzTaskRow task={t} {ops} today={clock.value} {onselectentry} />{/each}
 			</ul>
 		</section>
 	{:else}
@@ -111,7 +111,7 @@
 			<h3 class="text-[10px] font-semibold tracking-wider text-emerald-400/80 uppercase">{m.task_tab_done()} <span class="font-mono">({done.length})</span></h3>
 		{/if}
 		<ul class="space-y-1.5">
-			{#each done as t (`${t.entryId}-${t.item.id}`)}<SpichlerzTaskRow task={t} {ops} {today} {onselectentry} />{/each}
+			{#each done as t (`${t.entryId}-${t.item.id}`)}<SpichlerzTaskRow task={t} {ops} today={clock.value} {onselectentry} />{/each}
 		</ul>
 		{#if tab === 'done' && done.length === 0}<p class="rounded-xl border border-dashed border-zinc-800 p-8 text-center text-xs text-zinc-500 italic">{m.task_empty_done()}</p>{/if}
 	</section>

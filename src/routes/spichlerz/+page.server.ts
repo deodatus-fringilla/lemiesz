@@ -218,7 +218,7 @@ export const actions: Actions = {
 		const status = form.get('status') === 'done' ? 'done' : 'pending';
 		if (!entryId || !taskId) return fail(400, { error: 'Nieprawidłowe dane zadania' });
 		try {
-			setTaskStatus(entryId, taskId, status);
+			setTaskStatus(entryId, taskId, status, String(form.get('completedOn') || ''));
 			return { success: true };
 		} catch (e) {
 			return fail(500, { error: (e as Error).message });
