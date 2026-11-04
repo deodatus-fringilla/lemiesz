@@ -22,6 +22,11 @@
 		list: Snippet;
 		workspace: Snippet;
 	} = $props();
+
+	// On xl each column is pinned below the sticky app header and scrolls on its own,
+	// so scrolling one panel never drags the other two.
+	const pane =
+		'xl:sticky xl:top-[calc(var(--header-height,4rem)+1rem)] xl:max-h-[calc(100dvh-var(--header-height,4rem)-2rem)] xl:overflow-y-auto xl:overscroll-contain';
 </script>
 
 <!-- Mobile / Tablet View Switcher (<xl) -->
@@ -65,14 +70,14 @@
 		: 'grid-cols-1 xl:grid-cols-[180px_250px_minmax(0,1fr)] 2xl:grid-cols-[200px_300px_minmax(0,1fr)]'}"
 >
 	{#if !zenMode}
-		<div class={mobileTab === 'notebooks' ? 'block' : 'hidden xl:block'}>
+		<div class="{mobileTab === 'notebooks' ? 'block' : 'hidden xl:block'} {pane}">
 			{@render sidebar()}
 		</div>
-		<div class={mobileTab === 'list' ? 'block' : 'hidden xl:block'}>
+		<div class="{mobileTab === 'list' ? 'block' : 'hidden xl:block'} {pane}">
 			{@render list()}
 		</div>
 	{/if}
-	<div class={zenMode || mobileTab === 'workspace' ? 'block min-w-0' : 'hidden xl:block min-w-0'}>
+	<div class="{zenMode || mobileTab === 'workspace' ? 'block' : 'hidden xl:block'} min-w-0 {pane}">
 		{@render workspace()}
 	</div>
 </div>
