@@ -4,7 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { createBackup, listBackups, verifyBackup } from './backup';
+import { createBackup, listBackups, uploadsCopyOf, verifyBackup } from './backup';
+import { storeUpload } from './image-files';
 import { createUser } from './auth';
 import { makeArgument, makeSource } from './testing';
 import { db } from './db';
@@ -41,6 +42,23 @@ describe('backups', () => {
 	it('keeps only the newest N backups', async () => {
 		for (let i = 0; i < 4; i++) await createBackup(dir, 3);
 		expect(listBackups(dir).length).toBe(3);
+	});
+
+	it('copies uploaded journal images with each backup and prunes them together', async () => {
+		const webp = Buffer.from('RIFF\x1a\0\0\0WEBPVP8L\x05\0\0\0\x2f\0\0\0\0\0', 'binary');
+		const p = storeUpload(webp, 'webp');
+		const b = await createBackup(dir, 2);
+		const copied = path.join(uploadsCopyOf(b.path), path.basename(p));
+		expect(fs.readFileSync(copied).equals(webp)).toBe(true);
+		const own = path.join(dir, 'uploads-prune');
+		for (let i = 0; i < 4; i++) await createBackup(own, 2);
+		// Kept backups each have their images; no image folder outlives its database copy (names can be reused
+		// within one second, so compare folders with the kept files rather than with remembered names).
+		const kept = listBackups(own);
+		expect(kept).toHaveLength(2);
+		for (const k of kept) expect(fs.existsSync(uploadsCopyOf(k.path)), k.file).toBe(true);
+		const folders = fs.readdirSync(own).filter((f) => f.endsWith('.uploads')).sort();
+		expect(folders).toEqual(kept.map((k) => path.basename(uploadsCopyOf(k.path))).sort());
 	});
 
 	it('refuses to call a corrupt file a backup', () => {

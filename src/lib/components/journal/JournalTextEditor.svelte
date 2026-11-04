@@ -4,6 +4,7 @@
 	import type { ArticleText } from '$lib/server/journal';
 	import type { CitableSource } from '$lib/server/journal-citations';
 	import BlockEditor from './blocks/BlockEditor.svelte';
+	import type { JournalImage } from '$lib/server/journal-images';
 
 	/** The working copy of one language: title, lead and the blocks. Saving a change starts a new revision (draft). */
 	let {
@@ -11,10 +12,11 @@
 		locale,
 		caliber,
 		sources,
+		images = [],
 		error = null,
 		dirty = $bindable(false),
 		wide = $bindable(false)
-	}: { text: ArticleText | null; locale: string; caliber: 'light' | 'heavy'; sources: CitableSource[]; error?: string | null; dirty?: boolean; wide?: boolean } = $props();
+	}: { text: ArticleText | null; locale: string; caliber: 'light' | 'heavy'; sources: CitableSource[]; images?: JournalImage[]; error?: string | null; dirty?: boolean; wide?: boolean } = $props();
 	const input = 'w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-amber-500/50 focus:outline-none';
 </script>
 
@@ -22,7 +24,7 @@
 	<input type="hidden" name="locale" value={locale} />
 	<input name="title" lang={locale} required value={text?.title ?? ''} placeholder={m.journal_field_title()} class="{input} text-lg font-semibold" />
 	<textarea name="lead" lang={locale} rows="3" placeholder={m.journal_field_lead()} class="{input} text-sm">{text?.lead ?? ''}</textarea>
-	<BlockEditor initial={text?.blocks ?? []} {locale} {caliber} {sources} bind:dirty bind:wide />
+	<BlockEditor initial={text?.blocks ?? []} {locale} {caliber} {sources} {images} bind:dirty bind:wide />
 	<p class="text-[11px] text-zinc-500">{m.journal_body_hint()}</p>
 	{#if error}<p class="text-xs text-rose-300">{error}</p>{/if}
 	<div class="flex flex-wrap items-center gap-3">

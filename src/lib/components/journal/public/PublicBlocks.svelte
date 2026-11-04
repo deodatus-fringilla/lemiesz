@@ -17,6 +17,14 @@
 		<aside class="callout">{@html b.html}</aside>
 	{:else if b.type === 'separator'}
 		<hr />
+	{:else if b.type === 'image'}
+		<figure class="img img-{b.size}">
+			<img src={b.src} alt={b.alt} width={b.width ?? undefined} height={b.height ?? undefined} loading="lazy" decoding="async" />
+			<figcaption>
+				{#if b.caption}<span>{b.caption}</span>{/if}
+				<span class="credit">{b.credit}{b.license ? ` · ${b.license}` : ''}</span>
+			</figcaption>
+		</figure>
 	{:else if b.type === 'columns'}
 		<div class="cols cols-{b.columns.length}">
 			{#each b.columns as col, c (c)}<div class="col"><PublicBlocks blocks={col} /></div>{/each}

@@ -2,6 +2,7 @@ import { Marked, type Tokens } from 'marked';
 import { db } from '$lib/server/db';
 import { citationIds } from '$lib/server/journal-citations';
 import type { Block, ContentBlock } from '$lib/journal-blocks';
+import { renderImage, type RenderedImage } from '$lib/server/journal-images';
 
 /**
  * Turns a published article body (Markdown + [[src:ID]] / [[quote:ID]]) into safe HTML with numbered footnotes.
@@ -115,7 +116,8 @@ export type RenderedContent =
 	| { type: 'html'; html: string }
 	| { type: 'heading'; level: 2 | 3 | 4; text: string }
 	| { type: 'callout'; html: string }
-	| { type: 'separator' };
+	| { type: 'separator' }
+	| RenderedImage;
 export type RenderedBlock = RenderedContent | { type: 'columns'; columns: RenderedContent[][] };
 
 export function renderBlocks(blocks: Block[], locale: string): { blocks: RenderedBlock[]; notes: Footnote[] } {
@@ -132,6 +134,8 @@ export function renderBlocks(blocks: Block[], locale: string): { blocks: Rendere
 				return { type: 'html', html: r.markdown(`[[quote:${b.sourceId}]]`) };
 			case 'separator':
 				return { type: 'separator' };
+			case 'image':
+				return renderImage(b, locale) ?? { type: 'html', html: '' };
 		}
 	};
 	const out = blocks.map((b): RenderedBlock => (b.type === 'columns' ? { type: 'columns', columns: b.columns.map((c) => c.map(content)) } : content(b)));

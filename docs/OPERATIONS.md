@@ -27,6 +27,7 @@ The database must live on a **local disk** (SQLite WAL). The app refuses to star
 ## 2. Backups
 
 * The app takes a verified backup **every 24 h** (`BACKUP_INTERVAL_HOURS`, `0` turns it off) and keeps the newest **14** (`BACKUP_KEEP`). Backups are single self-contained `.db` files in `BACKUP_DIR` (default: `backups/` next to the database, i.e. on the `/data` volume).
+* **Journal images** uploaded in Redakcja are files in `uploads/journal/` next to the database, not rows in it. Each backup copies them into a folder with the same name as the `.db` file (`lemiesz-<stamp>.uploads/`), pruned together with it. When you copy backups off the machine, copy these folders too.
 * **That is not enough on its own.** A backup on the same disk does not survive losing the disk. Either point `BACKUP_DIR` at another disk, or copy the folder off the machine regularly. The dashboard shows an info notice while backups share the database's disk.
 * Take one now: Dashboard → *Back up now* (admin). Before an upgrade, always do this first.
 * Copy out of Docker: `docker cp lemiesz-app:/data/backups ./lemiesz-backups`.
@@ -48,7 +49,7 @@ It runs SQLite's integrity and foreign-key checks, confirms the full-text indexe
 
 1. `docker compose stop app`
 2. Pick the backup and run the drill on it first.
-3. Replace the live files: copy the backup over `lemiesz.db` in the data volume **and delete any `lemiesz.db-wal` / `lemiesz.db-shm`** next to it.
+3. Replace the live files: copy the backup over `lemiesz.db` in the data volume **and delete any `lemiesz.db-wal` / `lemiesz.db-shm`** next to it. If the backup has a matching `.uploads/` folder, copy its files into `uploads/journal/` next to the database (journal images).
 4. `docker compose start app`; check the dashboard and the review queue.
 
 Restored data is exactly as of the backup. Anything approved, edited or reviewed since then must be redone.

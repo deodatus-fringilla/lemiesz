@@ -10,4 +10,4 @@ export const libraryPath = (lang: JournalLang) => `${prefix(lang)}/biblioteka`;
 export const feedPath = (lang: JournalLang) => `${prefix(lang)}/czasopismo/rss.xml`;
 
 /** Paths readers may open without signing in (read-only: the hook allows GET and HEAD only). */
-export const PUBLIC_JOURNAL_PATH = /^\/(?:en\/)?(?:czasopismo|biblioteka)(?:\/|$)|^\/sitemap\.xml$/;
+export const PUBLIC_JOURNAL_PATH = /^\/(?:en\/)?(?:czasopismo|biblioteka)(?:\/|$)|^\/sitemap\.xml$|^\/images\/uploads\/[^/]+$/;

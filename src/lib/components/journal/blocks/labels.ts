@@ -8,7 +8,8 @@ export function blockLabel(t: BlockType): string {
 		columns: m.blocks_type_columns,
 		quote: m.blocks_type_quote,
 		callout: m.blocks_type_callout,
-		separator: m.blocks_type_separator
+		separator: m.blocks_type_separator,
+		image: m.blocks_type_image
 	};
 	return l[t]();
 }

@@ -31,7 +31,7 @@
 	{#if !data.text}<p class="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-200">{m.journal_new_language({ lang: data.locale.toUpperCase() })}</p>{/if}
 
 	<div class="grid gap-5 {wide ? '' : 'xl:grid-cols-[minmax(0,1fr)_20rem]'}">
-		<JournalTextEditor text={data.text} locale={data.locale} caliber={data.article.caliber} sources={data.sources} bind:dirty bind:wide />
+		<JournalTextEditor text={data.text} locale={data.locale} caliber={data.article.caliber} sources={data.sources} images={data.images} bind:dirty bind:wide />
 		<aside class={wide ? 'grid items-start gap-4 lg:grid-cols-3' : 'space-y-4'}>
 			{#if data.text}
 				<JournalReviewPanel text={data.text} locale={data.locale} approvals={data.approvals} counted={data.counted} required={data.required} {dirty} me={data.me} {blocked} />

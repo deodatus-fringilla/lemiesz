@@ -5,11 +5,12 @@
 	 */
 	import type { RenderedBlock } from '$lib/server/journal-render';
 	import PublicBlocks from './PublicBlocks.svelte';
-	let { blocks, caliber }: { blocks: RenderedBlock[]; caliber: 'light' | 'heavy' } = $props();
-	const hasColumns = $derived(blocks.some((b) => b.type === 'columns'));
+	/** `breakout`: "full" images span the whole screen (public page only; in the editor's preview they stay inside). */
+	let { blocks, caliber, breakout = false }: { blocks: RenderedBlock[]; caliber: 'light' | 'heavy'; breakout?: boolean } = $props();
+	const hasColumns = $derived(blocks.some((b) => b.type === 'columns' || (b.type === 'image' && b.size !== 'column')));
 </script>
 
-<div class="article {caliber}" class:wide={hasColumns}><PublicBlocks {blocks} /></div>
+<div class="article {caliber}" class:wide={hasColumns} class:breakout><PublicBlocks {blocks} /></div>
 
 <style>
 	.article {
@@ -96,8 +97,39 @@
 		color: var(--color-crimson-300);
 	}
 	/* Article with columns: the page is wider, but running text keeps a comfortable measure. */
-	.article.wide > :global(:not(.cols)) {
+	.article.wide > :global(:not(.cols):not(.img-wide):not(.img-full)) {
 		max-width: 68ch;
+	}
+	.article :global(figure.img) {
+		margin: 0 0 1.4em;
+	}
+	.article :global(figure.img img) {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-radius: 0.5rem;
+		background: rgb(24 24 27);
+	}
+	.article.breakout :global(figure.img-full) {
+		width: 100vw;
+		margin-left: calc(50% - 50vw);
+	}
+	.article.breakout :global(figure.img-full img) {
+		border-radius: 0;
+	}
+	.article :global(figcaption) {
+		margin-top: 0.5em;
+		font-family: ui-sans-serif, system-ui, sans-serif;
+		font-size: 0.8rem;
+		line-height: 1.5;
+		color: rgb(161 161 170);
+	}
+	.article.breakout :global(figure.img-full figcaption) {
+		padding: 0 1rem;
+	}
+	.article :global(figcaption .credit) {
+		display: block;
+		color: rgb(113 113 122);
 	}
 	.article :global(.cols) {
 		display: grid;

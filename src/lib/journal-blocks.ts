@@ -10,7 +10,12 @@ export type ContentBlock =
 	| { type: 'heading'; level: HeadingLevel; text: string }
 	| { type: 'quote'; sourceId: number }
 	| { type: 'callout'; md: string }
-	| { type: 'separator' };
+	| { type: 'separator' }
+	| { type: 'image'; imageId: number; size: ImageSize; caption?: string };
+
+/** column = the width of the text; wide = the article's full width; full = edge to edge of the screen. */
+export const IMAGE_SIZES = ['column', 'wide', 'full'] as const;
+export type ImageSize = (typeof IMAGE_SIZES)[number];
 
 /** Columns hold content blocks only: one level deep, never columns inside columns. */
 export type ColumnsBlock = { type: 'columns'; columns: ContentBlock[][] };
@@ -22,6 +27,7 @@ export const BLOCK_LIMITS = {
 	blocksPerColumn: 100,
 	mdChars: 60_000,
 	headingChars: 300,
+	captionChars: 600,
 	// ~75 pages. Kept well below the server's 512 KB request limit (Polish letters take 2 bytes, JSON adds escapes).
 	totalChars: 150_000
 };
@@ -64,6 +70,12 @@ export function validateBlocks(input: unknown, opts: { allowEmpty?: boolean } = 
 				return { type: 'quote', sourceId: b.sourceId as number };
 			case 'separator':
 				return { type: 'separator' };
+			case 'image': {
+				if (!Number.isInteger(b.imageId) || (b.imageId as number) <= 0) throw new BlockError(`${where}: image needs a picture`);
+				const size = (IMAGE_SIZES as readonly string[]).includes(b.size as string) ? (b.size as ImageSize) : 'column';
+				const caption = b.caption === undefined || b.caption === null ? '' : text(b.caption, BLOCK_LIMITS.captionChars, `${where} caption`).trim();
+				return caption ? { type: 'image', imageId: b.imageId as number, size, caption } : { type: 'image', imageId: b.imageId as number, size };
+			}
 			case 'columns':
 				throw new BlockError(`${where}: columns cannot be placed inside columns`);
 			default:
@@ -99,6 +111,11 @@ function hasContent(b: Block): boolean {
 	return b.type !== 'separator';
 }
 
+/** Every image block, wherever it sits (columns included). */
+export function imageBlocks(blocks: Block[]): Extract<ContentBlock, { type: 'image' }>[] {
+	return blocks.flatMap((b) => (b.type === 'columns' ? b.columns.flat() : [b])).filter((b): b is Extract<ContentBlock, { type: 'image' }> => b.type === 'image');
+}
+
 /** A Markdown body (articles written before blocks existed, or the plain editor) as blocks. */
 export const blocksFromMarkdown = (md: string): Block[] => [{ type: 'text', md }];
 
@@ -118,6 +135,8 @@ export function flattenBlocks(blocks: Block[]): string {
 				return `[[quote:${b.sourceId}]]`;
 			case 'separator':
 				return '---';
+			case 'image':
+				return b.caption ?? '';
 			case 'columns':
 				return b.columns.map((c) => c.map(one).filter(Boolean).join('\n\n')).join('\n\n');
 		}

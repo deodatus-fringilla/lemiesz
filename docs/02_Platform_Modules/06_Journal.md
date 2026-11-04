@@ -66,6 +66,15 @@ Since migration 014 an article text is a **list of blocks** (`src/lib/journal-bl
   blocks (approved sources only; a quotation needs approved text in the article's language), and Edycja / Podgląd /
   Obok. The preview is rendered by the server with the readers' renderer. Columns stack when their space is narrow
   (container queries), in the editor, the preview and the public page alike.
+* **Images** (block `image`: picture, size `column` / `wide` / `full`, optional caption). The library is
+  `campaign_posters` (migration 015 adds `alt_pl`, `alt_en`, `license`, `origin`, `width`, `height`). Readers see an image
+  only when it is approved **and** has alternative text in the article's language; approval and publishing check this,
+  like citations. Existing heavy JPEGs are served from pre-made light copies in `static/images/web/` (same path, `.webp`,
+  ~100–300 kB); originals stay untouched. Uploads are shrunk in the browser (canvas, ≤ 1600 px, ≤ 400 kB, WebP or JPEG;
+  this also drops EXIF/GPS), then re-checked on the server (`image-files.ts`: real type by content, size, dimensions,
+  metadata stripped again; SVG refused), stored in `data/uploads/journal/<content-hash>` and served at
+  `/images/uploads/…`: approved ones publicly with a one-year cache, drafts only to editors. An uploaded image needs an
+  author, a licence and alternative text. Changing alt text or licence sends an approved image back to draft.
 * Unsaved changes block approving and publishing (they apply to the saved version) and warn before leaving the page.
 * A new article starts empty (title only); an empty article cannot be approved.
 

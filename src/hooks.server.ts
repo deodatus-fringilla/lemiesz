@@ -112,7 +112,9 @@ const headersHandle: Handle = async ({ event, resolve }) => {
 	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 	response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 	if (!response.headers.has('Cache-Control') && event.url.pathname.startsWith('/api/')) response.headers.set('Cache-Control', 'no-store');
-	if (isPublicRead(event.url.pathname, event.request.method)) response.headers.set('Cache-Control', journalCacheControl(!!event.locals.user, response));
+	// An endpoint that decided its own caching (e.g. uploaded images) keeps it.
+	if (isPublicRead(event.url.pathname, event.request.method) && !event.url.pathname.startsWith('/images/uploads/'))
+		response.headers.set('Cache-Control', journalCacheControl(!!event.locals.user, response));
 	return response;
 };
 

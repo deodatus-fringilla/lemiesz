@@ -23,6 +23,9 @@ import {
 } from '$lib/server/journal';
 import { describeCitations, listCitableSources } from '$lib/server/journal-citations';
 import { renderBlocks } from '$lib/server/journal-render';
+import { listJournalImages, registerUpload, setImageMeta } from '$lib/server/journal-images';
+import { ImageUploadError, inspectUpload, storeUpload } from '$lib/server/image-files';
+import { setPosterStatus } from '$lib/server/posters';
 import { BlockError, validateBlocks } from '$lib/journal-blocks';
 import { human } from '$lib/server/review';
 import { db } from '$lib/server/db';
@@ -55,6 +58,7 @@ export const load: PageServerLoad = ({ params, url, locals }) => {
 		citations: text ? describeCitations(text.body, locale) : [],
 		twins: twinCandidates(id, locale),
 		sources: listCitableSources(),
+		images: listJournalImages(),
 		calibers: CALIBERS,
 		me: locals.user!.username
 	};
@@ -97,6 +101,45 @@ export const actions: Actions = {
 			if (e instanceof BlockError || e instanceof SyntaxError) return fail(400, { error: e.message });
 			throw e;
 		}
+	},
+	/** An image compressed in the browser; checked, cleaned and stored here, then registered as a draft. */
+	uploadImage: async ({ request, locals }) => {
+		const d = await request.formData();
+		const file = d.get('file');
+		if (!(file instanceof File)) return fail(400, { error: 'No image was sent' });
+		try {
+			const img = inspectUpload(Buffer.from(await file.arrayBuffer()));
+			const path = storeUpload(img.bytes, img.type);
+			const id = registerUpload(
+				{ path, width: img.width, height: img.height, title: str(d, 'title'), artist: str(d, 'artist'), license: str(d, 'license'), alt: str(d, 'alt'), locale: str(d, 'locale') || 'pl', caption: str(d, 'caption') },
+				human(locals.user!.username)
+			);
+			return { uploaded: id };
+		} catch (e) {
+			if (e instanceof ImageUploadError || e instanceof Error) return fail(400, { error: e.message });
+			throw e;
+		}
+	},
+	/** Alternative text / licence of a library image (public words: an approved image goes back to draft). */
+	imageMeta: async ({ request, locals }) => {
+		const d = await request.formData();
+		const id = Number(d.get('imageId'));
+		if (!Number.isInteger(id) || id <= 0) return fail(400, { error: 'Missing image' });
+		const locale = str(d, 'locale') === 'en' ? 'en' : 'pl';
+		try {
+			setImageMeta(id, { [locale === 'en' ? 'alt_en' : 'alt_pl']: str(d, 'alt'), license: str(d, 'license') }, human(locals.user!.username));
+			return { success: true };
+		} catch (e) {
+			return fail(400, { error: (e as Error).message });
+		}
+	},
+	imageStatus: async ({ request, locals }) => {
+		const d = await request.formData();
+		const id = Number(d.get('imageId'));
+		const to = str(d, 'to');
+		if (!Number.isInteger(id) || id <= 0 || !['human_approved', 'flagged', 'draft'].includes(to)) return fail(400, { error: 'Bad request' });
+		setPosterStatus(id, to as 'human_approved', human(locals.user!.username));
+		return { success: true };
 	},
 	saveMeta: async ({ params, request, locals }) => {
 		const id = articleId(params);

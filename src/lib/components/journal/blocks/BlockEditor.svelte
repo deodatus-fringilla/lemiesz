@@ -7,6 +7,8 @@
 	import { toJson, withKeys } from './block-utils';
 	import BlockList from './BlockList.svelte';
 	import BlockPreview from './BlockPreview.svelte';
+	import { setEditorContext } from './editor-context';
+	import type { JournalImage } from '$lib/server/journal-images';
 
 	/**
 	 * The journal's only article editor. Blocks live here until saved; the surrounding form posts them as `blocks`.
@@ -17,9 +19,18 @@
 		locale,
 		caliber,
 		sources,
+		images = [],
 		dirty = $bindable(false),
 		wide = $bindable(false)
-	}: { initial: Block[]; locale: string; caliber: 'light' | 'heavy'; sources: CitableSource[]; dirty?: boolean; wide?: boolean } = $props();
+	}: { initial: Block[]; locale: string; caliber: 'light' | 'heavy'; sources: CitableSource[]; images?: JournalImage[]; dirty?: boolean; wide?: boolean } = $props();
+	setEditorContext({
+		get images() {
+			return images;
+		},
+		get locale() {
+			return locale;
+		}
+	});
 
 	let blocks = $state(withKeys(untrack(() => initial)));
 	// Reactive on purpose: after Save the editor's text is usually identical, so only this change re-checks `dirty`.

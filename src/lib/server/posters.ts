@@ -30,6 +30,13 @@ export interface PosterRecord {
 	pair_key: string | null;
 	moral_quote_pl: string | null;
 	moral_quote_en: string | null;
+	/** Journal images: alternative text per language, licence, where the file comes from, pixel size. */
+	alt_pl: string | null;
+	alt_en: string | null;
+	license: string | null;
+	origin: 'static' | 'upload';
+	width: number | null;
+	height: number | null;
 	reviewed_by: string | null;
 	reviewed_at: string | null;
 	created_by: string;
@@ -71,7 +78,13 @@ const fromRow = (r: PosterRow): PosterRecord => ({
 	layer: (r.layer as PosterLayer) ?? 'standalone',
 	pair_key: r.pair_key ?? null,
 	moral_quote_pl: r.moral_quote_pl ?? null,
-	moral_quote_en: r.moral_quote_en ?? null
+	moral_quote_en: r.moral_quote_en ?? null,
+	alt_pl: r.alt_pl ?? null,
+	alt_en: r.alt_en ?? null,
+	license: r.license ?? null,
+	origin: r.origin ?? 'static',
+	width: r.width ?? null,
+	height: r.height ?? null
 });
 
 const clean = (v?: string | null) => (v && v.trim() ? v.trim() : null);

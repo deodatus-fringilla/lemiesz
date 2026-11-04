@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { uploadsDir } from '$lib/server/image-files';
 import Database from 'better-sqlite3';
 import { DB_FILE, db } from '$lib/server/db';
 
@@ -51,6 +52,9 @@ export function verifyBackup(file: string): { tables: number; sources: number } 
 	}
 }
 
+/** lemiesz-<stamp>.db -> lemiesz-<stamp>.uploads/ (the journal's uploaded images at that moment). */
+export const uploadsCopyOf = (dbFile: string) => dbFile.replace(/\.db$/, '.uploads');
+
 /**
  * Online backup using SQLite's backup API: safe while the app is serving requests (WAL mode), and the
  * result is a single self-contained file. The new file is verified before old ones are pruned.
@@ -74,12 +78,19 @@ export async function createBackup(dir = backupDir(), keep = Number(process.env.
 			copy.close();
 		}
 		verifyBackup(dest);
+		// Uploaded journal images live as files next to the database, not in it: copy them alongside.
+		const uploads = uploadsDir();
+		if (fs.existsSync(uploads)) fs.cpSync(uploads, uploadsCopyOf(dest), { recursive: true });
 	} catch (e) {
 		fs.rmSync(dest, { force: true });
+		fs.rmSync(uploadsCopyOf(dest), { recursive: true, force: true });
 		throw new Error(`Backup failed: ${(e as Error).message}`);
 	}
 
-	for (const old of listBackups(dir).slice(Math.max(keep, 1))) fs.rmSync(old.path, { force: true });
+	for (const old of listBackups(dir).slice(Math.max(keep, 1))) {
+		fs.rmSync(old.path, { force: true });
+		fs.rmSync(uploadsCopyOf(old.path), { recursive: true, force: true });
+	}
 	const st = fs.statSync(dest);
 	return { file, path: dest, bytes: st.size, createdAt: st.mtime };
 }

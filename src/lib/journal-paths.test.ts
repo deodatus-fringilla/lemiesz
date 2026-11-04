@@ -12,9 +12,9 @@ describe('public journal paths', () => {
 	});
 
 	it('opens exactly the journal to readers, nothing internal', () => {
-		for (const p of ['/czasopismo', '/czasopismo/', '/czasopismo/a-b', '/czasopismo/rss.xml', '/en/czasopismo/x', '/biblioteka', '/en/biblioteka', '/sitemap.xml'])
+		for (const p of ['/czasopismo', '/czasopismo/', '/czasopismo/a-b', '/czasopismo/rss.xml', '/en/czasopismo/x', '/biblioteka', '/en/biblioteka', '/sitemap.xml', '/images/uploads/abc.webp'])
 			expect(PUBLIC_JOURNAL_PATH.test(p), p).toBe(true);
-		for (const p of ['/redakcja', '/redakcja/1', '/en/redakcja', '/czasopismox', '/fr/czasopismo', '/spichlerz', '/api/letters', '/x/czasopismo', '/sitemap.xml.bak'])
+		for (const p of ['/redakcja', '/redakcja/1', '/en/redakcja', '/czasopismox', '/fr/czasopismo', '/spichlerz', '/api/letters', '/x/czasopismo', '/sitemap.xml.bak', '/images/uploads/a/b.webp', '/images/other.jpg'])
 			expect(PUBLIC_JOURNAL_PATH.test(p), p).toBe(false);
 	});
 });
