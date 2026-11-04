@@ -77,7 +77,9 @@ export function scrollToMatch(mark: HTMLElement) {
 	while (box && !(box.scrollHeight > box.clientHeight && /(auto|scroll)/.test(getComputedStyle(box).overflowY))) {
 		box = box.parentElement;
 	}
-	if (!box) return mark.scrollIntoView({ block: 'center', behavior: 'smooth' });
+	// No scrolling panel (the text already fits): leave everything where it is. Falling back to
+	// scrollIntoView here would scroll the whole page and push the search box off-screen.
+	if (!box) return;
 	const offset = mark.getBoundingClientRect().top - box.getBoundingClientRect().top;
 	box.scrollTo({ top: box.scrollTop + offset - box.clientHeight / 2, behavior: 'smooth' });
 }
