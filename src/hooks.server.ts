@@ -1,4 +1,5 @@
 import { redirect, type Handle } from '@sveltejs/kit';
+import { PUBLIC_JOURNAL_PATH } from '$lib/journal-paths';
 import { sequence } from '@sveltejs/kit/hooks';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { RateLimiter, spendsLlm } from '$lib/server/rateLimit';
@@ -33,6 +34,9 @@ const llmBudget = new RateLimiter(Number(process.env.LLM_DAILY_REQUESTS ?? 300),
 const DEV_USER: SessionUser = { id: 'dev', username: 'dev', role: 'admin' };
 const PUBLIC_PATHS = ['/', '/login', '/api/health'];
 
+/** The public journal (articles, Biblioteka, RSS, sitemap) is readable without signing in, but only read. */
+const isPublicRead = (path: string, method: string) => (method === 'GET' || method === 'HEAD') && PUBLIC_JOURNAL_PATH.test(path);
+
 function jsonError(status: number, error: string) {
 	return new Response(JSON.stringify({ error }), {
 		status,
@@ -58,7 +62,7 @@ const authHandle: Handle = async ({ event, resolve }) => {
 
 	event.locals.user = authDisabled() ? DEV_USER : getSessionUser(event.cookies.get(SESSION_COOKIE));
 
-	if (!event.locals.user && !PUBLIC_PATHS.includes(path)) {
+	if (!event.locals.user && !PUBLIC_PATHS.includes(path) && !isPublicRead(path, event.request.method)) {
 		if (path.startsWith('/api/')) return jsonError(401, 'Unauthorized');
 		redirect(303, '/login');
 	}

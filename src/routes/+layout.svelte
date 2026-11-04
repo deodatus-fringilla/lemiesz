@@ -21,6 +21,7 @@
 	import PanelRightOpen from 'lucide-svelte/icons/panel-right-open';
 	import X from 'lucide-svelte/icons/x';
 	import { m } from '$lib/paraglide/messages.js';
+	import { PUBLIC_JOURNAL_PATH } from '$lib/journal-paths';
 	import { locales, setLocale } from '$lib/paraglide/runtime.js';
 
 	let { data, children } = $props();
@@ -34,10 +35,13 @@
 	const PANEL_KEY = 'nav-panel-hidden';
 	/** Spichlerz is a 3-column workspace: the panel starts hidden there (until the user shows it), shown elsewhere. */
 	const isSpichlerz = $derived(page.url.pathname.startsWith('/spichlerz'));
-	/** Spichlerz keeps its own remembered choice so it never overrides the preference for other pages. */
-	const panelKey = $derived(isSpichlerz ? `${PANEL_KEY}:spichlerz` : PANEL_KEY);
-	// Start from the page default during SSR, so /spichlerz never flashes the panel before hydration.
-	let panelHidden = $state(page.url.pathname.startsWith('/spichlerz'));
+	/** Public journal pages are for reading: the panel starts hidden there too. */
+	const isJournal = $derived(PUBLIC_JOURNAL_PATH.test(page.url.pathname));
+	/** Pages with their own remembered choice, so they never override the preference for other pages. */
+	const panelScope = $derived(isSpichlerz ? 'spichlerz' : isJournal ? 'journal' : null);
+	const panelKey = $derived(panelScope ? `${PANEL_KEY}:${panelScope}` : PANEL_KEY);
+	// Start from the page default during SSR, so these pages never flash the panel before hydration.
+	let panelHidden = $state(page.url.pathname.startsWith('/spichlerz') || PUBLIC_JOURNAL_PATH.test(page.url.pathname));
 
 	$effect(() => {
 		let stored: string | null = null;
@@ -46,7 +50,7 @@
 		} catch {
 			// Storage can be blocked (private mode, disabled site data); fall back to the page default.
 		}
-		panelHidden = stored === null ? isSpichlerz : stored === '1';
+		panelHidden = stored === null ? panelScope !== null : stored === '1';
 	});
 
 	function togglePanel() {
@@ -65,7 +69,7 @@
 	]);
 
 	const publicPages = ['/', '/neutralna-polska', '/za-i-przeciw', '/polskie-mocarstwo'];
-	const isPublicPage = $derived(publicPages.includes(page.url.pathname));
+	const isPublicPage = $derived(publicPages.includes(page.url.pathname) || PUBLIC_JOURNAL_PATH.test(page.url.pathname));
 
 	const nav = $derived([
 		{ href: '/dashboard', label: m.nav_dashboard(), icon: LayoutDashboard, badge: 0 },

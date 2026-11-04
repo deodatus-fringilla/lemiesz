@@ -1,7 +1,27 @@
 # Module 06 · Journal "Lemiesz. Czy Neutralność jest możliwa? Rozprawy geoideologiczne"
 
-> **Status:** steps 1 (data layer) and 2 (editorial back-office, `/redakcja`, behind login) implemented.
-> Public pages (step 3) and hardening (step 4) follow.
+> **Status:** steps 1 (data layer), 2 (editorial back-office, `/redakcja`, behind login) and 3 (public pages)
+> implemented. Hardening (step 4) follows.
+
+## Public pages (no login, read-only)
+
+| URL | What |
+|---|---|
+| `/czasopismo` · `/en/czasopismo` | Front page: latest light and heavy treatises; `?q=` search, `?kaliber=light\|heavy`, `?tag=` |
+| `/czasopismo/<slug>` · `/en/czasopismo/<slug>` | One published article: calibre typography, verbatim quotations, footnotes, twin link, language switch |
+| `/biblioteka` · `/en/biblioteka` | Approved library items with an editor's note; `?typ=` filter |
+| `/czasopismo/rss.xml` · `/en/czasopismo/rss.xml` | RSS 2.0, latest 30 |
+| `/sitemap.xml` | Both sections and every published article, per language (English only once something is published) |
+
+* The hook opens these paths for **GET/HEAD only** (`PUBLIC_JOURNAL_PATH` in `src/lib/journal-paths.ts`); everything
+  else, including `/redakcja`, still needs a session. Public pages send public fields only.
+* Polish has no URL prefix, English lives under `/en` (route `[[lang=journallang]]`). Page text follows the URL's
+  language (`m.key({}, { locale })`), not the app's language cookie.
+* Rendering (`journal-render.ts`): raw HTML in Markdown is shown as text, only http(s)/mailto/#/relative links survive
+  (`rel="noopener noreferrer nofollow"`), images become links (CSP and readers' privacy), and a `[[quote:ID]]` shows
+  stored text only while it is human-approved in that language; otherwise it degrades to a footnote.
+* Not yet: caching headers (the layout carries the signed-in user, so pages must not be cached publicly as they are),
+  link checking, a step-4 public-route audit.
 
 ## Back-office (`/redakcja`)
 

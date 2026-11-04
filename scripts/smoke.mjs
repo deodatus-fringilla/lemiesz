@@ -61,6 +61,18 @@ try {
 	check('login page is public', r.status === 200);
 	r = await fetch(`${BASE}/`, noRedirect);
 	check('landing page is public and quotes 1 Samuel 8', r.status === 200 && (await r.text()).includes('1 Samuel 8:4'), String(r.status));
+	// The public journal: readable without a session, read-only, with the same security headers; its office stays locked.
+	r = await fetch(`${BASE}/czasopismo`, noRedirect);
+	check('journal front page is public', r.status === 200, String(r.status));
+	check('journal pages carry the Content-Security-Policy', /script-src[^;]*'self'/.test(r.headers.get('content-security-policy') ?? ''));
+	r = await fetch(`${BASE}/biblioteka`, noRedirect);
+	check('journal library is public', r.status === 200, String(r.status));
+	r = await fetch(`${BASE}/czasopismo/rss.xml`);
+	check('journal RSS feed is public XML', r.status === 200 && (r.headers.get('content-type') ?? '').includes('rss+xml'), String(r.status));
+	r = await fetch(`${BASE}/czasopismo/nie-ma-takiej`, noRedirect);
+	check('an unpublished or missing article is 404', r.status === 404, String(r.status));
+	r = await fetch(`${BASE}/redakcja`, noRedirect);
+	check('journal back-office without a session redirects to /login', r.status === 303 && r.headers.get('location') === '/login', String(r.status));
 	r = await fetch(`${BASE}/dashboard`, noRedirect);
 	check('dashboard without a session redirects to /login', r.status === 303 && r.headers.get('location') === '/login', String(r.status));
 
