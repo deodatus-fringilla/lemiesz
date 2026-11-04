@@ -30,7 +30,10 @@ export function assertLocalFilesystem(dbPath: string): void {
 		);
 	};
 
-	if (resolved.startsWith('\\\\') || resolved.startsWith('//')) fail('is on a UNC network share');
+	// Check the path as given too: on Linux/macOS path.resolve() treats a Windows UNC path ("\\\\server\\share")
+	// as a relative file name and would hide it behind the working directory.
+	const isUnc = (p: string) => p.startsWith('\\\\') || p.startsWith('//');
+	if (isUnc(dbPath) || isUnc(resolved)) fail('is on a UNC network share');
 
 	if (process.platform === 'linux') {
 		try {
