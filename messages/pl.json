@@ -665,6 +665,7 @@
 	"task_captured_note": "Notatka zapisana",
 	"task_error": "Coś poszło nie tak",
 	"task_open_entry": "Otwórz notatkę",
+	"task_inbox_label": "Skrzynka ToDo",
 	"spichlerz_bridge_content": "Przekuj w Szkic (/content)",
 	"spichlerz_tasks_count": "{done}/{total} zadań",
 	"spichlerz_empty_selection": "Wybierz notatkę z listy lub utwórz nowy wpis w Spichlerzu.",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addSpichlerzTask, createSpichlerzEntry, getSpichlerzEntry } from './spichlerz';
+import { addSpichlerzTask, createSpichlerzEntry, deleteSpichlerzEntry, getSpichlerzEntry, quickCapture } from './spichlerz';
 import { clearDoneTasks, deleteTask, editTask, listAllTasks, restoreTask, setTaskStatus } from './spichlerz-tasks';
 
 const noteWithTasks = (...tasks: string[]) => {
@@ -63,5 +63,15 @@ describe('Spichlerz tasks by stable id', () => {
 		expect(clearDoneTasks()).toBeGreaterThanOrEqual(1);
 		expect(getSpichlerzEntry(id)!.action_items.map((t) => t.task)).toEqual(['keep']);
 		expect(listAllTasks().some((t) => t.item.id === drop)).toBe(false);
+	});
+
+	it('protects the ToDo inbox note from deletion, but not ordinary notes', () => {
+		const inbox = quickCapture({ text: 'zadanie do skrzynki' });
+		expect(getSpichlerzEntry(inbox.id)?.is_backlog).toBe(true);
+		expect(() => deleteSpichlerzEntry(inbox.id)).toThrow(/Backlog/);
+		expect(getSpichlerzEntry(inbox.id)).not.toBeNull();
+		const plain = createSpichlerzEntry({ title: 'zwykła', body: 'x' });
+		expect(getSpichlerzEntry(plain.id)?.is_backlog).toBe(false);
+		expect(deleteSpichlerzEntry(plain.id)).toBe(true);
 	});
 });

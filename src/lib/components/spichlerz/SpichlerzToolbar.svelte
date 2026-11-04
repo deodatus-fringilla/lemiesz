@@ -33,6 +33,26 @@
 	} = $props();
 </script>
 
+{#if entry.is_backlog}
+	<!-- ToDo inbox: only what makes sense for a task list (no colour, pin, category, edit, delete or draft bridge). -->
+	<div class="flex flex-col gap-3 border-b border-zinc-800/80 border-l-4 border-l-amber-400 pb-3 pl-3">
+		<div class="flex items-center justify-between gap-2.5">
+			<span class="inline-flex items-center gap-1.5 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-300">
+				<Inbox class="h-3 w-3" />
+				{m.task_inbox_label()}
+			</span>
+			<button
+				type="button"
+				onclick={ontogglezen}
+				class="inline-flex items-center gap-1 rounded-lg border border-zinc-700 bg-zinc-800/80 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700"
+			>
+				{#if zenMode}<Minimize2 class="h-3.5 w-3.5" />{:else}<Maximize2 class="h-3.5 w-3.5" />{/if}
+				<span class="hidden sm:inline">{zenMode ? m.spichlerz_zen_exit() : m.spichlerz_zen_enter()}</span>
+			</button>
+		</div>
+		<h2 class="text-lg sm:text-xl font-bold text-zinc-100 leading-snug break-words">{entry.title}</h2>
+	</div>
+{:else}
 <div class="flex flex-col gap-3 border-b border-zinc-800/80 pb-3 border-l-4 pl-3 {COLOR_BORDER_STYLES[entry.color_tag]}">
 	<!-- Top Bar: Metadata Badges + Action Controls -->
 	<div class="flex flex-wrap items-center justify-between gap-2.5">
@@ -188,3 +208,4 @@
 		<span>{m.spichlerz_bridge_content()}</span>
 	</a>
 </div>
+{/if}

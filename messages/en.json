@@ -665,6 +665,7 @@
 	"task_captured_note": "Note saved",
 	"task_error": "Something went wrong",
 	"task_open_entry": "Open the note",
+	"task_inbox_label": "ToDo inbox",
 	"spichlerz_bridge_content": "Forge into Draft (/content)",
 	"spichlerz_tasks_count": "{done}/{total} tasks",
 	"spichlerz_empty_selection": "Select a note from the list or create a new entry in the Granary.",

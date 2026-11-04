@@ -13,6 +13,9 @@ export const MEETING_CATEGORIES = [
 export type MeetingCategory = (typeof MEETING_CATEGORIES)[number];
 export type SpichlerzCategory = MeetingCategory;
 
+/** Title of the auto-created note that holds quick-captured tasks (the ToDo inbox). */
+export const BACKLOG_TITLE = 'Podręczny rejestr zadań (Backlog)';
+
 export const COLOR_TAGS = ['zinc', 'amber', 'purple', 'blue', 'emerald', 'rose'] as const;
 export type ColorTag = (typeof COLOR_TAGS)[number];
 
@@ -59,6 +62,8 @@ export interface SpichlerzEntry {
 	media_artist?: string | null;
 	source_ref?: string | null;
 	kuznia_id?: number | null;
+	/** True for the ToDo inbox note: it is protected from deletion and shown with a slim header. */
+	is_backlog?: boolean;
 }
 
 export type MeetingMinute = SpichlerzEntry;
@@ -81,6 +86,7 @@ function fromRow(r: SpichlerzRow): SpichlerzEntry {
 		...rest,
 		uid: `m-${r.id}`,
 		entry_type: 'minute',
+		is_backlog: r.title === BACKLOG_TITLE,
 		is_pinned: Boolean(is_pinned),
 		color_tag: COLOR_TAGS.includes(rest.color_tag as ColorTag) ? (rest.color_tag as ColorTag) : 'zinc',
 		action_items
@@ -505,6 +511,9 @@ export function updateSpichlerzEntry(id: number, input: Partial<SpichlerzInput>)
 }
 
 export function deleteSpichlerzEntry(id: number): boolean {
+	if (getSpichlerzEntry(id)?.is_backlog) {
+		throw new Error('Skrzynki ToDo (Backlog) nie można usunąć — zawiera wszystkie szybkie zadania.');
+	}
 	const info = db.prepare('DELETE FROM meeting_minutes WHERE id = ?').run(id);
 	return info.changes > 0;
 }
@@ -569,7 +578,6 @@ export function addSpichlerzTask(
 	});
 }
 
-const BACKLOG_TITLE = 'Podręczny rejestr zadań (Backlog)';
 
 export function quickCapture(input: {
 	text: string;
