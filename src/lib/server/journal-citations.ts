@@ -55,3 +55,23 @@ export function describeCitations(body: string, locale: string): CitationInfo[] 
 		return [{ ...c, label: s ? `${s.work} — ${s.section_ref}` : null, problem: problems.get(c.token) ?? null }];
 	});
 }
+
+export interface CitableSource {
+	id: number;
+	work: string;
+	section_ref: string;
+	/** Languages with human-approved text: [[quote:ID]] needs the article's language here. */
+	locales: string[];
+}
+
+/** Sources that can be cited at all (at least one human-approved text), for the editor's source picker. */
+export function listCitableSources(): CitableSource[] {
+	const rows = db
+		.prepare(
+			`SELECT s.id, s.work, s.section_ref, group_concat(t.locale) AS locales
+			 FROM sources s JOIN source_texts t ON t.source_id = s.id AND t.review = 'human_approved'
+			 GROUP BY s.id ORDER BY s.work, s.section_ref`
+		)
+		.all() as { id: number; work: string; section_ref: string; locales: string }[];
+	return rows.map((r) => ({ ...r, locales: r.locales.split(',') }));
+}

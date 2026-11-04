@@ -21,7 +21,9 @@ import {
 	updateArticleMeta,
 	type Caliber
 } from '$lib/server/journal';
-import { describeCitations } from '$lib/server/journal-citations';
+import { describeCitations, listCitableSources } from '$lib/server/journal-citations';
+import { renderBlocks } from '$lib/server/journal-render';
+import { BlockError, validateBlocks } from '$lib/journal-blocks';
 import { human } from '$lib/server/review';
 import { db } from '$lib/server/db';
 
@@ -52,6 +54,7 @@ export const load: PageServerLoad = ({ params, url, locals }) => {
 		required: requiredApprovals(article.caliber),
 		citations: text ? describeCitations(text.body, locale) : [],
 		twins: twinCandidates(id, locale),
+		sources: listCitableSources(),
 		calibers: CALIBERS,
 		me: locals.user!.username
 	};
@@ -73,9 +76,27 @@ export const actions: Actions = {
 		const id = articleId(params);
 		const d = await request.formData();
 		const locale = LOCALES.includes(str(d, 'locale')) ? str(d, 'locale') : 'pl';
+		let blocks: unknown;
+		try {
+			blocks = JSON.parse(String(d.get('blocks') ?? '[]'));
+		} catch {
+			return fail(400, { error: 'The article content could not be read; reload the page' });
+		}
 		return attempt(() => {
-			saveText(id, locale, { title: str(d, 'title'), lead: str(d, 'lead'), body: String(d.get('body') ?? '') }, human(locals.user!.username));
+			saveText(id, locale, { title: str(d, 'title'), lead: str(d, 'lead'), blocks }, human(locals.user!.username));
 		});
+	},
+	/** Renders unsaved blocks exactly as readers would see them (same renderer as the public page). */
+	preview: async ({ request }) => {
+		const d = await request.formData();
+		const locale = LOCALES.includes(str(d, 'locale')) ? str(d, 'locale') : 'pl';
+		try {
+			const blocks = validateBlocks(JSON.parse(String(d.get('blocks') ?? '[]')), { allowEmpty: true });
+			return { preview: renderBlocks(blocks, locale) };
+		} catch (e) {
+			if (e instanceof BlockError || e instanceof SyntaxError) return fail(400, { error: e.message });
+			throw e;
+		}
 	},
 	saveMeta: async ({ params, request, locals }) => {
 		const id = articleId(params);

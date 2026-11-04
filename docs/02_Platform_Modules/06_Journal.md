@@ -61,7 +61,13 @@ Since migration 014 an article text is a **list of blocks** (`src/lib/journal-bl
 * Existing texts were converted to one text block by the migration; nothing had to be republished.
 * Rendering (`renderBlocks`) numbers footnotes across the whole article, columns included. Columns sit side by side
   from 768 px and stack on phones; running text keeps a 68-character measure in an article with columns.
-* Until the block editor (step 2 of the D-lite plan) the plain editor saves its text as a single text block.
+* **The block editor** (`src/lib/components/journal/blocks/`) is the only article editor: cards with "+" between them,
+  ↑/↓ and ✕, a Markdown toolbar (bold, italic, link, lists, footnote), a source picker for `[[src:ID]]` and quotation
+  blocks (approved sources only; a quotation needs approved text in the article's language), and Edycja / Podgląd /
+  Obok. The preview is rendered by the server with the readers' renderer. Columns stack when their space is narrow
+  (container queries), in the editor, the preview and the public page alike.
+* Unsaved changes block approving and publishing (they apply to the saved version) and warn before leaving the page.
+* A new article starts empty (title only); an empty article cannot be approved.
 
 ## Back-office (`/redakcja`)
 

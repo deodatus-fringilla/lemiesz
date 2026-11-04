@@ -33,7 +33,8 @@ const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object
  * Turns untrusted input (a saved form, an old row) into well-formed blocks, or throws a BlockError naming the first
  * problem. Unknown fields are dropped, so nothing unexpected is ever stored or rendered.
  */
-export function validateBlocks(input: unknown): Block[] {
+/** `allowEmpty`: a draft may have no content yet (approval checks for content separately). */
+export function validateBlocks(input: unknown, opts: { allowEmpty?: boolean } = {}): Block[] {
 	if (!Array.isArray(input)) throw new BlockError('Blocks must be a list');
 	let count = 0;
 	let chars = 0;
@@ -87,7 +88,7 @@ export function validateBlocks(input: unknown): Block[] {
 	});
 	if (count > BLOCK_LIMITS.blocks) throw new BlockError(`An article may have at most ${BLOCK_LIMITS.blocks} blocks`);
 	if (chars > BLOCK_LIMITS.totalChars) throw new BlockError('The article is too long');
-	if (!blocks.some(hasContent)) throw new BlockError('The article is empty');
+	if (!opts.allowEmpty && !blocks.some(hasContent)) throw new BlockError('The article is empty');
 	return blocks;
 }
 
@@ -127,7 +128,7 @@ export function flattenBlocks(blocks: Block[]): string {
 export function parseStoredBlocks(json: string | null, fallbackMd: string | null): Block[] {
 	if (json) {
 		try {
-			return validateBlocks(JSON.parse(json));
+			return validateBlocks(JSON.parse(json), { allowEmpty: true });
 		} catch {
 			// fall through to the body
 		}

@@ -9,9 +9,10 @@ import { BlockError, blocksFromMarkdown, flattenBlocks, parseStoredBlocks, valid
 /** Blocks from the caller (block editor) or a Markdown body (plain editor, pipeline), validated; JournalError on problems. */
 function toBlocks(input: { blocks?: unknown; body?: string }): Block[] {
 	try {
-		return validateBlocks(input.blocks !== undefined ? input.blocks : blocksFromMarkdown(input.body ?? ''));
+		// A draft may start empty (the new-article form only asks for the title); approval requires content.
+		return validateBlocks(input.blocks !== undefined ? input.blocks : input.body?.trim() ? blocksFromMarkdown(input.body) : [], { allowEmpty: true });
 	} catch (e) {
-		if (e instanceof BlockError) throw new JournalError(e.message === 'The article is empty' ? 'Body is required' : e.message);
+		if (e instanceof BlockError) throw new JournalError(e.message);
 		throw e;
 	}
 }
@@ -238,6 +239,7 @@ export function approveText(articleId: number, locale: string, actor: Actor): { 
 	const text = getText(articleId, locale);
 	if (!article || !text) throw new JournalError(`Article ${articleId} (${locale}) not found`);
 	if (text.status === 'flagged') throw new JournalError('A flagged text must be edited before it can be approved');
+	if (!text.body.trim()) throw new JournalError('The article is empty: write something before approving it');
 	const problems = findCitationProblems(text.body, locale);
 	if (problems.length) throw new JournalError(`Citations that do not resolve to approved sources: ${problems.map((p) => p.token).join(', ')}`);
 	const required = requiredApprovals(article.caliber);

@@ -13,6 +13,8 @@
 
 <style>
 	.article {
+		/* Columns follow the space this article actually has (page, editor preview), not the window. */
+		container-type: inline-size;
 		color: rgb(228 228 231);
 		overflow-wrap: break-word;
 	}
@@ -102,10 +104,12 @@
 		gap: 2rem;
 		margin: 0 0 1.15em;
 	}
-	@media (min-width: 768px) {
+	@container (min-width: 34rem) {
 		.article :global(.cols-2) {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
+	}
+	@container (min-width: 48rem) {
 		.article :global(.cols-3) {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}

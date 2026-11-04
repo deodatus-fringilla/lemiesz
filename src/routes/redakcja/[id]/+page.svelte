@@ -12,6 +12,8 @@
 	let { data, form } = $props();
 	const blocked = $derived(data.citations.some((c) => c.problem));
 	const anyLive = $derived(data.text?.published_body != null);
+	let dirty = $state(false);
+	let wide = $state(false);
 </script>
 
 <svelte:head><title>{data.text?.title ?? m.journal_backoffice_title()} · {m.app_title()}</title></svelte:head>
@@ -28,11 +30,11 @@
 	{#if form?.error}<p role="alert" class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-300">{form.error}</p>{/if}
 	{#if !data.text}<p class="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-200">{m.journal_new_language({ lang: data.locale.toUpperCase() })}</p>{/if}
 
-	<div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
-		<JournalTextEditor text={data.text} locale={data.locale} />
-		<aside class="space-y-4">
+	<div class="grid gap-5 {wide ? '' : 'xl:grid-cols-[minmax(0,1fr)_20rem]'}">
+		<JournalTextEditor text={data.text} locale={data.locale} caliber={data.article.caliber} sources={data.sources} bind:dirty bind:wide />
+		<aside class={wide ? 'grid items-start gap-4 lg:grid-cols-3' : 'space-y-4'}>
 			{#if data.text}
-				<JournalReviewPanel text={data.text} locale={data.locale} approvals={data.approvals} counted={data.counted} required={data.required} me={data.me} {blocked} />
+				<JournalReviewPanel text={data.text} locale={data.locale} approvals={data.approvals} counted={data.counted} required={data.required} {dirty} me={data.me} {blocked} />
 				<JournalCitationList citations={data.citations} />
 			{/if}
 			<JournalMetaForm article={data.article} twins={data.twins} />

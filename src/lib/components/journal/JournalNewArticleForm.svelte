@@ -21,7 +21,7 @@
 	</fieldset>
 	<input name="title" required placeholder={m.journal_field_title()} class={input} />
 	<input name="lead" placeholder={m.journal_field_lead()} class={input} />
-	<textarea name="body" required rows="5" placeholder={m.journal_field_body()} class="{input} font-mono"></textarea>
+	<p class="text-[11px] text-zinc-500">{m.journal_new_hint()}</p>
 	<div class="grid gap-3 sm:grid-cols-2">
 		<input name="author" placeholder={m.journal_field_author()} class={input} />
 		<input name="tags" placeholder={m.journal_field_tags()} class={input} />

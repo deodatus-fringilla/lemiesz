@@ -47,7 +47,6 @@ export const actions: Actions = {
 					locale: str(d, 'locale') || 'pl',
 					title: str(d, 'title'),
 					lead: str(d, 'lead'),
-					body: String(d.get('body') ?? ''),
 					author: str(d, 'author') || null,
 					tags: str(d, 'tags') || null
 				},

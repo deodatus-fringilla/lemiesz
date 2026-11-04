@@ -15,7 +15,8 @@
 		counted,
 		required,
 		me,
-		blocked
+		blocked,
+		dirty = false
 	}: {
 		text: ArticleText;
 		locale: string;
@@ -26,12 +27,14 @@
 		me: string;
 		/** Unresolved citations: approving is refused by the server, so the button says why up front. */
 		blocked: boolean;
+		/** The editor has unsaved changes: approval and publishing apply to the saved version, so they wait. */
+		dirty?: boolean;
 	} = $props();
 
 	const iApproved = $derived(approvals.some((a) => a.approved_by === me));
 	const live = $derived(text.published_revision === text.revision);
 	const approvedEnough = $derived(text.status !== 'flagged' && counted >= required);
-	const canPublish = $derived(approvedEnough && !live);
+	const canPublish = $derived(approvedEnough && !live && !dirty);
 	const steps = $derived([
 		{ done: true, label: m.journal_step_saved({ revision: text.revision }) },
 		{ done: approvedEnough, label: m.journal_step_approved({ have: counted, need: required }) },
@@ -64,10 +67,11 @@
 
 	<form method="POST" action="?/approve" use:enhance>
 		<input type="hidden" name="locale" value={locale} />
-		<button class="{btn} border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20" disabled={iApproved || blocked || text.status === 'flagged'}>
+		<button class="{btn} border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20" disabled={iApproved || blocked || dirty || text.status === 'flagged'}>
 			{iApproved ? m.journal_approved_by_you() : m.journal_approve_revision({ revision: text.revision })}
 		</button>
 	</form>
+	{#if dirty}<p class="text-[11px] text-amber-300">{m.blocks_save_first()}</p>{/if}
 	{#if blocked}<p class="text-[11px] text-rose-300">{m.journal_blocked_citations()}</p>{/if}
 	{#if text.status === 'flagged'}<p class="text-[11px] text-rose-300">{m.journal_flagged_hint_v2()}</p>{/if}
 

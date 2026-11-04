@@ -271,7 +271,10 @@ describe('journal articles', () => {
 
 	it('refuses malformed blocks and keeps the plain editor working (Markdown body becomes one text block)', () => {
 		expect(() => createArticle({ caliber: 'light', locale: 'pl', title: 'X', blocks: [{ type: 'video' }] }, ania)).toThrow(/unknown block type/);
-		expect(() => createArticle({ caliber: 'light', locale: 'pl', title: 'X', body: '   ' }, ania)).toThrow(/Body is required/);
+		// A draft may start empty (the new-article form asks only for the title), but an empty article cannot be approved.
+		const empty = createArticle({ caliber: 'light', locale: 'pl', title: 'Pusty szkic', body: '   ' }, ania);
+		expect(getText(empty, 'pl')!.blocks).toEqual([]);
+		expect(() => approveText(empty, 'pl', ania)).toThrow(/empty/);
 		const id = article('light', 'Zwykły tekst z edytora.');
 		expect(getText(id, 'pl')!.blocks).toEqual([{ type: 'text', md: 'Zwykły tekst z edytora.' }]);
 	});
