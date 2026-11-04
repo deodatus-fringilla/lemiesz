@@ -32,7 +32,7 @@
 			title: m.power_oxymoron_3_title(),
 			body: m.power_oxymoron_3_body(),
 			icon: Scale,
-			color: 'border-purple-500/30 bg-purple-500/10 text-purple-300'
+			color: 'border-crimson-500/30 bg-crimson-500/10 text-crimson-300'
 		},
 		{
 			num: '04',

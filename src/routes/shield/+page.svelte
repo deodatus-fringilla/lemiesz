@@ -731,7 +731,7 @@
 				</div>
 				<a
 					href="/spichlerz?thread_id={data.korona?.thread?.id ?? 1}"
-					class="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/20 shrink-0"
+					class="inline-flex items-center gap-1.5 rounded-lg border border-crimson-500/40 bg-crimson-500/10 px-3 py-1.5 text-xs font-semibold text-crimson-300 hover:bg-crimson-500/20 shrink-0"
 				>
 					<ScrollText class="h-4 w-4" />
 					{m.shield_dossier_add_meeting_btn()}
@@ -739,9 +739,9 @@
 			</div>
 
 			{#if data.koronaMeetings && data.koronaMeetings.length > 0}
-				<div class="rounded-xl border border-purple-500/30 bg-purple-500/5 p-4 space-y-3">
+				<div class="rounded-xl border border-crimson-500/30 bg-crimson-500/5 p-4 space-y-3">
 					<div class="flex items-center justify-between">
-						<h3 class="flex items-center gap-2 text-sm font-bold text-purple-300">
+						<h3 class="flex items-center gap-2 text-sm font-bold text-crimson-300">
 							<ScrollText class="h-4 w-4" />
 							{m.shield_tab_dossier_meetings()} ({data.koronaMeetings.length})
 						</h3>
@@ -758,7 +758,7 @@
 								</div>
 								<p class="text-zinc-400 line-clamp-2">{mtg.summary}</p>
 								<div class="flex items-center justify-between pt-1 border-t border-zinc-800/80 text-[11px]">
-									<span class="text-purple-400 font-medium">
+									<span class="text-crimson-400 font-medium">
 										{#if mtg.letter_turn}
 											Po liście #{mtg.letter_turn}
 										{:else}

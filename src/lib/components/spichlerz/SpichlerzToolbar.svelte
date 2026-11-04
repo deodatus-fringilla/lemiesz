@@ -40,7 +40,7 @@
 				{entry.meeting_date}
 			</span>
 			{#if entry.entry_type === 'letter'}
-				<span class="inline-flex items-center gap-1 rounded border px-2 py-0.5 font-semibold text-xs whitespace-nowrap {entry.letter_direction === 'outbound' ? 'border-purple-500/40 bg-purple-500/20 text-purple-300' : 'border-sky-500/40 bg-sky-500/20 text-sky-300'}">
+				<span class="inline-flex items-center gap-1 rounded border px-2 py-0.5 font-semibold text-xs whitespace-nowrap {entry.letter_direction === 'outbound' ? 'border-crimson-500/40 bg-crimson-500/20 text-crimson-300' : 'border-sky-500/40 bg-sky-500/20 text-sky-300'}">
 					{#if entry.letter_direction === 'outbound'}
 						<Mail class="h-3 w-3 shrink-0" />
 						<span>Tura #{entry.letter_turn} · Wychodzący do Posła Brauna</span>
@@ -130,7 +130,7 @@
 			{:else}
 				<a
 					href="/shield?tab=dossier"
-					class="inline-flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-xs font-semibold text-purple-300 hover:bg-purple-500/20 whitespace-nowrap"
+					class="inline-flex items-center gap-1 rounded-lg border border-crimson-500/40 bg-crimson-500/10 px-2.5 py-1 text-xs font-semibold text-crimson-300 hover:bg-crimson-500/20 whitespace-nowrap"
 				>
 					<Shield class="h-3.5 w-3.5" />
 					<span>{m.spichlerz_open_dossier()}</span>
@@ -146,7 +146,7 @@
 <!-- Canonical Links & Bridge Strip -->
 <div class="flex flex-wrap items-center gap-2 text-xs">
 	{#if entry.thread_title}
-		<a href="/shield?tab=dossier" class="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-purple-300 hover:underline">
+		<a href="/shield?tab=dossier" class="inline-flex items-center gap-1.5 rounded-lg border border-crimson-500/30 bg-crimson-500/10 px-2.5 py-1 text-crimson-300 hover:underline">
 			<Link2 class="h-3.5 w-3.5" />
 			<span>{entry.thread_title} {entry.letter_turn ? `(#${entry.letter_turn})` : ''}</span>
 		</a>

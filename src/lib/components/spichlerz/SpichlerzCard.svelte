@@ -40,7 +40,7 @@
 				<span
 					class="inline-flex items-center gap-1 rounded border px-1.5 py-0.2 text-[10px] font-semibold {entry.letter_direction ===
 					'outbound'
-						? 'border-purple-500/40 bg-purple-500/20 text-purple-300'
+						? 'border-crimson-500/40 bg-crimson-500/20 text-crimson-300'
 						: 'border-sky-500/40 bg-sky-500/20 text-sky-300'}"
 				>
 					{#if entry.letter_direction === 'outbound'}
@@ -78,7 +78,7 @@
 				</span>
 			{/if}
 			{#if entry.thread_title && entry.entry_type !== 'letter'}
-				<span class="inline-flex items-center gap-0.5 text-purple-300 truncate max-w-[130px]">
+				<span class="inline-flex items-center gap-0.5 text-crimson-300 truncate max-w-[130px]">
 					<Link2 class="h-2.5 w-2.5 shrink-0" />
 					<span class="truncate">{entry.thread_title}</span>
 				</span>

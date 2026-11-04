@@ -34,7 +34,7 @@
 			title: m.hedgehog_spike_3_title(),
 			desc: m.hedgehog_spike_3_desc(),
 			icon: EyeOff,
-			highlight: 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+			highlight: 'bg-crimson-500/10 text-crimson-400 border-crimson-500/30'
 		},
 		{
 			num: '04',
