@@ -9,6 +9,8 @@ export interface HighlightParams {
 	key?: unknown;
 	/** Scroll the first match to the middle of its scroll container. */
 	scroll?: boolean;
+	/** Receives the marks (in document order) so a UI can step through them; it then owns the scrolling. */
+	nav?: { attach(marks: HTMLElement[], scroll: boolean): void };
 }
 
 const MARK_CLASS = 'rounded-sm bg-amber-400/40 px-0.5 text-amber-50 ring-1 ring-amber-400/60';
@@ -70,7 +72,7 @@ function apply(root: HTMLElement, re: RegExp): HTMLElement | null {
 }
 
 /** Centres the match inside its nearest scrollable ancestor only, so the page itself never jumps. */
-function scrollToMatch(mark: HTMLElement) {
+export function scrollToMatch(mark: HTMLElement) {
 	let box = mark.parentElement;
 	while (box && !(box.scrollHeight > box.clientHeight && /(auto|scroll)/.test(getComputedStyle(box).overflowY))) {
 		box = box.parentElement;
@@ -86,9 +88,9 @@ export function highlight(node: HTMLElement, initial: HighlightParams) {
 	function run(scroll: boolean) {
 		clear(node);
 		const re = params.query ? buildMatcher(params.query) : null;
-		if (!re) return;
-		const first = apply(node, re);
-		if (first && scroll) requestAnimationFrame(() => scrollToMatch(first));
+		const first = re ? apply(node, re) : null;
+		if (params.nav) params.nav.attach([...node.querySelectorAll<HTMLElement>('mark[data-hl]')], scroll);
+		else if (first && scroll) requestAnimationFrame(() => scrollToMatch(first));
 	}
 
 	run(!!params.scroll);

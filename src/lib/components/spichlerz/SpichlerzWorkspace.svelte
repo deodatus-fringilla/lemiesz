@@ -3,6 +3,8 @@
 	import Maximize2 from 'lucide-svelte/icons/maximize-2';
 	import Minimize2 from 'lucide-svelte/icons/minimize-2';
 	import { highlight } from '$lib/actions/highlight';
+	import { HitNavigator } from '$lib/actions/hit-navigator.svelte';
+	import SpichlerzHitBar from './SpichlerzHitBar.svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import type { SpichlerzEntry } from '$lib/server/spichlerz';
 	import type { RadarTask } from '$lib/server/spichlerz-tasks';
@@ -33,6 +35,8 @@
 		onbacktonotes: () => void;
 		onselectradarentry: (entryId: number) => void;
 	} = $props();
+
+	const hits = new HitNavigator();
 </script>
 
 <section class="flex flex-col gap-4 rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-4 sm:p-5">
@@ -74,7 +78,8 @@
 		{/if}
 
 		<!-- Full Markdown / Text Body -->
-		<div use:highlight={{ query: searchQuery, key: entry.uid, scroll: true }} class="prose prose-invert prose-sm max-w-none rounded-xl border border-zinc-800/80 bg-zinc-950/80 p-4 sm:p-5 leading-relaxed text-zinc-200 break-words whitespace-pre-wrap">
+		<SpichlerzHitBar nav={hits} />
+		<div use:highlight={{ query: searchQuery, key: entry.uid, scroll: true, nav: hits }} class="prose prose-invert prose-sm max-w-none rounded-xl border border-zinc-800/80 bg-zinc-950/80 p-4 sm:p-5 leading-relaxed text-zinc-200 break-words whitespace-pre-wrap">
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html marked(entry.body)}
 		</div>

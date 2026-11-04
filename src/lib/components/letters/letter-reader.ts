@@ -38,3 +38,10 @@ export function roundIndexOf(rounds: ReaderRound[], letterId: number | undefined
 	const i = rounds.findIndex((r) => r.letter?.id === letterId || r.response?.id === letterId);
 	return i === -1 ? 0 : i;
 }
+
+/** Fetches one thread's letters for the reader; throws on failure so the caller can tell the user. */
+export async function fetchThreadLetters(threadId: number, fetcher: typeof fetch = fetch): Promise<ReaderLetter[]> {
+	const res = await fetcher(`/api/letters?thread_id=${threadId}`);
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	return ((await res.json()) as { letters: ReaderLetter[] }).letters;
+}

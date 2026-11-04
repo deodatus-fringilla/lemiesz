@@ -8,6 +8,7 @@
 	import SpichlerzList from '$lib/components/spichlerz/SpichlerzList.svelte';
 	import SpichlerzWorkspace from '$lib/components/spichlerz/SpichlerzWorkspace.svelte';
 	import LetterReader from '$lib/components/letters/LetterReader.svelte';
+	import { fetchThreadLetters, type ReaderLetter } from '$lib/components/letters/letter-reader';
 	import SpichlerzEditorModal from '$lib/components/spichlerz/SpichlerzEditorModal.svelte';
 
 	let { data, form } = $props();
@@ -20,7 +21,7 @@
 	let zenMode = $state(false);
 	let mobileTab = $state<'notebooks' | 'list' | 'workspace'>('workspace');
 	let modalOpen = $state(false);
-	let readerOpen = $state(false);
+	let readerLetters = $state<ReaderLetter[] | null>(null);
 	let editingEntry = $state<SpichlerzEntry | null>(null);
 
 	$effect(() => {
@@ -41,7 +42,15 @@
 
 	const selectedUid = $derived(selectedUidOverride ?? data.selectedUid ?? filteredEntries[0]?.uid ?? null);
 	const activeEntry = $derived(filteredEntries.find((e) => e.uid === selectedUid) ?? filteredEntries[0] ?? null);
-	const threadLetters = $derived(data.readerLetters.filter((l) => l.thread_id === activeEntry?.thread_id));
+	/** Letter texts are fetched only when the reader opens, not with every page load. */
+	async function openReader() {
+		if (!activeEntry?.thread_id) return;
+		try {
+			readerLetters = await fetchThreadLetters(activeEntry.thread_id);
+		} catch {
+			alert(m.task_error());
+		}
+	}
 	const openTasksCount = $derived(data.tasks.filter((t) => t.item.status === 'pending').length);
 </script>
 
@@ -85,7 +94,7 @@
 				entry={activeEntry} {viewMode} {zenMode} tasks={data.tasks} {searchQuery}
 				ontogglezen={() => (zenMode = !zenMode)}
 				onedit={(e) => { editingEntry = e; modalOpen = true; }}
-				onopenreader={activeEntry?.entry_type === 'letter' ? () => (readerOpen = true) : undefined}
+				onopenreader={activeEntry?.entry_type === 'letter' ? openReader : undefined}
 				onbacktonotes={() => (viewMode = 'note')}
 				onselectradarentry={(id) => { selectedUidOverride = `m-${id}`; viewMode = 'note'; mobileTab = 'workspace'; }}
 			/>
@@ -93,8 +102,8 @@
 	</SpichlerzLayout>
 </div>
 
-{#if readerOpen && activeEntry?.entry_type === 'letter'}
-	<LetterReader letters={threadLetters} initialLetterId={activeEntry.id} highlight={searchQuery} title={activeEntry.thread_title ?? ''} onclose={() => (readerOpen = false)} />
+{#if readerLetters && activeEntry?.entry_type === 'letter'}
+	<LetterReader letters={readerLetters} initialLetterId={activeEntry.id} highlight={searchQuery} title={activeEntry.thread_title ?? ''} onclose={() => (readerLetters = null)} />
 {/if}
 
 <SpichlerzEditorModal open={modalOpen} {editingEntry} threads={data.threads} letters={data.letters} mediaList={data.mediaList} sourcesList={data.sourcesList} onclose={() => (modalOpen = false)} />
