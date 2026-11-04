@@ -135,7 +135,7 @@
 				<!-- Labels to the right of the brand from md up -->
 				<nav class="hidden items-center gap-1 text-sm font-medium md:flex" aria-label="Tematy">
 					{#each topicNav as item (item.href)}
-						{@const active = page.url.pathname === item.href}
+						{@const active = page.url.pathname === item.href || (item.href === "/czasopismo" && page.url.pathname.startsWith("/czasopismo/"))}
 						<a
 							href={item.href}
 							aria-current={active ? 'page' : undefined}
@@ -195,7 +195,7 @@
 		<!-- Phone-only topic row (scrolls horizontally if needed) -->
 		<nav class="flex gap-1.5 overflow-x-auto border-t border-zinc-900 px-3 py-1.5 md:hidden" aria-label="Tematy">
 			{#each topicNav as item (item.href)}
-				{@const active = page.url.pathname === item.href}
+				{@const active = page.url.pathname === item.href || (item.href === "/czasopismo" && page.url.pathname.startsWith("/czasopismo/"))}
 				<a
 					href={item.href}
 					aria-current={active ? 'page' : undefined}
