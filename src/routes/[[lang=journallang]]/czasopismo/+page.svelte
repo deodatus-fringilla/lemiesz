@@ -5,13 +5,10 @@
 	import JournalHead from '$lib/components/journal/public/JournalHead.svelte';
 	import JournalMasthead from '$lib/components/journal/public/JournalMasthead.svelte';
 	import PublicArticleCard from '$lib/components/journal/public/PublicArticleCard.svelte';
+	import PublicTreatiseTable from '$lib/components/journal/public/PublicTreatiseTable.svelte';
 
 	let { data } = $props();
 	const o = $derived({ locale: data.lang });
-	const sections = $derived([
-		{ caliber: 'light' as const, title: m.journal_caliber_light({}, o), desc: m.pub_light_desc({}, o), items: data.light },
-		{ caliber: 'heavy' as const, title: m.journal_caliber_heavy({}, o), desc: m.pub_heavy_desc({}, o), items: data.heavy }
-	]);
 </script>
 
 <JournalHead
@@ -44,19 +41,6 @@
 			</div>
 		</section>
 	{:else}
-		<div class="grid gap-10 md:grid-cols-2">
-			{#each sections as s (s.caliber)}
-				<section aria-labelledby="sekcja-{s.caliber}">
-					<a href="?kaliber={s.caliber}" class="block border-b pb-2 {s.caliber === 'light' ? 'border-amber-500/40' : 'border-crimson-500/50'}">
-						<h2 id="sekcja-{s.caliber}" class="text-xl font-bold {s.caliber === 'heavy' ? 'font-serif text-crimson-300' : 'text-amber-300'}">{s.title}</h2>
-						<p class="text-sm text-zinc-400">{s.desc}</p>
-					</a>
-					{#if s.items.length === 0}<p class="py-4 text-sm text-zinc-500">{m.pub_empty({}, o)}</p>{/if}
-					<div class="divide-y divide-zinc-800/80">
-						{#each s.items as a (a.id)}<PublicArticleCard article={a} lang={data.lang} />{/each}
-					</div>
-				</section>
-			{/each}
-		</div>
+		<PublicTreatiseTable pairs={data.pairs} lang={data.lang} />
 	{/if}
 </div>

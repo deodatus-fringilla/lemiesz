@@ -761,6 +761,7 @@
 	"pub_light_desc": "Short and plain, simple as a flail.",
 	"pub_heavy_desc": "The full argument, precise as a Swiss watch.",
 	"pub_empty": "The first treatises are coming soon.",
+	"pub_in_progress": "Being written…",
 	"pub_search_placeholder": "Search the treatises",
 	"pub_results": "Results ({count})",
 	"pub_no_results": "Nothing found.",

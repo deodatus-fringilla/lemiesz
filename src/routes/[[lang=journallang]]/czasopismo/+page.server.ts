@@ -1,8 +1,9 @@
 import type { PageServerLoad } from './$types';
 import { listPublished, summarise, type Caliber } from '$lib/server/journal';
 import { langOf } from '$lib/journal-paths';
+import { groupPairs } from '$lib/journal-pairs';
 
-/** Public front page: the latest of each calibre, or search / tag / calibre results. Published versions only. */
+/** Public front page: one row per rozprawa (light and heavy side by side), or search / tag / calibre results. Published versions only. */
 export const load: PageServerLoad = ({ params, url }) => {
 	const lang = langOf(params.lang);
 	const q = (url.searchParams.get('q') ?? '').trim().slice(0, 200);
@@ -16,8 +17,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 		tag,
 		caliber: caliber ?? null,
 		filtered,
-		light: filtered ? [] : listPublished({ locale: lang, caliber: 'light', limit: 12 }).map(summarise),
-		heavy: filtered ? [] : listPublished({ locale: lang, caliber: 'heavy', limit: 12 }).map(summarise),
+		pairs: filtered ? [] : groupPairs(listPublished({ locale: lang, limit: 200 }).map(summarise)),
 		results: filtered ? listPublished({ locale: lang, caliber, tag, q, limit: 50 }).map(summarise) : [],
 		hasEnglish: lang === 'pl' && listPublished({ locale: 'en', limit: 1 }).length > 0,
 		origin: url.origin

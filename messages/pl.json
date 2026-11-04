@@ -761,6 +761,7 @@
 	"pub_light_desc": "Krótko i prosto, jak budowa cepa.",
 	"pub_heavy_desc": "Pełny wywód, precyzyjny jak szwajcarski zegarek.",
 	"pub_empty": "Pierwsze rozprawy już wkrótce.",
+	"pub_in_progress": "W trakcie pisania…",
 	"pub_search_placeholder": "Szukaj w rozprawach",
 	"pub_results": "Wyniki ({count})",
 	"pub_no_results": "Nic nie znaleziono.",
