@@ -3,6 +3,8 @@
 	import Feather from 'lucide-svelte/icons/feather';
 	import Home from 'lucide-svelte/icons/house';
 	import BookOpen from 'lucide-svelte/icons/book-open';
+	import Library from 'lucide-svelte/icons/library';
+	import { libraryPath } from '$lib/journal-paths';
 	import { m } from '$lib/paraglide/messages.js';
 	import JournalArticleTable from '$lib/components/journal/JournalArticleTable.svelte';
 	import JournalNewArticleForm from '$lib/components/journal/JournalNewArticleForm.svelte';
@@ -29,6 +31,7 @@
 		<div class="flex flex-wrap items-center gap-x-5 gap-y-1 pt-1 text-sm font-medium">
 			<a href="/" class="inline-flex items-center gap-1.5 text-zinc-400 transition hover:text-amber-300"><Home class="h-4 w-4" />{m.pub_nav_home()}</a>
 			<a href="/czasopismo" class="inline-flex items-center gap-1.5 text-zinc-400 transition hover:text-amber-300"><BookOpen class="h-4 w-4" />{m.nav_journal_public()}</a>
+			<a href={libraryPath('pl')} class="inline-flex items-center gap-1.5 text-zinc-400 transition hover:text-amber-300"><Library class="h-4 w-4" />{m.pub_nav_library()}</a>
 		</div>
 	</header>
 
