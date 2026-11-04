@@ -1,5 +1,9 @@
 # The Lilibog Director (`🎬`): Practical Architecture Guide for Unified Development, CI/CD, and the Sovereign Digital Home
 
+> **Doc type: ARCHIVE (imported reference).** Imported from the Lilibog project's documentation as background on AI-assisted
+> development. Its links to other Lilibog documents (`95_Lilibog_Factory`, `15_Repository_and_Git`, `29_Saas_Digital_Home`, …)
+> point into that project and are not part of this repository; they are kept as written, not maintained.
+
 | | |
 |---|---|
 | **Document** | `docs/Technical_Documentation/20_Ontology_Graph/01_Like_Pro/02_Lilibog_Director_Practical_Guide.md` |

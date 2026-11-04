@@ -1,5 +1,9 @@
 # AI Agent Teams Explained: The Four Primitives of Agentic Systems
 
+> **Doc type: ARCHIVE (imported reference).** Imported from the Lilibog project's documentation as background on AI-assisted
+> development. Its links to other Lilibog documents (`95_Lilibog_Factory`, `15_Repository_and_Git`, `29_Saas_Digital_Home`, …)
+> point into that project and are not part of this repository; they are kept as written, not maintained.
+
 > **Reference Material:** Based on the masterclass by Matt Maher:  
 > 🔗 [Watch on YouTube: "Work Like the Pros: AI Agent Teams, Explained" (ID: 79hKmlnyvso)](https://www.youtube.com/watch?v=79hKmlnyvso)  
 > **Companion Document:** [`README.md`](README.md) (The Director Pattern & Agentic Ontology Graph)
@@ -201,7 +205,7 @@ graph TD
 | :--- | :--- | :--- |
 | **Roles** | **Specialized Sub-Agents:** Core Engineer, Linguistic Smith, Cultural Guardian, Showroom Designer, GEO Curator. | [`02_Lilibog_Director_Practical_Guide.md`](02_Lilibog_Director_Practical_Guide.md) |
 | **Coordination** | **The Director (`🎬`):** The conversational orchestrator that never writes code directly, managing the assembly line. | [`00_Lilibog_As_Factory.md`](../../95_Lilibog_Factory/00_Lilibog_As_Factory.md) |
-| **Evals $\rightarrow$ Hard Rules** | **The 47 Robots:** Deterministic local gates that reject defects (Doc-Rot Gate, Token Gate, Schema Rejection). | [`17_Robots/README.md`](../../17_Robots/README.md) |
+| **Evals $\rightarrow$ Hard Rules** | **The 47 Robots:** Deterministic local gates that reject defects (Doc-Rot Gate, Token Gate, Schema Rejection). | [`17_Robots/README.md`](../../../17_Robots/README.md) |
 | **State** | **The Harness Ledger & Worktrees:** Immutable receipts, isolated git worktree sandboxes, and PR commit logs. | [`15_Repository_and_Git/`](../../15_Repository_and_Git/) |
 | **Turning the Dials** | **The Sabotage Diet:** Running fast local checks (free, 40s) while strictly rationing cloud CI minutes. | [`04_The_Great_CI_Exhaustion_and_Sabotage_Diet_Case_Study.md`](../../15_Repository_and_Git/04_The_Great_CI_Exhaustion_and_Sabotage_Diet_Case_Study.md) |
 

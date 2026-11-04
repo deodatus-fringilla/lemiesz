@@ -60,7 +60,8 @@ try {
 	r = await fetch(`${BASE}/login`);
 	check('login page is public', r.status === 200);
 	r = await fetch(`${BASE}/`, noRedirect);
-	check('landing page is public and quotes 1 Samuel 8', r.status === 200 && (await r.text()).includes('1 Samuel 8:4'), String(r.status));
+	// The landing page cites 1 Samuel 8 (Polish by default: "1 Księga Samuela 8"; English: "1 Samuel 8").
+	check('landing page is public and quotes 1 Samuel 8', r.status === 200 && /1 (Księga Samuela|Samuel) 8/.test(await r.text()), String(r.status));
 	// The public journal: readable without a session, read-only, with the same security headers; its office stays locked.
 	r = await fetch(`${BASE}/czasopismo`, noRedirect);
 	check('journal front page is public', r.status === 200, String(r.status));
