@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Archive from 'lucide-svelte/icons/archive';
 	import { m } from '$lib/paraglide/messages.js';
-	import type { ActionItem, MeetingCategory, SpichlerzEntry } from '$lib/server/spichlerz';
+	import type { MeetingCategory, SpichlerzEntry } from '$lib/server/spichlerz';
 	import SpichlerzQuickCapture from '$lib/components/spichlerz/SpichlerzQuickCapture.svelte';
 	import SpichlerzLayout from '$lib/components/spichlerz/SpichlerzLayout.svelte';
 	import SpichlerzSidebar from '$lib/components/spichlerz/SpichlerzSidebar.svelte';
@@ -42,13 +42,7 @@
 	const selectedUid = $derived(selectedUidOverride ?? data.selectedUid ?? filteredEntries[0]?.uid ?? null);
 	const activeEntry = $derived(filteredEntries.find((e) => e.uid === selectedUid) ?? filteredEntries[0] ?? null);
 	const threadLetters = $derived(data.readerLetters.filter((l) => l.thread_id === activeEntry?.thread_id));
-	const allOpenTasks = $derived(
-		data.entries.flatMap((e) =>
-			e.action_items
-				.map((item, index) => ({ meetingId: e.id, meetingTitle: e.title, item, index }))
-				.filter((r) => r.item.status === 'pending')
-		)
-	);
+	const openTasksCount = $derived(data.tasks.filter((t) => t.item.status === 'pending').length);
 </script>
 
 <svelte:head><title>{m.spichlerz_title()} · {m.app_title()}</title></svelte:head>
@@ -68,11 +62,11 @@
 
 	<SpichlerzQuickCapture />
 
-	<SpichlerzLayout {zenMode} {mobileTab} entriesCount={filteredEntries.length} onmobiletab={(t) => (mobileTab = t)}>
+	<SpichlerzLayout {zenMode} {mobileTab} radarMode={viewMode === 'radar'} entriesCount={filteredEntries.length} onmobiletab={(t) => (mobileTab = t)}>
 		{#snippet sidebar()}
 			<SpichlerzSidebar
 				entries={data.entries} tags={data.tags} {activeCategory} {activeTag} {viewMode}
-				openTasksCount={allOpenTasks.length}
+				{openTasksCount}
 				onselectcategory={(cat) => { activeCategory = cat; activeTag = null; viewMode = 'note'; mobileTab = 'list'; }}
 				onselecttag={(t) => { activeTag = t; activeCategory = 'all'; viewMode = 'note'; mobileTab = 'list'; }}
 				ontodoradar={() => { viewMode = 'radar'; mobileTab = 'workspace'; }}
@@ -88,11 +82,12 @@
 		{/snippet}
 		{#snippet workspace()}
 			<SpichlerzWorkspace
-				entry={activeEntry} {viewMode} {zenMode} {allOpenTasks} {searchQuery}
+				entry={activeEntry} {viewMode} {zenMode} tasks={data.tasks} {searchQuery}
 				ontogglezen={() => (zenMode = !zenMode)}
 				onedit={(e) => { editingEntry = e; modalOpen = true; }}
 				onopenreader={activeEntry?.entry_type === 'letter' ? () => (readerOpen = true) : undefined}
-				onselectentry={(uid) => { selectedUidOverride = uid; viewMode = 'note'; }}
+				onbacktonotes={() => (viewMode = 'note')}
+				onselectradarentry={(id) => { selectedUidOverride = `m-${id}`; viewMode = 'note'; mobileTab = 'workspace'; }}
 			/>
 		{/snippet}
 	</SpichlerzLayout>

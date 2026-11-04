@@ -9,6 +9,7 @@
 		zenMode,
 		mobileTab = 'workspace',
 		entriesCount = 0,
+		radarMode = false,
 		onmobiletab,
 		sidebar,
 		list,
@@ -17,6 +18,7 @@
 		zenMode: boolean;
 		mobileTab: 'notebooks' | 'list' | 'workspace';
 		entriesCount: number;
+		radarMode?: boolean;
 		onmobiletab: (tab: 'notebooks' | 'list' | 'workspace') => void;
 		sidebar: Snippet;
 		list: Snippet;
@@ -68,15 +70,19 @@
 <div
 	class="grid items-start gap-4 {zenMode
 		? 'grid-cols-1'
-		: 'grid-cols-1 xl:grid-cols-[180px_250px_minmax(0,1fr)] 2xl:grid-cols-[200px_300px_minmax(0,1fr)]'}"
+		: radarMode
+			? 'grid-cols-1 xl:grid-cols-[180px_minmax(0,1fr)] 2xl:grid-cols-[200px_minmax(0,1fr)]'
+			: 'grid-cols-1 xl:grid-cols-[180px_250px_minmax(0,1fr)] 2xl:grid-cols-[200px_300px_minmax(0,1fr)]'}"
 >
 	{#if !zenMode}
 		<div class="{mobileTab === 'notebooks' ? 'block' : 'hidden xl:block'} {pane}">
 			{@render sidebar()}
 		</div>
-		<div class="{mobileTab === 'list' ? 'block' : 'hidden xl:block'} {stick}">
-			{@render list()}
-		</div>
+		{#if !radarMode}
+			<div class="{mobileTab === 'list' ? 'block' : 'hidden xl:block'} {stick}">
+				{@render list()}
+			</div>
+		{/if}
 	{/if}
 	<div class="{zenMode || mobileTab === 'workspace' ? 'block' : 'hidden xl:block'} min-w-0 {pane}">
 		{@render workspace()}

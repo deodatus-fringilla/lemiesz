@@ -17,6 +17,8 @@ export const COLOR_TAGS = ['zinc', 'amber', 'purple', 'blue', 'emerald', 'rose']
 export type ColorTag = (typeof COLOR_TAGS)[number];
 
 export interface ActionItem {
+	/** Stable task id. Older rows have none; they get a deterministic `legacy-…` id when read. */
+	id?: string;
 	task: string;
 	assignee?: string;
 	due_date?: string;
@@ -41,7 +43,7 @@ export interface SpichlerzEntry {
 	agenda: string | null;
 	summary: string;
 	body: string;
-	action_items: ActionItem[];
+	action_items: (ActionItem & { id: string })[];
 	tags: string | null;
 	created_by: string;
 	created_at: string;
@@ -68,9 +70,10 @@ type SpichlerzRow = Omit<SpichlerzEntry, 'action_items' | 'is_pinned'> & {
 
 function fromRow(r: SpichlerzRow): SpichlerzEntry {
 	const { action_items_json, is_pinned, ...rest } = r;
-	let action_items: ActionItem[] = [];
+	let action_items: SpichlerzEntry['action_items'] = [];
 	try {
-		action_items = JSON.parse(action_items_json || '[]');
+		const parsed: ActionItem[] = JSON.parse(action_items_json || '[]');
+		action_items = parsed.map((item, idx) => ({ ...item, id: item.id ?? `legacy-${r.id}-${idx}` }));
 	} catch {
 		action_items = [];
 	}
@@ -554,6 +557,7 @@ export function addSpichlerzTask(
 	if (!taskInput.task?.trim()) throw new Error('Opis zadania jest wymagany');
 
 	const newTask: ActionItem = {
+		id: crypto.randomUUID(),
 		task: taskInput.task.trim(),
 		assignee: taskInput.assignee?.trim() || undefined,
 		due_date: taskInput.due_date?.trim() || undefined,
@@ -595,6 +599,7 @@ export function quickCapture(input: {
 	}
 
 	const newTask: ActionItem = {
+		id: crypto.randomUUID(),
 		task: text,
 		assignee: input.assignee?.trim() || undefined,
 		due_date: input.due_date?.trim() || undefined,
@@ -621,7 +626,9 @@ export function quickCapture(input: {
 
 	let items: ActionItem[] = [];
 	try {
-		items = JSON.parse(backlog.action_items_json || '[]');
+		const parsed: ActionItem[] = JSON.parse(backlog.action_items_json || '[]');
+		// Pin legacy ids before inserting at the front, so existing tasks keep the id the UI already knows.
+		items = parsed.map((it, idx) => ({ ...it, id: it.id ?? `legacy-${backlog.id}-${idx}` }));
 	} catch {
 		items = [];
 	}

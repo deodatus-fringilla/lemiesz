@@ -14,6 +14,15 @@ import {
 	type ColorTag,
 	type MeetingCategory
 } from '$lib/server/spichlerz';
+import {
+	clearDoneTasks,
+	deleteTask,
+	editTask,
+	listAllTasks,
+	restoreTask,
+	setTaskStatus,
+	type TaskItem
+} from '$lib/server/spichlerz-tasks';
 import { listCorrespondenceThreads } from '$lib/server/correspondence';
 import { db } from '$lib/server/db';
 import type { ReaderLetter } from '$lib/components/letters/letter-reader';
@@ -32,6 +41,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 	});
 
 	const tags = listSpichlerzTags();
+	const tasks = listAllTasks();
 	const threads = listCorrespondenceThreads();
 
 	const letters = db
@@ -63,6 +73,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 
 	return {
 		entries,
+		tasks,
 		tags,
 		threads,
 		letters,
@@ -208,6 +219,72 @@ export const actions: Actions = {
 		}
 	},
 
+	setTaskStatus: async ({ request }) => {
+		const form = await request.formData();
+		const entryId = Number(form.get('entryId'));
+		const taskId = String(form.get('taskId') || '');
+		const status = form.get('status') === 'done' ? 'done' : 'pending';
+		if (!entryId || !taskId) return fail(400, { error: 'Nieprawidłowe dane zadania' });
+		try {
+			setTaskStatus(entryId, taskId, status);
+			return { success: true };
+		} catch (e) {
+			return fail(500, { error: (e as Error).message });
+		}
+	},
+
+	editTask: async ({ request }) => {
+		const form = await request.formData();
+		const entryId = Number(form.get('entryId'));
+		const taskId = String(form.get('taskId') || '');
+		if (!entryId || !taskId) return fail(400, { error: 'Nieprawidłowe dane zadania' });
+		try {
+			editTask(entryId, taskId, {
+				task: String(form.get('task') ?? ''),
+				assignee: String(form.get('assignee') ?? ''),
+				due_date: String(form.get('due_date') ?? '')
+			});
+			return { success: true };
+		} catch (e) {
+			return fail(400, { error: (e as Error).message });
+		}
+	},
+
+	deleteTask: async ({ request }) => {
+		const form = await request.formData();
+		const entryId = Number(form.get('entryId'));
+		const taskId = String(form.get('taskId') || '');
+		if (!entryId || !taskId) return fail(400, { error: 'Nieprawidłowe dane zadania' });
+		try {
+			const { item, index } = deleteTask(entryId, taskId);
+			return { success: true, removed: { item, index } };
+		} catch (e) {
+			return fail(500, { error: (e as Error).message });
+		}
+	},
+
+	restoreTask: async ({ request }) => {
+		const form = await request.formData();
+		const entryId = Number(form.get('entryId'));
+		const index = Number(form.get('index'));
+		try {
+			const item = JSON.parse(String(form.get('item') || '')) as TaskItem;
+			if (!entryId || !item?.id || !item.task) return fail(400, { error: 'Nieprawidłowe dane zadania' });
+			restoreTask(entryId, item, Number.isInteger(index) ? index : 0);
+			return { success: true };
+		} catch (e) {
+			return fail(400, { error: (e as Error).message });
+		}
+	},
+
+	clearDone: async () => {
+		try {
+			return { success: true, cleared: clearDoneTasks() };
+		} catch (e) {
+			return fail(500, { error: (e as Error).message });
+		}
+	},
+
 	quickCapture: async ({ request, locals }) => {
 		const form = await request.formData();
 		const text = String(form.get('text') || '').trim();
@@ -221,7 +298,7 @@ export const actions: Actions = {
 				due_date: String(form.get('due_date') || '').trim() || undefined,
 				created_by: locals.user?.username || locals.user?.id || 'admin'
 			});
-			return { success: true, entryId: entry.id };
+			return { success: true, entryId: entry.id, entryTitle: entry.title, mode };
 		} catch (e) {
 			return fail(500, { error: (e as Error).message });
 		}

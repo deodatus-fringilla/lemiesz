@@ -6,15 +6,27 @@
 	import { m } from '$lib/paraglide/messages.js';
 
 	let captureMode = $state<'task' | 'note'>('task');
+	// Tells the user where a captured item went (tasks land in the Backlog note).
+	let notice = $state<string | null>(null);
+	let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+	function announce(text: string) {
+		notice = text;
+		clearTimeout(noticeTimer);
+		noticeTimer = setTimeout(() => (notice = null), 5000);
+	}
 </script>
 
 <form
 	method="POST"
 	action="?/quickCapture"
 	use:enhance={({ formElement }) => {
-		return async ({ update }) => {
+		return async ({ result, update }) => {
 			await update();
 			formElement.reset();
+			if (result.type === 'success') {
+				const d = result.data as { mode?: string; entryTitle?: string } | undefined;
+				announce(d?.mode === 'note' ? m.task_captured_note() : m.task_captured_task({ title: d?.entryTitle ?? '' }));
+			}
 		};
 	}}
 	class="flex flex-col gap-2.5 rounded-xl border border-amber-500/25 bg-zinc-900/70 p-3 sm:flex-row sm:items-center"
@@ -75,3 +87,7 @@
 		{captureMode === 'task' ? m.meetings_quick_task_add() : m.spichlerz_new_btn()}
 	</button>
 </form>
+
+{#if notice}
+	<p role="status" class="-mt-2 px-1 text-xs text-emerald-400">{notice}</p>
+{/if}

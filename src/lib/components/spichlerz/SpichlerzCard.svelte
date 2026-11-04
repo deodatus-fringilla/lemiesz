@@ -74,7 +74,7 @@
 			{#if totalCount > 0}
 				<span class="inline-flex items-center gap-1 {doneCount === totalCount ? 'text-emerald-400' : 'text-amber-300'}">
 					<CheckSquare class="h-3 w-3" />
-					{m.spichlerz_tasks_count({ done: doneCount, total: totalCount })}
+					{m.task_count_summary({ open: totalCount - doneCount, done: doneCount })}
 				</span>
 			{/if}
 			{#if entry.thread_title && entry.entry_type !== 'letter'}
