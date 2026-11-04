@@ -29,9 +29,9 @@
 	const unpinnedEntries = $derived(entries.filter((e) => !e.is_pinned));
 </script>
 
-<section class="flex flex-col gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
+<section class="flex flex-col gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 xl:max-h-[calc(100dvh-var(--header-height,4rem)-2rem)]">
 	<!-- Search Input (FTS5 server + live filter) -->
-	<form method="GET" action="/spichlerz" class="relative">
+	<form method="GET" action="/spichlerz" class="relative shrink-0">
 		<Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
 		<input
 			type="search"
@@ -44,7 +44,7 @@
 	</form>
 
 	{#if activeTag}
-		<div class="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-300">
+		<div class="flex shrink-0 items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-300">
 			<span>Tag: <strong>#{activeTag}</strong></span>
 			<button type="button" onclick={oncleartag} class="hover:text-white">
 				<X class="h-3.5 w-3.5" />
@@ -57,7 +57,7 @@
 			{m.meetings_empty()}
 		</div>
 	{:else}
-		<div class="space-y-4 overflow-y-auto max-h-[calc(100dvh-260px)] pr-1 xl:max-h-none">
+		<div class="space-y-4 overflow-y-auto max-h-[calc(100dvh-260px)] pr-1 xl:max-h-none xl:min-h-0 xl:flex-1">
 			{#if pinnedEntries.length > 0}
 				<div class="space-y-2">
 					<div class="flex items-center gap-1.5 px-1 text-[10px] font-semibold tracking-wider text-amber-400/90 uppercase">

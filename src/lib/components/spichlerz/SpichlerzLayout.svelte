@@ -25,8 +25,9 @@
 
 	// On xl each column is pinned below the sticky app header and scrolls on its own,
 	// so scrolling one panel never drags the other two.
-	const pane =
-		'xl:sticky xl:top-[calc(var(--header-height,4rem)+1rem)] xl:max-h-[calc(100dvh-var(--header-height,4rem)-2rem)] xl:overflow-y-auto xl:overscroll-contain';
+	const stick = 'xl:sticky xl:top-[calc(var(--header-height,4rem)+1rem)]';
+	const pane = `${stick} xl:max-h-[calc(100dvh-var(--header-height,4rem)-2rem)] xl:overflow-y-auto xl:overscroll-contain`;
+	// The list column does not scroll as a whole: its search box stays put and only the results scroll.
 </script>
 
 <!-- Mobile / Tablet View Switcher (<xl) -->
@@ -73,7 +74,7 @@
 		<div class="{mobileTab === 'notebooks' ? 'block' : 'hidden xl:block'} {pane}">
 			{@render sidebar()}
 		</div>
-		<div class="{mobileTab === 'list' ? 'block' : 'hidden xl:block'} {pane}">
+		<div class="{mobileTab === 'list' ? 'block' : 'hidden xl:block'} {stick}">
 			{@render list()}
 		</div>
 	{/if}
