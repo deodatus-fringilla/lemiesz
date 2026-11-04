@@ -32,6 +32,7 @@
 			<a href="/" class="inline-flex items-center gap-1.5 text-zinc-400 transition hover:text-amber-300"><Home class="h-4 w-4" />{m.pub_nav_home()}</a>
 			<a href="/czasopismo" class="inline-flex items-center gap-1.5 text-zinc-400 transition hover:text-amber-300"><BookOpen class="h-4 w-4" />{m.nav_journal_public()}</a>
 			<a href={libraryPath('pl')} class="inline-flex items-center gap-1.5 text-zinc-400 transition hover:text-amber-300"><Library class="h-4 w-4" />{m.pub_nav_library()}</a>
+			<a href={libraryPath('en')} hreflang="en" class="inline-flex items-center gap-1.5 text-zinc-400 transition hover:text-amber-300"><Library class="h-4 w-4" />{m.pub_nav_library({}, { locale: 'en' })} <span class="font-mono text-xs opacity-70">EN</span></a>
 		</div>
 	</header>
 
