@@ -766,6 +766,7 @@
 	"pub_read": "Read",
 	"pub_close": "Close",
 	"pub_minutes": "{n} min read",
+	"pub_minutes_short": "{n} min",
 	"pub_only": "Only:",
 	"pub_search_placeholder": "Search the treatises",
 	"pub_results": "Results ({count})",

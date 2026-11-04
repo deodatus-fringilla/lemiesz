@@ -766,6 +766,7 @@
 	"pub_read": "Czytaj",
 	"pub_close": "Zamknij",
 	"pub_minutes": "{n} min czytania",
+	"pub_minutes_short": "{n} min",
 	"pub_only": "Tylko:",
 	"pub_search_placeholder": "Szukaj w rozprawach",
 	"pub_results": "Wyniki ({count})",
