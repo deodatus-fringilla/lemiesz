@@ -57,7 +57,7 @@
 			{m.meetings_empty()}
 		</div>
 	{:else}
-		<div class="space-y-4 overflow-y-auto max-h-[calc(100dvh-260px)] pr-1">
+		<div class="space-y-4 overflow-y-auto max-h-[calc(100dvh-260px)] pr-1 xl:max-h-none">
 			{#if pinnedEntries.length > 0}
 				<div class="space-y-2">
 					<div class="flex items-center gap-1.5 px-1 text-[10px] font-semibold tracking-wider text-amber-400/90 uppercase">
