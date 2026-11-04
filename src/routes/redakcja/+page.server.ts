@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { CALIBERS, LINK_TYPES, JournalError, createArticle, listForEditors, type Caliber } from '$lib/server/journal';
 import { MediaError, createMedia, deleteMedia, listMedia, setMediaStatus, updateMedia, type MediaInput, type MediaStatus, type MediaType } from '$lib/server/media';
 import { human } from '$lib/server/review';
+import { checkLibraryLinks } from '$lib/server/link-check';
 
 /** Journal back-office (behind login): articles in two calibres and the Biblioteka link library. */
 
@@ -85,6 +86,12 @@ export const actions: Actions = {
 			if (e instanceof MediaError) return fail(400, { error: e.message, form: 'link' });
 			throw e;
 		}
+	},
+
+	/** Checks up to 50 web links (oldest check first) from this server; results are stored per link. */
+	checkLinks: async () => {
+		const { checked, broken } = await checkLibraryLinks({ limit: 50 });
+		return { success: true, form: 'link', checked, broken };
 	},
 
 	deleteLink: async ({ request }) => {

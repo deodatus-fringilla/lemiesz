@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import Feather from 'lucide-svelte/icons/feather';
 	import { m } from '$lib/paraglide/messages.js';
 	import JournalArticleTable from '$lib/components/journal/JournalArticleTable.svelte';
@@ -7,6 +8,7 @@
 	import JournalLinkList from '$lib/components/journal/JournalLinkList.svelte';
 
 	let { data, form } = $props();
+	let checking = $state(false);
 	const tabs = $derived([
 		{ id: 'rozprawy', label: m.journal_tab_articles(), n: new Set(data.articles.map((a) => a.id)).size },
 		{ id: 'biblioteka', label: m.journal_tab_library(), n: data.links.length }
@@ -40,7 +42,13 @@
 		</div>
 	{:else}
 		<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
-			<JournalLinkList links={data.links} linkTypes={data.linkTypes} error={err('link')} />
+			<div class="space-y-3">
+				<form method="POST" action="?/checkLinks" use:enhance={() => { checking = true; return async ({ update }) => { await update({ reset: false }); checking = false; }; }} class="flex flex-wrap items-center gap-3">
+					<button disabled={checking} class="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-50">{checking ? m.journal_links_checking() : m.journal_links_check()}</button>
+					{#if form && 'checked' in form}<span class="text-sm text-zinc-400">{m.journal_links_checked({ checked: form.checked ?? 0, broken: form.broken ?? 0 })}</span>{/if}
+				</form>
+				<JournalLinkList links={data.links} linkTypes={data.linkTypes} error={err('link')} />
+			</div>
 			<JournalLinkForm linkTypes={data.linkTypes} error={err('link')} />
 		</div>
 	{/if}

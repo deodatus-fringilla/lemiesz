@@ -775,5 +775,14 @@
 	"pub_library_intro": "Artykuły, podcasty, filmy, obrazy, utwory i poezja, które pomagają zrozumieć neutralność. Każda pozycja z krótką notką redakcji.",
 	"pub_library_empty": "Biblioteka wkrótce się zapełni.",
 	"pub_all_types": "Wszystko",
-	"pub_archive": "kopia archiwalna"
+	"pub_archive": "kopia archiwalna",
+	"pub_publisher": "Wydawca: Przymierze Lemiesza",
+	"journal_links_check": "Sprawdź linki",
+	"journal_links_checking": "Sprawdzam…",
+	"journal_links_checked": "Sprawdzono: {checked}, niedziałające: {broken}",
+	"journal_link_ok": "Działa (sprawdzono {date})",
+	"journal_link_broken": "Nie działa: {status} (sprawdzono {date})",
+	"journal_link_unreachable": "Brak odpowiedzi (sprawdzono {date})",
+	"journal_link_refused": "Adres odrzucony: prywatny lub nieprawidłowy (sprawdzono {date})",
+	"pub_link_maybe_broken": "Ten link mógł przestać działać."
 }

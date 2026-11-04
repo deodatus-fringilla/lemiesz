@@ -8,6 +8,7 @@
 	import ReviewBadge from '../ReviewBadge.svelte';
 	import JournalLinkForm from './JournalLinkForm.svelte';
 	import { linkTypeLabel } from './journal-ui';
+	import { isBroken } from './link-status';
 
 	let { links, linkTypes, error = null }: { links: MediaRecord[]; linkTypes: readonly string[]; error?: string | null } = $props();
 	let editing = $state<number | null>(null);
@@ -33,6 +34,12 @@
 							{#if l.public_note}<p class="mt-1 text-sm text-zinc-300">{l.public_note}</p>{/if}
 						</div>
 						<ReviewBadge state={l.status} />
+						{#if l.link_checked_at}
+							{@const date = l.link_checked_at.slice(0, 10)}
+							<span class="w-full text-[11px] {isBroken(l.link_status) ? 'text-rose-300' : 'text-emerald-400/80'}">
+								{#if !isBroken(l.link_status)}{m.journal_link_ok({ date })}{:else if l.link_status === 0}{m.journal_link_unreachable({ date })}{:else if l.link_status === -1}{m.journal_link_refused({ date })}{:else}{m.journal_link_broken({ status: l.link_status ?? 0, date })}{/if}
+							</span>
+						{/if}
 					</div>
 					<div class="mt-2 flex flex-wrap gap-1.5">
 						{#if l.status !== 'human_approved'}

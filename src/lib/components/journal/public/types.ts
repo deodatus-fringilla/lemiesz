@@ -8,4 +8,6 @@ export interface LibraryEntry {
 	archive_url: string | null;
 	public_note: string;
 	language: string | null;
+	/** The last link check failed: readers get a gentle warning (and the archived copy, if any). */
+	broken: boolean;
 }

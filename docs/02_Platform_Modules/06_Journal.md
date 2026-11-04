@@ -1,7 +1,7 @@
 # Module 06 · Journal "Lemiesz. Czy Neutralność jest możliwa? Rozprawy geoideologiczne"
 
-> **Status:** steps 1 (data layer), 2 (editorial back-office, `/redakcja`, behind login) and 3 (public pages)
-> implemented. Hardening (step 4) follows.
+> **Status:** all four steps implemented (2026-11-04): data layer, editorial back-office (`/redakcja`, behind login),
+> public pages, hardening.
 
 ## Public pages (no login, read-only)
 
@@ -20,8 +20,34 @@
 * Rendering (`journal-render.ts`): raw HTML in Markdown is shown as text, only http(s)/mailto/#/relative links survive
   (`rel="noopener noreferrer nofollow"`), images become links (CSP and readers' privacy), and a `[[quote:ID]]` shows
   stored text only while it is human-approved in that language; otherwise it degrades to a footnote.
-* Not yet: caching headers (the layout carries the signed-in user, so pages must not be cached publicly as they are),
-  link checking, a step-4 public-route audit.
+
+## Hardening (step 4)
+
+* **Caching:** a signed-out reader's journal page is `public, max-age=60, stale-while-revalidate=300` with
+  `Vary: Cookie` (the chrome follows the language cookie). A signed-in editor's page carries their name, and a response
+  that sets a cookie belongs to one browser: both are `private, no-store`. Set in `hooks.server.ts`; proven by the smoke
+  test on the built server.
+* **Reader frame:** signed-out readers get `JournalReaderShell` (masthead + journal footer) instead of the app header,
+  menu and panel, whose links would only lead to the login page. Signed-in editors keep the app frame.
+* **Rate limit:** `JOURNAL_READS_PER_MINUTE` (default 300) per IP for signed-out journal reads; editors are not limited.
+* **robots.txt** (route, not a static file, so it can name the sitemap): allows `/`, the journal and the library in
+  both languages, disallows the rest.
+* **Dead links:** "Sprawdź linki" in the Biblioteka tab checks up to 50 web links (oldest check first) from the server.
+  Every hop, including redirects, is re-validated and must resolve to public addresses only (SSRF guard). Results are
+  stored per link without touching its approval; readers see "may no longer work" next to a broken one.
+
+## Public-route audit (2026-11-04)
+
+| Check | Result |
+|---|---|
+| Paths open without login | exactly `/czasopismo…`, `/biblioteka…` (both languages), `/sitemap.xml`, `/robots.txt`, plus the earlier `/`, `/login`, `/api/health`; GET/HEAD only (unit test + smoke) |
+| Writes from the public side | none: public routes have no form actions; a POST to them is answered with a redirect to `/login` |
+| Data sent to readers | published fields only; no working copy, reviewer, internal note or authorship metadata (checked in page source) |
+| Article HTML | sanitised in `journal-render.ts`: raw HTML escaped, unsafe links dropped, images as links, quotations from approved stored text only |
+| Query parameters | `q` ≤ 200 chars through the FTS sanitiser, `tag` ≤ 60 and matched with `instr` (no wildcards), `kaliber`/`typ` allow-listed |
+| Headers | CSP, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` on journal pages (smoke) |
+| Outbound links | `rel="noopener noreferrer nofollow"`, new tab; no third-party embeds or images on public pages |
+| Missing or unpublished article | 404 (smoke) |
 
 ## Back-office (`/redakcja`)
 

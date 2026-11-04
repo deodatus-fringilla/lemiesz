@@ -775,5 +775,14 @@
 	"pub_library_intro": "Articles, podcasts, films, paintings, songs and poetry that help to understand neutrality. Each with a short editorial note.",
 	"pub_library_empty": "The library will fill up soon.",
 	"pub_all_types": "All",
-	"pub_archive": "archived copy"
+	"pub_archive": "archived copy",
+	"pub_publisher": "Published by Przymierze Lemiesza",
+	"journal_links_check": "Check links",
+	"journal_links_checking": "Checking…",
+	"journal_links_checked": "Checked: {checked}, broken: {broken}",
+	"journal_link_ok": "Works (checked {date})",
+	"journal_link_broken": "Broken: {status} (checked {date})",
+	"journal_link_unreachable": "No response (checked {date})",
+	"journal_link_refused": "Address refused: private or invalid (checked {date})",
+	"pub_link_maybe_broken": "This link may no longer work."
 }

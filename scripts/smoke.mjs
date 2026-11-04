@@ -71,6 +71,13 @@ try {
 	check('journal RSS feed is public XML', r.status === 200 && (r.headers.get('content-type') ?? '').includes('rss+xml'), String(r.status));
 	r = await fetch(`${BASE}/czasopismo/nie-ma-takiej`, noRedirect);
 	check('an unpublished or missing article is 404', r.status === 404, String(r.status));
+	r = await fetch(`${BASE}/czasopismo`, noRedirect);
+	check('signed-out journal pages may be cached briefly, keyed on cookies', /public, max-age=60/.test(r.headers.get('cache-control') ?? '') && /Cookie/i.test(r.headers.get('vary') ?? ''), `${r.headers.get('cache-control')} | ${r.headers.get('vary')}`);
+	const readerHtml = await r.text();
+	check('signed-out readers get the journal frame, without internal links', !readerHtml.includes('href="/spichlerz"') && !readerHtml.includes('href="/redakcja"') && readerHtml.includes('Lemiesz.'));
+	r = await fetch(`${BASE}/robots.txt`);
+	const robots = await r.text();
+	check('robots.txt opens the journal, closes the rest and names the sitemap', r.status === 200 && robots.includes('Allow: /czasopismo') && robots.includes('Disallow: /') && /Sitemap: https?:\/\/\S+\/sitemap\.xml/.test(robots), robots.slice(0, 120));
 	r = await fetch(`${BASE}/redakcja`, noRedirect);
 	check('journal back-office without a session redirects to /login', r.status === 303 && r.headers.get('location') === '/login', String(r.status));
 	r = await fetch(`${BASE}/dashboard`, noRedirect);
@@ -105,6 +112,9 @@ try {
 	check('login succeeds and sets an HttpOnly session cookie', r.status === 303 && /session=/.test(setCookie) && /HttpOnly/i.test(setCookie), `${r.status} ${setCookie}`);
 	const cookie = setCookie.split(';')[0];
 	const authed = { headers: { cookie } };
+	r = await fetch(`${BASE}/czasopismo`, authed);
+	check('a signed-in editor\'s journal page is never stored (it carries their name)', /no-store/.test(r.headers.get('cache-control') ?? '') && /private/.test(r.headers.get('cache-control') ?? ''), r.headers.get('cache-control') ?? 'none');
+	check('a signed-in editor keeps the app frame on journal pages', (await r.text()).includes('href="/redakcja"'));
 
 	r = await fetch(`${BASE}/api/sources`, authed);
 	const list = await r.json();

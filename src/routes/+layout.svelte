@@ -22,6 +22,7 @@
 	import X from 'lucide-svelte/icons/x';
 	import { m } from '$lib/paraglide/messages.js';
 	import { PUBLIC_JOURNAL_PATH } from '$lib/journal-paths';
+	import JournalReaderShell from '$lib/components/journal/public/JournalReaderShell.svelte';
 	import { locales, setLocale } from '$lib/paraglide/runtime.js';
 
 	let { data, children } = $props();
@@ -69,6 +70,8 @@
 	]);
 
 	const publicPages = ['/', '/neutralna-polska', '/za-i-przeciw', '/polskie-mocarstwo'];
+	/** A signed-out reader on a journal page gets the journal's own frame instead of the app's. */
+	const readerMode = $derived(isJournal && !data.user);
 	const isPublicPage = $derived(publicPages.includes(page.url.pathname) || PUBLIC_JOURNAL_PATH.test(page.url.pathname));
 
 	const nav = $derived([
@@ -100,6 +103,9 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (menuOpen = false)} />
 
+{#if readerMode}
+	<JournalReaderShell>{@render children()}</JournalReaderShell>
+{:else}
 <div
 	style="--header-height: {headerHeight}px;"
 	class="flex min-h-dvh flex-col overflow-x-clip bg-zinc-950 font-sans text-zinc-100"
@@ -314,3 +320,4 @@
 
 	<footer class="border-t border-zinc-900 px-3 py-6 text-center text-xs text-zinc-600">{m.footer()}</footer>
 </div>
+{/if}

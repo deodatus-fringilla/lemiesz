@@ -3,6 +3,7 @@ import { listMedia } from '$lib/server/media';
 import { LINK_TYPES } from '$lib/server/journal';
 import { langOf } from '$lib/journal-paths';
 import type { LibraryEntry } from '$lib/components/journal/public/types';
+import { isBroken } from '$lib/components/journal/link-status';
 
 /** Public Biblioteka: human-approved items that carry an editor's note. Public fields only. */
 export const load: PageServerLoad = ({ params, url }) => {
@@ -18,7 +19,8 @@ export const load: PageServerLoad = ({ params, url }) => {
 			url: m.url,
 			archive_url: m.archive_url,
 			public_note: m.public_note!,
-			language: m.language
+			language: m.language,
+			broken: isBroken(m.link_status)
 		}));
 	const types = LINK_TYPES.filter((t) => all.some((i) => i.media_type === t));
 	const active = typ && (types as readonly string[]).includes(typ) ? typ : null;
