@@ -62,7 +62,7 @@
 
 	<SpichlerzQuickCapture />
 
-	<SpichlerzLayout {zenMode} {mobileTab} radarMode={viewMode === 'radar'} entriesCount={filteredEntries.length} onmobiletab={(t) => (mobileTab = t)}>
+	<SpichlerzLayout {zenMode} {mobileTab} radarMode={viewMode === 'radar'} entriesCount={filteredEntries.length} onmobiletab={(t) => { mobileTab = t; if (t === 'list') viewMode = 'note'; }}>
 		{#snippet sidebar()}
 			<SpichlerzSidebar
 				entries={data.entries} tags={data.tags} {activeCategory} {activeTag} {viewMode}

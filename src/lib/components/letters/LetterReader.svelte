@@ -21,6 +21,17 @@
 	const index = $derived(Math.min(chosen ?? roundIndexOf(rounds, initialLetterId), Math.max(rounds.length - 1, 0)));
 	const round = $derived(rounds[index]);
 
+	// Move focus into the dialog (keyboard and screen readers) and stop the page behind from scrolling.
+	let dialogEl = $state<HTMLElement>();
+	$effect(() => {
+		dialogEl?.focus();
+		const previous = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		return () => {
+			document.body.style.overflow = previous;
+		};
+	});
+
 	const go = (to: number) => (chosen = Math.max(0, Math.min(rounds.length - 1, to)));
 
 	function onkeydown(e: KeyboardEvent) {
@@ -36,7 +47,7 @@
 <svelte:window {onkeydown} />
 
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-2 sm:p-6" role="presentation" onclick={(e) => e.target === e.currentTarget && onclose()}>
-	<div role="dialog" aria-modal="true" aria-label={m.letter_reader_title()} class="flex max-h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
+	<div bind:this={dialogEl} tabindex="-1" role="dialog" aria-modal="true" aria-label={m.letter_reader_title()} class="flex max-h-full w-full max-w-6xl flex-col outline-none overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
 		<div class="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-2.5">
 			<h2 class="flex min-w-0 items-center gap-2 text-sm font-semibold text-amber-400">
 				<BookOpen class="h-4 w-4 shrink-0" />

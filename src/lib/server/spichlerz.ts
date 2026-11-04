@@ -78,7 +78,14 @@ function fromRow(r: SpichlerzRow): SpichlerzEntry {
 	let action_items: SpichlerzEntry['action_items'] = [];
 	try {
 		const parsed: ActionItem[] = JSON.parse(action_items_json || '[]');
-		action_items = parsed.map((item, idx) => ({ ...item, id: item.id ?? `legacy-${r.id}-${idx}` }));
+		// Ids must be unique within the note: fill gaps and rename duplicates deterministically.
+		const seen = new Set<string>();
+		action_items = parsed.map((item, idx) => {
+			let id = item.id || `legacy-${r.id}-${idx}`;
+			while (seen.has(id)) id = `${id}-${idx}`;
+			seen.add(id);
+			return { ...item, id };
+		});
 	} catch {
 		action_items = [];
 	}

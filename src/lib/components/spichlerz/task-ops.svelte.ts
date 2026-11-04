@@ -24,8 +24,13 @@ export class UndoToast {
 async function post(action: string, fields: Record<string, string | number>) {
 	const body = new FormData();
 	for (const [k, v] of Object.entries(fields)) body.append(k, String(v));
-	const res = await fetch(`/spichlerz?/${action}`, { method: 'POST', body, headers: { 'x-sveltekit-action': 'true' } });
-	const result = deserialize(await res.text());
+	let result;
+	try {
+		const res = await fetch(`/spichlerz?/${action}`, { method: 'POST', body, headers: { 'x-sveltekit-action': 'true' } });
+		result = deserialize(await res.text());
+	} catch {
+		return { ok: false as const, data: {} };
+	}
 	if (result.type === 'success') await invalidateAll();
 	return result.type === 'success' ? { ok: true as const, data: (result.data ?? {}) as Record<string, unknown> } : { ok: false as const, data: {} };
 }

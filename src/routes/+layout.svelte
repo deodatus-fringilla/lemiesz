@@ -31,12 +31,12 @@
 
 	/** Desktop (xl+): the persistent panel can be hidden to give content the full width. Remembered per browser. */
 	const PANEL_KEY = 'nav-panel-hidden';
-	let panelHidden = $state(false);
-
 	/** Spichlerz is a 3-column workspace: the panel starts hidden there (until the user shows it), shown elsewhere. */
 	const isSpichlerz = $derived(page.url.pathname.startsWith('/spichlerz'));
 	/** Spichlerz keeps its own remembered choice so it never overrides the preference for other pages. */
 	const panelKey = $derived(isSpichlerz ? `${PANEL_KEY}:spichlerz` : PANEL_KEY);
+	// Start from the page default during SSR, so /spichlerz never flashes the panel before hydration.
+	let panelHidden = $state(page.url.pathname.startsWith('/spichlerz'));
 
 	$effect(() => {
 		let stored: string | null = null;

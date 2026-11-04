@@ -74,4 +74,27 @@ describe('Spichlerz tasks by stable id', () => {
 		expect(getSpichlerzEntry(plain.id)?.is_backlog).toBe(false);
 		expect(deleteSpichlerzEntry(plain.id)).toBe(true);
 	});
+
+	it('repairs duplicate or missing ids on read so every task stays addressable', () => {
+		const e = createSpichlerzEntry({
+			title: 'Duplikaty',
+			body: 'x',
+			action_items: [
+				{ id: 'same', task: 'a', status: 'pending' },
+				{ id: 'same', task: 'b', status: 'pending' },
+				{ task: 'c', status: 'pending' }
+			]
+		});
+		expect(new Set(ids(e.id)).size).toBe(3);
+	});
+
+	it('restores only a clean task shape and rejects junk', () => {
+		const id = noteWithTasks('a');
+		const junk = { id: 'r1', task: ' b ', status: 'weird', evil: 1 } as never;
+		restoreTask(id, junk, 5);
+		const restored = getSpichlerzEntry(id)!.action_items[1] as unknown as Record<string, unknown>;
+		expect(restored).toMatchObject({ id: 'r1', task: 'b', status: 'pending' });
+		expect(restored.evil).toBeUndefined();
+		expect(() => restoreTask(id, { id: '', task: 'x' } as never, 0)).toThrow();
+	});
 });

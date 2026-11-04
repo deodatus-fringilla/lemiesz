@@ -81,7 +81,19 @@ export function deleteTask(entryId: number, taskId: string): { item: TaskItem; i
 }
 
 /** Puts a previously deleted task back at (about) its old position. */
-export function restoreTask(entryId: number, item: TaskItem, index: number): void {
+export function restoreTask(entryId: number, raw: TaskItem, index: number): void {
+	if (typeof raw?.id !== 'string' || !raw.id || typeof raw.task !== 'string' || !raw.task.trim()) {
+		throw new Error('Nieprawidłowe dane zadania');
+	}
+	const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+	const item: TaskItem = {
+		id: raw.id,
+		task: raw.task.trim(),
+		assignee: str(raw.assignee),
+		due_date: str(raw.due_date),
+		status: raw.status === 'done' ? 'done' : 'pending',
+		completed_at: raw.status === 'done' ? str(raw.completed_at) : undefined
+	};
 	const entry = load(entryId);
 	if (entry.action_items.some((t) => t.id === item.id)) return;
 	const items = [...entry.action_items];

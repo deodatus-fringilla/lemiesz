@@ -69,24 +69,36 @@ function apply(root: HTMLElement, re: RegExp): HTMLElement | null {
 	return root.querySelector('mark[data-hl]') ?? first;
 }
 
+/** Centres the match inside its nearest scrollable ancestor only, so the page itself never jumps. */
+function scrollToMatch(mark: HTMLElement) {
+	let box = mark.parentElement;
+	while (box && !(box.scrollHeight > box.clientHeight && /(auto|scroll)/.test(getComputedStyle(box).overflowY))) {
+		box = box.parentElement;
+	}
+	if (!box) return mark.scrollIntoView({ block: 'center', behavior: 'smooth' });
+	const offset = mark.getBoundingClientRect().top - box.getBoundingClientRect().top;
+	box.scrollTo({ top: box.scrollTop + offset - box.clientHeight / 2, behavior: 'smooth' });
+}
+
 export function highlight(node: HTMLElement, initial: HighlightParams) {
 	let params = initial;
 
-	function run() {
+	function run(scroll: boolean) {
 		clear(node);
 		const re = params.query ? buildMatcher(params.query) : null;
 		if (!re) return;
 		const first = apply(node, re);
-		if (first && params.scroll) {
-			requestAnimationFrame(() => first.scrollIntoView({ block: 'center', behavior: 'smooth' }));
-		}
+		if (first && scroll) requestAnimationFrame(() => scrollToMatch(first));
 	}
 
-	run();
+	run(!!params.scroll);
 	return {
 		update(next: HighlightParams) {
+			const same = next.query === params.query && next.key === params.key;
 			params = next;
-			run();
+			// A data refresh (e.g. ticking a task) re-runs the action with equal params: keep marks and position.
+			if (same && node.querySelector('mark[data-hl]')) return;
+			run(!same && !!params.scroll);
 		},
 		destroy() {
 			clear(node);
