@@ -1,6 +1,7 @@
 import { Marked, type Tokens } from 'marked';
 import { db } from '$lib/server/db';
 import { citationIds } from '$lib/server/journal-citations';
+import type { Block, ContentBlock } from '$lib/journal-blocks';
 
 /**
  * Turns a published article body (Markdown + [[src:ID]] / [[quote:ID]]) into safe HTML with numbered footnotes.
@@ -50,47 +51,89 @@ markdown.use({
 
 const PLACEHOLDER = (k: number) => `LEMIESZCITE${k}X`;
 
-export function renderArticle(body: string, locale: string): { html: string; notes: Footnote[] } {
-	const notes: Footnote[] = [];
-	const noteFor = new Map<number, Footnote>();
-	const parts: { html: string; blockHtml?: string }[] = [];
+/**
+ * Renders the Markdown parts of one article. One instance per article, so footnotes are numbered by first appearance
+ * across every block (columns included) and a repeated source keeps its number.
+ */
+export class ArticleRenderer {
+	readonly notes: Footnote[] = [];
+	private noteFor = new Map<number, Footnote>();
 
-	const footnote = (id: number): Footnote | null => {
-		if (noteFor.has(id)) return noteFor.get(id)!;
+	constructor(private readonly locale: string) {}
+
+	private footnote(id: number): Footnote | null {
+		if (this.noteFor.has(id)) return this.noteFor.get(id)!;
 		const s = db.prepare('SELECT work, section_ref, url FROM sources WHERE id = ?').get(id) as { work: string; section_ref: string; url: string | null } | undefined;
 		if (!s) return null;
-		const note: Footnote = { n: notes.length + 1, sourceId: id, work: s.work, section_ref: s.section_ref, url: s.url && /^https?:/i.test(s.url) ? s.url : null };
-		notes.push(note);
-		noteFor.set(id, note);
+		const note: Footnote = { n: this.notes.length + 1, sourceId: id, work: s.work, section_ref: s.section_ref, url: s.url && /^https?:/i.test(s.url) ? s.url : null };
+		this.notes.push(note);
+		this.noteFor.set(id, note);
 		return note;
-	};
-	const marker = (n: Footnote) => `<sup class="fn"><a href="#przypis-${n.n}" aria-label="${n.n}">${n.n}</a></sup>`;
+	}
 
-	let source = body;
-	for (const c of citationIds(body)) {
-		const note = footnote(c.id);
-		const k = parts.length;
-		if (!note) {
-			parts.push({ html: '' }); // unknown source: the token disappears rather than showing raw syntax
-		} else if (c.kind === 'quote') {
-			const t = db.prepare("SELECT text FROM source_texts WHERE source_id = ? AND locale = ? AND review = 'human_approved'").get(c.id, locale) as { text: string } | undefined;
-			if (t) {
-				const q = escapeHtml(t.text.trim());
-				parts.push({ html: `<q>${q}</q>${marker(note)}`, blockHtml: `<blockquote class="quote"><p>${q}</p><footer>${marker(note)} ${escapeHtml(note.work)}, ${escapeHtml(note.section_ref)}</footer></blockquote>` });
+	markdown(md: string): string {
+		const parts: { html: string; blockHtml?: string }[] = [];
+		const marker = (n: Footnote) => `<sup class="fn"><a href="#przypis-${n.n}" aria-label="${n.n}">${n.n}</a></sup>`;
+		let source = md;
+		for (const c of citationIds(md)) {
+			const note = this.footnote(c.id);
+			const k = parts.length;
+			if (!note) {
+				parts.push({ html: '' }); // unknown source: the token disappears rather than showing raw syntax
+			} else if (c.kind === 'quote') {
+				const t = db.prepare("SELECT text FROM source_texts WHERE source_id = ? AND locale = ? AND review = 'human_approved'").get(c.id, this.locale) as { text: string } | undefined;
+				if (t) {
+					const q = escapeHtml(t.text.trim());
+					parts.push({ html: `<q>${q}</q>${marker(note)}`, blockHtml: `<blockquote class="quote"><p>${q}</p><footer>${marker(note)} ${escapeHtml(note.work)}, ${escapeHtml(note.section_ref)}</footer></blockquote>` });
+				} else {
+					parts.push({ html: marker(note) });
+				}
 			} else {
 				parts.push({ html: marker(note) });
 			}
-		} else {
-			parts.push({ html: marker(note) });
+			source = source.replace(c.token, PLACEHOLDER(k));
 		}
-		source = source.replace(c.token, PLACEHOLDER(k));
+		let html = markdown.parse(source, { async: false }) as string;
+		parts.forEach((p, k) => {
+			const ph = PLACEHOLDER(k);
+			if (p.blockHtml) html = html.replace(`<p>${ph}</p>`, p.blockHtml);
+			html = html.replace(ph, p.html);
+		});
+		return html;
 	}
+}
 
-	let html = markdown.parse(source, { async: false }) as string;
-	parts.forEach((p, k) => {
-		const ph = PLACEHOLDER(k);
-		if (p.blockHtml) html = html.replace(`<p>${ph}</p>`, p.blockHtml);
-		html = html.replace(ph, p.html);
-	});
-	return { html, notes };
+/** One Markdown body (used by tests and anything not yet on blocks). */
+export function renderArticle(body: string, locale: string): { html: string; notes: Footnote[] } {
+	const r = new ArticleRenderer(locale);
+	const html = r.markdown(body);
+	return { html, notes: r.notes };
+}
+
+/** What the public page draws, block by block. HTML parts are already sanitised; headings are plain text. */
+export type RenderedContent =
+	| { type: 'html'; html: string }
+	| { type: 'heading'; level: 2 | 3 | 4; text: string }
+	| { type: 'callout'; html: string }
+	| { type: 'separator' };
+export type RenderedBlock = RenderedContent | { type: 'columns'; columns: RenderedContent[][] };
+
+export function renderBlocks(blocks: Block[], locale: string): { blocks: RenderedBlock[]; notes: Footnote[] } {
+	const r = new ArticleRenderer(locale);
+	const content = (b: ContentBlock): RenderedContent => {
+		switch (b.type) {
+			case 'text':
+				return { type: 'html', html: r.markdown(b.md) };
+			case 'callout':
+				return { type: 'callout', html: r.markdown(b.md) };
+			case 'heading':
+				return { type: 'heading', level: b.level, text: b.text };
+			case 'quote':
+				return { type: 'html', html: r.markdown(`[[quote:${b.sourceId}]]`) };
+			case 'separator':
+				return { type: 'separator' };
+		}
+	};
+	const out = blocks.map((b): RenderedBlock => (b.type === 'columns' ? { type: 'columns', columns: b.columns.map((c) => c.map(content)) } : content(b)));
+	return { blocks: out, notes: r.notes };
 }

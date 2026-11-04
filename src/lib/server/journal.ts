@@ -4,6 +4,17 @@ import { slugify } from '$lib/server/media';
 import { findCitationProblems } from '$lib/server/journal-citations';
 import { prepareFtsQuery } from '$lib/server/rag/fts';
 import { DEV_USERNAME, authDisabled } from '$lib/server/auth';
+import { BlockError, blocksFromMarkdown, flattenBlocks, parseStoredBlocks, validateBlocks, type Block } from '$lib/journal-blocks';
+
+/** Blocks from the caller (block editor) or a Markdown body (plain editor, pipeline), validated; JournalError on problems. */
+function toBlocks(input: { blocks?: unknown; body?: string }): Block[] {
+	try {
+		return validateBlocks(input.blocks !== undefined ? input.blocks : blocksFromMarkdown(input.body ?? ''));
+	} catch (e) {
+		if (e instanceof BlockError) throw new JournalError(e.message === 'The article is empty' ? 'Body is required' : e.message);
+		throw e;
+	}
+}
 
 /**
  * Approvals that count toward publishing. With real accounts on, an approval made in development mode (the shared
@@ -72,10 +83,16 @@ export interface ArticleText {
 	published_at: string | null;
 	published_by: string | null;
 	updated_at: string;
+	/** The article as blocks (working copy); `body` is derived from them. */
+	blocks: Block[];
 }
 
-type TextRow = Omit<ArticleText, 'ai_assisted'> & { ai_assisted: number };
-const fromText = (r: TextRow): ArticleText => ({ ...r, ai_assisted: !!r.ai_assisted });
+type TextRow = Omit<ArticleText, 'ai_assisted' | 'blocks'> & { ai_assisted: number; blocks_json: string | null; published_blocks_json: string | null };
+const fromText = ({ blocks_json, published_blocks_json: _published, ...r }: TextRow): ArticleText => ({
+	...r,
+	ai_assisted: !!r.ai_assisted,
+	blocks: parseStoredBlocks(blocks_json, r.body)
+});
 
 const requireHuman = (actor: Actor, what: string) => {
 	if (actor.kind !== 'human') throw new JournalError(`${actor.kind} "${actor.name}" may not ${what}`);
@@ -104,7 +121,9 @@ export interface NewArticle {
 	locale: string;
 	title: string;
 	lead?: string;
-	body: string;
+	body?: string;
+	/** Block-editor content; when given it replaces `body`. */
+	blocks?: unknown;
 	slug?: string;
 	author?: string | null;
 	tags?: string | null;
@@ -115,7 +134,7 @@ export interface NewArticle {
 export function createArticle(input: NewArticle, actor: Actor): number {
 	if (!(CALIBERS as readonly string[]).includes(input.caliber)) throw new JournalError(`Calibre must be one of: ${CALIBERS.join(', ')}`);
 	if (!input.title?.trim()) throw new JournalError('Title is required');
-	if (!input.body?.trim()) throw new JournalError('Body is required');
+	const blocks = toBlocks(input);
 	return db.transaction(() => {
 		const slug = uniqueSlug(slugify(input.slug?.trim() || input.title));
 		const id = Number(
@@ -123,8 +142,8 @@ export function createArticle(input: NewArticle, actor: Actor): number {
 				.prepare('INSERT INTO journal_articles (slug, caliber, author, tags, created_by) VALUES (?, ?, ?, ?, ?)')
 				.run(slug, input.caliber, input.author?.trim() || null, input.tags?.trim() || null, actor.name).lastInsertRowid
 		);
-		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, ai_assisted) VALUES (?, ?, ?, ?, ?, ?)').run(
-			id, input.locale, input.title.trim(), input.lead?.trim() ?? '', input.body, input.ai_assisted || actor.kind !== 'human' ? 1 : 0
+		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, blocks_json, ai_assisted) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+			id, input.locale, input.title.trim(), input.lead?.trim() ?? '', flattenBlocks(blocks), JSON.stringify(blocks), input.ai_assisted || actor.kind !== 'human' ? 1 : 0
 		);
 		return id;
 	})();
@@ -137,27 +156,29 @@ export function createArticle(input: NewArticle, actor: Actor): number {
 export function saveText(
 	articleId: number,
 	locale: string,
-	input: { title: string; lead?: string; body: string; ai_assisted?: boolean },
+	input: { title: string; lead?: string; body?: string; blocks?: unknown; ai_assisted?: boolean },
 	actor: Actor
 ): { changed: boolean; revision: number } {
 	if (!getArticle(articleId)) throw new JournalError(`Article ${articleId} not found`);
 	if (!input.title?.trim()) throw new JournalError('Title is required');
-	if (!input.body?.trim()) throw new JournalError('Body is required');
+	const blocks = toBlocks(input);
+	const blocksJson = JSON.stringify(blocks);
+	const body = flattenBlocks(blocks);
 	const ai = input.ai_assisted || actor.kind !== 'human' ? 1 : 0;
 	const current = getText(articleId, locale);
 	if (!current) {
-		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, ai_assisted) VALUES (?, ?, ?, ?, ?, ?)').run(
-			articleId, locale, input.title.trim(), input.lead?.trim() ?? '', input.body, ai
+		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, blocks_json, ai_assisted) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+			articleId, locale, input.title.trim(), input.lead?.trim() ?? '', body, blocksJson, ai
 		);
 		return { changed: true, revision: 1 };
 	}
-	const same = current.title === input.title.trim() && current.lead === (input.lead?.trim() ?? '') && current.body === input.body;
+	const same = current.title === input.title.trim() && current.lead === (input.lead?.trim() ?? '') && JSON.stringify(current.blocks) === blocksJson;
 	if (same && (current.ai_assisted ? 1 : 0) === ai) return { changed: false, revision: current.revision };
 	const revision = current.revision + 1;
 	db.prepare(
-		`UPDATE journal_article_texts SET title = ?, lead = ?, body = ?, ai_assisted = ?, revision = ?, status = 'draft',
+		`UPDATE journal_article_texts SET title = ?, lead = ?, body = ?, blocks_json = ?, ai_assisted = ?, revision = ?, status = 'draft',
 			updated_at = datetime('now') WHERE article_id = ? AND locale = ?`
-	).run(input.title.trim(), input.lead?.trim() ?? '', input.body, ai, revision, articleId, locale);
+	).run(input.title.trim(), input.lead?.trim() ?? '', body, blocksJson, ai, revision, articleId, locale);
 	return { changed: true, revision };
 }
 
@@ -261,14 +282,14 @@ export function publishText(articleId: number, locale: string, actor: Actor): vo
 	if (problems.length) throw new JournalError(`Citations that no longer resolve to approved sources: ${problems.map((p) => p.token).join(', ')}`);
 	db.prepare(
 		`UPDATE journal_article_texts SET status = 'human_approved', published_title = title, published_lead = lead, published_body = body,
-			published_revision = revision, published_at = datetime('now'), published_by = ? WHERE article_id = ? AND locale = ?`
+			published_blocks_json = blocks_json, published_revision = revision, published_at = datetime('now'), published_by = ? WHERE article_id = ? AND locale = ?`
 	).run(actor.name, articleId, locale);
 }
 
 export function unpublishText(articleId: number, locale: string, actor: Actor): void {
 	requireHuman(actor, 'unpublish journal articles');
 	db.prepare(
-		`UPDATE journal_article_texts SET published_title = NULL, published_lead = NULL, published_body = NULL,
+		`UPDATE journal_article_texts SET published_title = NULL, published_lead = NULL, published_body = NULL, published_blocks_json = NULL,
 			published_revision = NULL, published_at = NULL, published_by = NULL WHERE article_id = ? AND locale = ?`
 	).run(articleId, locale);
 }
@@ -315,12 +336,14 @@ export interface PublishedArticle {
 	lead: string;
 	body: string;
 	published_at: string;
+	/** The published version as blocks (what readers see). */
+	blocks: Block[];
 	twin: { slug: string; caliber: Caliber; title: string } | null;
 }
 
 const PUBLISHED_SELECT = `
 	SELECT a.id, a.slug, a.caliber, a.author, a.tags, t.locale, t.published_title AS title, t.published_lead AS lead,
-		t.published_body AS body, t.published_at,
+		t.published_body AS body, t.published_blocks_json, t.published_at,
 		tw.slug AS twin_slug, tw.caliber AS twin_caliber, tt.published_title AS twin_title
 	FROM journal_article_texts t
 	JOIN journal_articles a ON a.id = t.article_id
@@ -328,9 +351,15 @@ const PUBLISHED_SELECT = `
 	LEFT JOIN journal_article_texts tt ON tt.article_id = tw.id AND tt.locale = t.locale AND tt.published_body IS NOT NULL
 `;
 
-type PublishedRow = Omit<PublishedArticle, 'twin'> & { twin_slug: string | null; twin_caliber: Caliber | null; twin_title: string | null };
-const fromPublished = ({ twin_slug, twin_caliber, twin_title, ...r }: PublishedRow): PublishedArticle => ({
+type PublishedRow = Omit<PublishedArticle, 'twin' | 'blocks'> & {
+	published_blocks_json: string | null;
+	twin_slug: string | null;
+	twin_caliber: Caliber | null;
+	twin_title: string | null;
+};
+const fromPublished = ({ twin_slug, twin_caliber, twin_title, published_blocks_json, ...r }: PublishedRow): PublishedArticle => ({
 	...r,
+	blocks: parseStoredBlocks(published_blocks_json, r.body),
 	twin: twin_slug && twin_title && twin_caliber ? { slug: twin_slug, caliber: twin_caliber, title: twin_title } : null
 });
 
@@ -338,6 +367,10 @@ export function getPublishedArticle(slug: string, locale: string): PublishedArti
 	const r = db.prepare(`${PUBLISHED_SELECT} WHERE a.slug = ? AND t.locale = ? AND t.published_body IS NOT NULL`).get(slug, locale) as PublishedRow | undefined;
 	return r ? fromPublished(r) : null;
 }
+
+/** What a list or card needs: no body and no blocks (the front page would otherwise ship every article in full). */
+export type PublishedSummary = Omit<PublishedArticle, 'body' | 'blocks'>;
+export const summarise = ({ body: _b, blocks: _k, ...s }: PublishedArticle): PublishedSummary => s;
 
 export function listPublished(filter: { locale: string; caliber?: Caliber; tag?: string; q?: string; limit?: number }): PublishedArticle[] {
 	const where = ['t.locale = ?', 't.published_body IS NOT NULL'];

@@ -14,6 +14,7 @@
 	const o = $derived({ locale: data.lang });
 	const tags = $derived((a.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean));
 	const url = $derived(`${data.origin}${articlePath(data.lang, a.slug)}`);
+	const hasColumns = $derived(data.blocks.some((b) => b.type === 'columns'));
 </script>
 
 <JournalHead
@@ -30,7 +31,7 @@
 <div class="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:px-6 sm:py-12">
 	<JournalMasthead lang={data.lang} current="articles" other={data.other} />
 
-	<article class="mx-auto max-w-[68ch] space-y-6">
+	<article class="mx-auto space-y-6 {hasColumns ? 'max-w-5xl' : 'max-w-[68ch]'}">
 		<a href={journalHome(data.lang)} class="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-amber-300"><ArrowLeft class="h-4 w-4" />{m.pub_back_home({}, o)}</a>
 		<header class="space-y-3">
 			<JournalCaliberBadge caliber={a.caliber} lang={data.lang} />
@@ -41,7 +42,7 @@
 			</p>
 		</header>
 
-		<PublicArticleBody html={data.html} caliber={a.caliber} />
+		<PublicArticleBody blocks={data.blocks} caliber={a.caliber} />
 		<PublicFootnotes notes={data.notes} lang={data.lang} />
 		{#if a.twin}<PublicTwinCallout twin={a.twin} lang={data.lang} />{/if}
 

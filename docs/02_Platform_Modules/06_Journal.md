@@ -49,6 +49,20 @@
 | Outbound links | `rel="noopener noreferrer nofollow"`, new tab; no third-party embeds or images on public pages |
 | Missing or unpublished article | 404 (smoke) |
 
+## Article format: blocks (D-lite)
+
+Since migration 014 an article text is a **list of blocks** (`src/lib/journal-blocks.ts`): `text` and `callout`
+(Markdown with `[[src:ID]]` / `[[quote:ID]]`), `heading` (level 2–4), `quote` (a source id), `separator`, and
+`columns` (2 or 3 columns of the blocks above; never columns inside columns). Image and media blocks come later.
+
+* Stored as `blocks_json` (working copy) and `published_blocks_json` (what readers see), validated on every save by
+  `validateBlocks` (known types and fields only, size and nesting limits). `body` / `published_body` are **derived**
+  (`flattenBlocks`) for search, RSS and citation checks and are never edited directly.
+* Existing texts were converted to one text block by the migration; nothing had to be republished.
+* Rendering (`renderBlocks`) numbers footnotes across the whole article, columns included. Columns sit side by side
+  from 768 px and stack on phones; running text keeps a 68-character measure in an article with columns.
+* Until the block editor (step 2 of the D-lite plan) the plain editor saves its text as a single text block.
+
 ## Back-office (`/redakcja`)
 
 * **Rozprawy:** list of every article and language with calibre, state and approvals; "new article" form.

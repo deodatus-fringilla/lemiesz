@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages.js';
-	import type { PublishedArticle } from '$lib/server/journal';
+	import type { PublishedSummary } from '$lib/server/journal';
 	import { articlePath, type JournalLang } from '$lib/journal-paths';
 	import JournalCaliberBadge from '../JournalCaliberBadge.svelte';
 
-	let { article, lang, showCaliber = false }: { article: PublishedArticle; lang: JournalLang; showCaliber?: boolean } = $props();
+	let { article, lang, showCaliber = false }: { article: PublishedSummary; lang: JournalLang; showCaliber?: boolean } = $props();
 </script>
 
 <article class="group">

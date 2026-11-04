@@ -62,3 +62,29 @@ describe('renderArticle', () => {
 		expect(html).toContain('klik');
 	});
 });
+
+describe('renderBlocks', () => {
+	it('renders every block type and numbers footnotes across the whole article, columns included', async () => {
+		const { renderBlocks } = await import('./journal-render');
+		const a = source();
+		const b = source();
+		const { blocks, notes } = renderBlocks(
+			[
+				{ type: 'heading', level: 2, text: 'Teza <b>' },
+				{ type: 'text', md: `Wstęp [[src:${a}]].` },
+				{ type: 'columns', columns: [[{ type: 'text', md: `Lewa [[src:${b}]]` }], [{ type: 'quote', sourceId: a }, { type: 'separator' }]] },
+				{ type: 'callout', md: `**Wniosek** [[src:${b}]] <script>x</script>` }
+			],
+			'pl'
+		);
+		expect(blocks[0]).toEqual({ type: 'heading', level: 2, text: 'Teza <b>' }); // plain text: the page escapes it
+		expect(notes.map((n) => n.sourceId)).toEqual([a, b]); // a first, b second, repeats keep their number
+		const cols = blocks[2] as { type: 'columns'; columns: { type: string; html?: string }[][] };
+		expect(cols.columns[0][0].html).toContain('href="#przypis-2"');
+		expect(cols.columns[1][0].html).toContain('<blockquote class="quote">');
+		expect(cols.columns[1][1]).toEqual({ type: 'separator' });
+		const callout = blocks[3] as { type: 'callout'; html: string };
+		expect(callout.html).toContain('<strong>Wniosek</strong>');
+		expect(callout.html).not.toMatch(/<script/i);
+	});
+});

@@ -251,4 +251,37 @@ describe('journal articles', () => {
 		expect(() => unflagText(id, 'pl', ania)).toThrow(/not flagged/);
 		expect(() => unflagText(id, 'pl', system('pipeline'))).toThrow();
 	});
+
+	it('stores articles as blocks: body is derived, publishing copies the blocks, edits leave the live blocks alone', () => {
+		const blocks = [
+			{ type: 'heading', level: 2, text: 'Teza' },
+			{ type: 'columns', columns: [[{ type: 'text', md: 'Lewa' }], [{ type: 'text', md: 'Prawa' }]] }
+		];
+		const id = createArticle({ caliber: 'light', locale: 'pl', title: 'Bloki', blocks }, ania);
+		expect(getText(id, 'pl')).toMatchObject({ blocks, body: '## Teza\n\nLewa\n\nPrawa' });
+		approveAndPublish(id, ania);
+		const slug = getArticle(id)!.slug;
+		expect(getPublishedArticle(slug, 'pl')!.blocks).toEqual(blocks);
+		saveText(id, 'pl', { title: 'Bloki', blocks: [{ type: 'text', md: 'Nowa wersja' }] }, ania);
+		expect(getPublishedArticle(slug, 'pl')!.blocks).toEqual(blocks); // readers still see the approved version
+		expect(saveText(id, 'pl', { title: 'Bloki', blocks: [{ type: 'text', md: 'Nowa wersja' }] }, ania).changed).toBe(false);
+		unpublishText(id, 'pl', ania);
+		expect(getPublishedArticle(slug, 'pl')).toBeNull();
+	});
+
+	it('refuses malformed blocks and keeps the plain editor working (Markdown body becomes one text block)', () => {
+		expect(() => createArticle({ caliber: 'light', locale: 'pl', title: 'X', blocks: [{ type: 'video' }] }, ania)).toThrow(/unknown block type/);
+		expect(() => createArticle({ caliber: 'light', locale: 'pl', title: 'X', body: '   ' }, ania)).toThrow(/Body is required/);
+		const id = article('light', 'Zwykły tekst z edytora.');
+		expect(getText(id, 'pl')!.blocks).toEqual([{ type: 'text', md: 'Zwykły tekst z edytora.' }]);
+	});
+
+	it('checks citations inside every block, including quotation blocks in columns', () => {
+		const unknown = 987650 + n;
+		const id = createArticle(
+			{ caliber: 'light', locale: 'pl', title: 'Cytaty', blocks: [{ type: 'columns', columns: [[{ type: 'text', md: 'ok' }], [{ type: 'quote', sourceId: unknown }]] }] },
+			ania
+		);
+		expect(() => approveText(id, 'pl', ania)).toThrow(new RegExp(`quote:${unknown}`));
+	});
 });

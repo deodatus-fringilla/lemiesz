@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { listPublished, type Caliber } from '$lib/server/journal';
+import { listPublished, summarise, type Caliber } from '$lib/server/journal';
 import { langOf } from '$lib/journal-paths';
 
 /** Public front page: the latest of each calibre, or search / tag / calibre results. Published versions only. */
@@ -16,9 +16,9 @@ export const load: PageServerLoad = ({ params, url }) => {
 		tag,
 		caliber: caliber ?? null,
 		filtered,
-		light: filtered ? [] : listPublished({ locale: lang, caliber: 'light', limit: 12 }),
-		heavy: filtered ? [] : listPublished({ locale: lang, caliber: 'heavy', limit: 12 }),
-		results: filtered ? listPublished({ locale: lang, caliber, tag, q, limit: 50 }) : [],
+		light: filtered ? [] : listPublished({ locale: lang, caliber: 'light', limit: 12 }).map(summarise),
+		heavy: filtered ? [] : listPublished({ locale: lang, caliber: 'heavy', limit: 12 }).map(summarise),
+		results: filtered ? listPublished({ locale: lang, caliber, tag, q, limit: 50 }).map(summarise) : [],
 		hasEnglish: lang === 'pl' && listPublished({ locale: 'en', limit: 1 }).length > 0,
 		origin: url.origin
 	};
