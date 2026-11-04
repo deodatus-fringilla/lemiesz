@@ -6,11 +6,11 @@
 	import type { RenderedBlock } from '$lib/server/journal-render';
 	import PublicBlocks from './PublicBlocks.svelte';
 	/** `breakout`: "full" images span the whole screen (public page only; in the editor's preview they stay inside). */
-	let { blocks, caliber, breakout = false }: { blocks: RenderedBlock[]; caliber: 'light' | 'heavy'; breakout?: boolean } = $props();
+	let { blocks, caliber, breakout = false, lang = 'pl' }: { blocks: RenderedBlock[]; caliber: 'light' | 'heavy'; breakout?: boolean; lang?: 'pl' | 'en' } = $props();
 	const hasColumns = $derived(blocks.some((b) => b.type === 'columns' || (b.type === 'image' && b.size !== 'column')));
 </script>
 
-<div class="article {caliber}" class:wide={hasColumns} class:breakout><PublicBlocks {blocks} /></div>
+<div class="article {caliber}" class:wide={hasColumns} class:breakout><PublicBlocks {blocks} {lang} /></div>
 
 <style>
 	.article {

@@ -864,5 +864,15 @@
 	"img_size_column": "Szerokość tekstu",
 	"img_size_wide": "Cała szerokość artykułu",
 	"img_size_full": "Na cały ekran",
-	"img_caption": "Podpis (opcjonalny)"
+	"img_caption": "Podpis (opcjonalny)",
+	"blocks_type_media": "Media",
+	"media_search": "Szukaj w mediach i Bibliotece…",
+	"media_none": "Brak mediów. Dodaj je w Media albo w Bibliotece.",
+	"media_where_to_add": "Nowe nagrania i linki dodasz w Media (YouTube, Spotify) albo w Redakcja → Biblioteka.",
+	"media_player": "odtwarzacz",
+	"media_change": "Zmień",
+	"media_needs_approval": "Ta pozycja czeka na zatwierdzenie.",
+	"media_approve": "Zatwierdź",
+	"pub_media_play": "Odtwórz: {title}",
+	"pub_media_notice": "Odtworzenie połączy Twoją przeglądarkę z {provider}."
 }

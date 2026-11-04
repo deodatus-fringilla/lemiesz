@@ -9,6 +9,7 @@
 	import BlockColumnsField from './BlockColumnsField.svelte';
 	import BlockHeadingField from './BlockHeadingField.svelte';
 	import BlockImageField from './BlockImageField.svelte';
+	import BlockMediaField from './BlockMediaField.svelte';
 	import BlockQuoteField from './BlockQuoteField.svelte';
 	import BlockTextField from './BlockTextField.svelte';
 
@@ -50,6 +51,8 @@
 		<BlockQuoteField bind:sourceId={block.sourceId} {sources} {locale} />
 	{:else if block.type === 'image'}
 		<BlockImageField bind:imageId={block.imageId} bind:size={block.size} bind:caption={block.caption} />
+	{:else if block.type === 'media'}
+		<BlockMediaField bind:mediaId={block.mediaId} bind:caption={block.caption} />
 	{:else if block.type === 'separator'}
 		<hr class="mx-auto my-2 w-32 border-zinc-700" />
 	{:else if block.type === 'columns'}

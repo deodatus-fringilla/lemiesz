@@ -15,7 +15,7 @@
 		<p class="mt-1 font-serif text-lg text-zinc-300 sm:text-xl">{m.pub_subtitle({}, o)}</p>
 	</a>
 	<p class="mt-2 max-w-2xl text-sm text-zinc-400">{m.pub_tagline({}, o)}</p>
-	<nav class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium" aria-label={m.pub_subtitle({}, o)}>
+	<nav class="print-hidden mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium" aria-label={m.pub_subtitle({}, o)}>
 		<a href={journalHome(lang)} class={link(current === 'articles')}>{m.pub_nav_articles({}, o)}</a>
 		<a href={libraryPath(lang)} class={link(current === 'library')}>{m.pub_nav_library({}, o)}</a>
 		<a href={feedPath(lang)} class="inline-flex items-center gap-1 pb-1 text-zinc-400 hover:text-amber-300"><Rss class="h-3.5 w-3.5" />RSS</a>

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { RenderedBlock } from '$lib/server/journal-render';
 	import PublicBlocks from './PublicBlocks.svelte';
+	import PublicMedia from './PublicMedia.svelte';
 
 	/** Draws rendered article blocks; HTML parts are sanitised on the server, headings are plain text. */
-	let { blocks }: { blocks: RenderedBlock[] } = $props();
+	let { blocks, lang = 'pl' }: { blocks: RenderedBlock[]; lang?: 'pl' | 'en' } = $props();
 </script>
 
 {#each blocks as b, i (i)}
@@ -25,9 +26,11 @@
 				<span class="credit">{b.credit}{b.license ? ` · ${b.license}` : ''}</span>
 			</figcaption>
 		</figure>
+	{:else if b.type === 'embed' || b.type === 'linkcard'}
+		<PublicMedia media={b} {lang} />
 	{:else if b.type === 'columns'}
 		<div class="cols cols-{b.columns.length}">
-			{#each b.columns as col, c (c)}<div class="col"><PublicBlocks blocks={col} /></div>{/each}
+			{#each b.columns as col, c (c)}<div class="col"><PublicBlocks blocks={col} {lang} /></div>{/each}
 		</div>
 	{/if}
 {/each}

@@ -9,6 +9,7 @@
 	import BlockPreview from './BlockPreview.svelte';
 	import { setEditorContext } from './editor-context';
 	import type { JournalImage } from '$lib/server/journal-images';
+	import type { EditorMedia } from '$lib/server/journal-media';
 
 	/**
 	 * The journal's only article editor. Blocks live here until saved; the surrounding form posts them as `blocks`.
@@ -20,12 +21,16 @@
 		caliber,
 		sources,
 		images = [],
+		media = [],
 		dirty = $bindable(false),
 		wide = $bindable(false)
-	}: { initial: Block[]; locale: string; caliber: 'light' | 'heavy'; sources: CitableSource[]; images?: JournalImage[]; dirty?: boolean; wide?: boolean } = $props();
+	}: { initial: Block[]; locale: string; caliber: 'light' | 'heavy'; sources: CitableSource[]; images?: JournalImage[]; media?: EditorMedia[]; dirty?: boolean; wide?: boolean } = $props();
 	setEditorContext({
 		get images() {
 			return images;
+		},
+		get media() {
+			return media;
 		},
 		get locale() {
 			return locale;

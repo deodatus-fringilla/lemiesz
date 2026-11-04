@@ -52,7 +52,7 @@ describe('journal images', () => {
 		setPosterStatus(draft, 'human_approved', ania);
 		approveText(a, 'pl', ania);
 		setImageMeta(draft, { alt_pl: 'zmieniony' }, ania); // back to draft after approval
-		expect(() => publishText(a, 'pl', ania)).toThrow(/Images not ready/);
+		expect(() => publishText(a, 'pl', ania)).toThrow(/Images or media not ready/);
 	});
 
 	it('registers an upload as a draft with credit, licence and alt text required; the same file twice is one entry', () => {

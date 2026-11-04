@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 import { citationIds } from '$lib/server/journal-citations';
 import type { Block, ContentBlock } from '$lib/journal-blocks';
 import { renderImage, type RenderedImage } from '$lib/server/journal-images';
+import { renderMedia, type RenderedMedia } from '$lib/server/journal-media';
 
 /**
  * Turns a published article body (Markdown + [[src:ID]] / [[quote:ID]]) into safe HTML with numbered footnotes.
@@ -117,7 +118,8 @@ export type RenderedContent =
 	| { type: 'heading'; level: 2 | 3 | 4; text: string }
 	| { type: 'callout'; html: string }
 	| { type: 'separator' }
-	| RenderedImage;
+	| RenderedImage
+	| RenderedMedia;
 export type RenderedBlock = RenderedContent | { type: 'columns'; columns: RenderedContent[][] };
 
 export function renderBlocks(blocks: Block[], locale: string): { blocks: RenderedBlock[]; notes: Footnote[] } {
@@ -136,6 +138,8 @@ export function renderBlocks(blocks: Block[], locale: string): { blocks: Rendere
 				return { type: 'separator' };
 			case 'image':
 				return renderImage(b, locale) ?? { type: 'html', html: '' };
+			case 'media':
+				return renderMedia(b) ?? { type: 'html', html: '' };
 		}
 	};
 	// Inside a column an image can only be as wide as the column ("full screen" would break out of the grid).

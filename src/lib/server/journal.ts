@@ -3,6 +3,7 @@ import type { Actor } from '$lib/server/review';
 import { slugify } from '$lib/server/media';
 import { findCitationProblems } from '$lib/server/journal-citations';
 import { findImageProblems } from '$lib/server/journal-images';
+import { findMediaProblems } from '$lib/server/journal-media';
 import { prepareFtsQuery } from '$lib/server/rag/fts';
 import { DEV_USERNAME, authDisabled } from '$lib/server/auth';
 import { BlockError, blocksFromMarkdown, flattenBlocks, parseStoredBlocks, validateBlocks, type Block } from '$lib/journal-blocks';
@@ -243,8 +244,8 @@ export function approveText(articleId: number, locale: string, actor: Actor): { 
 	if (!text.body.trim()) throw new JournalError('The article is empty: write something before approving it');
 	const problems = findCitationProblems(text.body, locale);
 	if (problems.length) throw new JournalError(`Citations that do not resolve to approved sources: ${problems.map((p) => p.token).join(', ')}`);
-	const imageProblems = findImageProblems(text.blocks, locale);
-	if (imageProblems.length) throw new JournalError(`Images not ready: ${imageProblems.join('; ')}`);
+	const imageProblems = [...findImageProblems(text.blocks, locale), ...findMediaProblems(text.blocks)];
+	if (imageProblems.length) throw new JournalError(`Images or media not ready: ${imageProblems.join('; ')}`);
 	const required = requiredApprovals(article.caliber);
 	return db.transaction(() => {
 		db.prepare('INSERT OR IGNORE INTO journal_approvals (article_id, locale, revision, approved_by) VALUES (?, ?, ?, ?)').run(
@@ -286,8 +287,8 @@ export function publishText(articleId: number, locale: string, actor: Actor): vo
 	const problems = findCitationProblems(text.body, locale);
 	if (problems.length) throw new JournalError(`Citations that no longer resolve to approved sources: ${problems.map((p) => p.token).join(', ')}`);
 	// The same for images: one may have lost its approval or alternative text since the article was approved.
-	const imageProblems = findImageProblems(text.blocks, locale);
-	if (imageProblems.length) throw new JournalError(`Images not ready: ${imageProblems.join('; ')}`);
+	const imageProblems = [...findImageProblems(text.blocks, locale), ...findMediaProblems(text.blocks)];
+	if (imageProblems.length) throw new JournalError(`Images or media not ready: ${imageProblems.join('; ')}`);
 	db.prepare(
 		`UPDATE journal_article_texts SET status = 'human_approved', published_title = title, published_lead = lead, published_body = body,
 			published_blocks_json = blocks_json, published_revision = revision, published_at = datetime('now'), published_by = ? WHERE article_id = ? AND locale = ?`

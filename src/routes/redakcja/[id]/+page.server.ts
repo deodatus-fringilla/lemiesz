@@ -26,6 +26,8 @@ import { renderBlocks } from '$lib/server/journal-render';
 import { assertUploadFields, listJournalImages, registerUpload, setImageMeta } from '$lib/server/journal-images';
 import { ImageUploadError, inspectUpload, storeUpload } from '$lib/server/image-files';
 import { setPosterStatus } from '$lib/server/posters';
+import { listEditorMedia } from '$lib/server/journal-media';
+import { setMediaStatus } from '$lib/server/media';
 import { BlockError, validateBlocks } from '$lib/journal-blocks';
 import { human } from '$lib/server/review';
 import { db } from '$lib/server/db';
@@ -59,6 +61,7 @@ export const load: PageServerLoad = ({ params, url, locals }) => {
 		twins: twinCandidates(id, locale),
 		sources: listCitableSources(),
 		images: listJournalImages(),
+		media: listEditorMedia(),
 		calibers: CALIBERS,
 		me: locals.user!.username
 	};
@@ -139,6 +142,12 @@ export const actions: Actions = {
 		const to = str(d, 'to');
 		if (!Number.isInteger(id) || id <= 0 || !['human_approved', 'flagged', 'draft'].includes(to)) return fail(400, { error: 'Bad request' });
 		setPosterStatus(id, to as 'human_approved', human(locals.user!.username));
+		return { success: true };
+	},
+	mediaStatus: async ({ request, locals }) => {
+		const id = Number((await request.formData()).get('mediaId'));
+		if (!Number.isInteger(id) || id <= 0) return fail(400, { error: 'Missing media' });
+		setMediaStatus(id, 'human_approved', human(locals.user!.username));
 		return { success: true };
 	},
 	saveMeta: async ({ params, request, locals }) => {

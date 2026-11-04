@@ -32,7 +32,7 @@
 	<JournalMasthead lang={data.lang} current="articles" other={data.other} />
 
 	<article class="mx-auto space-y-6 {hasColumns ? 'max-w-5xl' : 'max-w-[68ch]'}">
-		<a href={journalHome(data.lang)} class="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-amber-300"><ArrowLeft class="h-4 w-4" />{m.pub_back_home({}, o)}</a>
+		<a href={journalHome(data.lang)} class="print-hidden inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-amber-300"><ArrowLeft class="h-4 w-4" />{m.pub_back_home({}, o)}</a>
 		<header class="space-y-3">
 			<JournalCaliberBadge caliber={a.caliber} lang={data.lang} />
 			<h1 class="text-3xl leading-tight font-bold text-zinc-50 sm:text-4xl {a.caliber === 'heavy' ? 'font-serif' : ''}">{a.title}</h1>
@@ -42,7 +42,7 @@
 			</p>
 		</header>
 
-		<PublicArticleBody blocks={data.blocks} caliber={a.caliber} breakout />
+		<PublicArticleBody blocks={data.blocks} caliber={a.caliber} breakout lang={data.lang} />
 		<PublicFootnotes notes={data.notes} lang={data.lang} />
 		{#if a.twin}<PublicTwinCallout twin={a.twin} lang={data.lang} />{/if}
 

@@ -50,3 +50,11 @@ describe('journal blocks', () => {
 		expect(parseStoredBlocks('[{"type":"text","md":"Nowy"}]', 'Stary')).toEqual([{ type: 'text', md: 'Nowy' }]);
 	});
 });
+
+describe('media blocks', () => {
+	it('validate the item and keep an optional caption', () => {
+		expect(validateBlocks([{ type: 'media', mediaId: 4, caption: ' Hymn ' }])).toEqual([{ type: 'media', mediaId: 4, caption: 'Hymn' }]);
+		expect(() => validateBlocks([{ type: 'media', mediaId: 0 }])).toThrow(/library/);
+		expect(flattenBlocks([{ type: 'media', mediaId: 4, caption: 'Hymn' }])).toBe('Hymn');
+	});
+});

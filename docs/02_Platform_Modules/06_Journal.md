@@ -75,6 +75,13 @@ Since migration 014 an article text is a **list of blocks** (`src/lib/journal-bl
   metadata stripped again; SVG refused), stored in `data/uploads/journal/<content-hash>` and served at
   `/images/uploads/…`: approved ones publicly with a one-year cache, drafts only to editors. An uploaded image needs an
   author, a licence and alternative text. Changing alt text or licence sends an approved image back to draft.
+* **Media** (block `media`: an item of `media_assets`, optional caption). YouTube/Spotify items render as a
+  click-to-load card: nothing is requested from the provider until the reader presses play (verified: zero third-party
+  requests before the click), then the record's derived privacy-host `embed_url` loads (ROBOT-09). Biblioteka web links
+  render as link cards with the editor's note (and the archived copy when the link check found it broken). Only
+  approved items reach readers; approval and publishing check it. Images inside columns are always column-wide.
+* **Print:** articles print black on white without navigation; a player prints its title and address, a link card
+  its address.
 * Unsaved changes block approving and publishing (they apply to the saved version) and warn before leaving the page.
 * A new article starts empty (title only); an empty article cannot be approved.
 

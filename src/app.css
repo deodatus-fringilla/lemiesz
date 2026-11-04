@@ -50,3 +50,35 @@
 		touch-action: manipulation;
 	}
 }
+
+/* Printing a journal article: dark screens become black on white paper, navigation and players' hints disappear. */
+@media print {
+	/* The app declares a dark colour scheme, which makes browsers paint a dark page even on paper. */
+	html {
+		color-scheme: light;
+	}
+	body,
+	body * {
+		background: transparent !important;
+		color: #000 !important;
+		box-shadow: none !important;
+	}
+	.print-hidden,
+	iframe {
+		display: none !important;
+	}
+	.print-only {
+		display: block !important;
+	}
+	/* Last, so the transparent rule above cannot override it. */
+	html {
+		background: #fff !important;
+	}
+	a {
+		text-decoration: underline;
+	}
+}
+
+.print-only {
+	display: none;
+}

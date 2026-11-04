@@ -15,7 +15,7 @@
 
 <div class="flex min-h-dvh flex-col overflow-x-clip bg-zinc-950 font-sans text-zinc-100">
 	<main class="flex-1">{@render children()}</main>
-	<footer class="border-t border-zinc-900 px-4 py-8 text-sm text-zinc-500">
+	<footer class="print-hidden border-t border-zinc-900 px-4 py-8 text-sm text-zinc-500">
 		<div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4">
 			<p class="font-serif text-zinc-400">{m.journal_name({}, o)}</p>
 			<nav class="flex flex-wrap gap-4" aria-label={m.pub_subtitle({}, o)}>

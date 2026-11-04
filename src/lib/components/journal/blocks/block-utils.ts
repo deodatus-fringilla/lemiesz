@@ -24,6 +24,8 @@ export function newContent(type: ContentType): EditorContent {
 			return { type, _k: key() };
 		case 'image':
 			return { type, imageId: 0, size: 'column', _k: key() };
+		case 'media':
+			return { type, mediaId: 0, _k: key() };
 	}
 }
 
@@ -56,4 +58,4 @@ export function setColumnCount(block: EditorColumns, n: number): void {
 export const isEmptyBlock = (b: EditorBlock): boolean =>
 	b.type === 'columns'
 		? b.columns.every((c) => c.every(isEmptyBlock))
-		: b.type === 'separator' || (b.type === 'quote' ? !b.sourceId : b.type === 'image' ? !b.imageId : !('md' in b ? b.md : b.text).trim());
+		: b.type === 'separator' || (b.type === 'quote' ? !b.sourceId : b.type === 'image' ? !b.imageId : b.type === 'media' ? !b.mediaId : !('md' in b ? b.md : b.text).trim());

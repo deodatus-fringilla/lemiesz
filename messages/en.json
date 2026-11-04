@@ -864,5 +864,15 @@
 	"img_size_column": "Text width",
 	"img_size_wide": "Full article width",
 	"img_size_full": "Full screen",
-	"img_caption": "Caption (optional)"
+	"img_caption": "Caption (optional)",
+	"blocks_type_media": "Media",
+	"media_search": "Search media and the Library…",
+	"media_none": "No media yet. Add them in Media or in the Library.",
+	"media_where_to_add": "New recordings and links are added in Media (YouTube, Spotify) or in Editorial office → Library.",
+	"media_player": "player",
+	"media_change": "Change",
+	"media_needs_approval": "This item awaits approval.",
+	"media_approve": "Approve",
+	"pub_media_play": "Play: {title}",
+	"pub_media_notice": "Playing connects your browser to {provider}."
 }
