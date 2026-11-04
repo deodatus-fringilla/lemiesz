@@ -21,7 +21,7 @@
 			<nav class="flex flex-wrap gap-4" aria-label={m.pub_subtitle({}, o)}>
 				<a href={journalHome(lang)} class="hover:text-amber-300">{m.pub_nav_articles({}, o)}</a>
 				<a href={libraryPath(lang)} class="hover:text-amber-300">{m.pub_nav_library({}, o)}</a>
-				<a href={feedPath(lang)} class="hover:text-amber-300">RSS</a>
+				<a href={feedPath(lang)} data-sveltekit-reload class="hover:text-amber-300">RSS</a>
 				<a href="/" class="hover:text-amber-300">{m.pub_publisher({}, o)}</a>
 			</nav>
 		</div>
