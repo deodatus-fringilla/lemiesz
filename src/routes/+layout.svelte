@@ -33,18 +33,25 @@
 	const PANEL_KEY = 'nav-panel-hidden';
 	let panelHidden = $state(false);
 
+	/** Spichlerz is a 3-column workspace: the panel starts hidden there (until the user shows it), shown elsewhere. */
+	const isSpichlerz = $derived(page.url.pathname.startsWith('/spichlerz'));
+	/** Spichlerz keeps its own remembered choice so it never overrides the preference for other pages. */
+	const panelKey = $derived(isSpichlerz ? `${PANEL_KEY}:spichlerz` : PANEL_KEY);
+
 	$effect(() => {
+		let stored: string | null = null;
 		try {
-			panelHidden = localStorage.getItem(PANEL_KEY) === '1';
+			stored = localStorage.getItem(panelKey);
 		} catch {
-			// Storage can be blocked (private mode, disabled site data); the panel then simply starts visible.
+			// Storage can be blocked (private mode, disabled site data); fall back to the page default.
 		}
+		panelHidden = stored === null ? isSpichlerz : stored === '1';
 	});
 
 	function togglePanel() {
 		panelHidden = !panelHidden;
 		try {
-			localStorage.setItem(PANEL_KEY, panelHidden ? '1' : '0');
+			localStorage.setItem(panelKey, panelHidden ? '1' : '0');
 		} catch {
 			// Not persisted; the toggle still works for this page view.
 		}
@@ -294,7 +301,7 @@
 			{@render children()}
 		</main>
 	{:else}
-		<main class="mx-auto w-full max-w-7xl min-w-0 flex-1 px-3 py-5 sm:px-6 sm:py-8 {panelHidden ? '' : 'xl:pr-72'}">
+		<main class="mx-auto w-full min-w-0 flex-1 px-3 py-5 sm:px-6 sm:py-8 {panelHidden ? '' : 'xl:pr-72'} {isSpichlerz && panelHidden ? 'max-w-[1800px]' : 'max-w-7xl'}">
 			{@render children()}
 		</main>
 	{/if}
