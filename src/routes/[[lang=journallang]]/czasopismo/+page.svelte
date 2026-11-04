@@ -5,7 +5,7 @@
 	import JournalHead from '$lib/components/journal/public/JournalHead.svelte';
 	import JournalMasthead from '$lib/components/journal/public/JournalMasthead.svelte';
 	import PublicArticleCard from '$lib/components/journal/public/PublicArticleCard.svelte';
-	import PublicTreatiseTable from '$lib/components/journal/public/PublicTreatiseTable.svelte';
+	import PublicTreatiseList from '$lib/components/journal/public/PublicTreatiseList.svelte';
 
 	let { data } = $props();
 	const o = $derived({ locale: data.lang });
@@ -41,6 +41,6 @@
 			</div>
 		</section>
 	{:else}
-		<PublicTreatiseTable pairs={data.pairs} lang={data.lang} />
+		<PublicTreatiseList pairs={data.pairs} lang={data.lang} />
 	{/if}
 </div>

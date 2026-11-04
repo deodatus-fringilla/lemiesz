@@ -1,4 +1,5 @@
 import { db } from '$lib/server/db';
+import { readingMinutes } from '$lib/reading-time';
 import type { Actor } from '$lib/server/review';
 import { slugify } from '$lib/server/media';
 import { findCitationProblems } from '$lib/server/journal-citations';
@@ -378,8 +379,8 @@ export function getPublishedArticle(slug: string, locale: string): PublishedArti
 }
 
 /** What a list or card needs: no body and no blocks (the front page would otherwise ship every article in full). */
-export type PublishedSummary = Omit<PublishedArticle, 'body' | 'blocks'>;
-export const summarise = ({ body: _b, blocks: _k, ...s }: PublishedArticle): PublishedSummary => s;
+export type PublishedSummary = Omit<PublishedArticle, 'body' | 'blocks'> & { minutes: number };
+export const summarise = ({ body, blocks: _k, ...s }: PublishedArticle): PublishedSummary => ({ ...s, minutes: readingMinutes(body) });
 
 export function listPublished(filter: { locale: string; caliber?: Caliber; tag?: string; q?: string; limit?: number }): PublishedArticle[] {
 	const where = ['t.locale = ?', 't.published_body IS NOT NULL'];
