@@ -58,6 +58,10 @@
   still become players; everything else is a plain link.
 * **One-person team:** set `JOURNAL_HEAVY_REVIEWERS=1` in `.env`; set it back to 2 when a second editor joins. Every
   approval records who gave it.
+* **Second person:** with `AUTH_DISABLED=true` everyone is the same `dev` identity, so two people cannot exist. Turn
+  real accounts on (remove `AUTH_DISABLED`, set `ADMIN_USERNAME`/`ADMIN_PASSWORD` once), create the second editor in
+  Ustawienia, and each signs in and approves. A `dev` approval does **not** count once real accounts are on (otherwise
+  one person plus an old `dev` approval would pass the two-person rule); the name `dev` is reserved.
 * **Citations need approved sources:** a `[[src:ID]]` resolves only to a source text approved in Weryfikacja.
 
 Two public sections fed from the same database:

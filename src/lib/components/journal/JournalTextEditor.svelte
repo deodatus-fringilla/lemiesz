@@ -10,9 +10,9 @@
 
 <form method="POST" action="?/saveText" use:enhance={() => async ({ update }) => update({ reset: false })} class="space-y-3">
 	<input type="hidden" name="locale" value={locale} />
-	<input name="title" required value={text?.title ?? ''} placeholder={m.journal_field_title()} class="{input} text-lg font-semibold" />
-	<textarea name="lead" rows="2" placeholder={m.journal_field_lead()} class="{input} text-sm">{text?.lead ?? ''}</textarea>
-	<textarea name="body" required rows="22" placeholder={m.journal_field_body()} class="{input} font-mono text-sm leading-6">{text?.body ?? ''}</textarea>
+	<input name="title" lang={locale} required value={text?.title ?? ''} placeholder={m.journal_field_title()} class="{input} text-lg font-semibold" />
+	<textarea name="lead" lang={locale} rows="3" placeholder={m.journal_field_lead()} class="{input} text-sm">{text?.lead ?? ''}</textarea>
+	<textarea name="body" lang={locale} required rows="22" placeholder={m.journal_field_body()} class="{input} text-[15px] leading-7">{text?.body ?? ''}</textarea>
 	<p class="text-[11px] text-zinc-500">{m.journal_body_hint()}</p>
 	{#if error}<p class="text-xs text-rose-300">{error}</p>{/if}
 	<div class="flex flex-wrap items-center gap-3">

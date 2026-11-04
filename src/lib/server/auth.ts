@@ -12,6 +12,9 @@ export const SESSION_COOKIE = 'session';
 const PLACEHOLDER_PASSWORDS = new Set(['change_me_to_a_secure_passphrase', 'changeme', 'password']);
 
 /** Local-development escape hatch. Ignored (and logged) in production. */
+/** The single identity every request gets while AUTH_DISABLED=true (local development only). Reserved: no real account may use it. */
+export const DEV_USERNAME = 'dev';
+
 export function authDisabled(): boolean {
 	if (process.env.AUTH_DISABLED !== 'true') return false;
 	if (process.env.NODE_ENV === 'production') {
@@ -59,6 +62,7 @@ export function createUser(
 	if (!/^[\p{L}\p{N}._-]{3,40}$/u.test(name)) {
 		throw new Error('Username must be 3-40 letters, digits, . _ -');
 	}
+	if (name.toLowerCase() === DEV_USERNAME) throw new Error(`"${DEV_USERNAME}" is reserved for development mode`);
 	const id = crypto.randomUUID();
 	db.prepare('INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, ?)').run(
 		id,

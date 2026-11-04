@@ -3,6 +3,24 @@ import type { Actor } from '$lib/server/review';
 import { slugify } from '$lib/server/media';
 import { findCitationProblems } from '$lib/server/journal-citations';
 import { prepareFtsQuery } from '$lib/server/rag/fts';
+import { DEV_USERNAME, authDisabled } from '$lib/server/auth';
+
+/**
+ * Approvals that count toward publishing. With real accounts on, an approval made in development mode (the shared
+ * "dev" identity) is not a person and does not count; otherwise one real editor plus an old "dev" approval would pass
+ * the two-person rule for heavy calibre.
+ */
+function countedApprovals(articleId: number, locale: string, revision: number): number {
+	const exclude = authDisabled() ? '' : ' AND approved_by <> ?';
+	const params: unknown[] = [articleId, locale, revision, ...(authDisabled() ? [] : [DEV_USERNAME])];
+	return (db.prepare(`SELECT COUNT(*) AS n FROM journal_approvals WHERE article_id = ? AND locale = ? AND revision = ?${exclude}`).get(...params) as { n: number }).n;
+}
+
+/** Approvals of the current revision that count, for the editors' screens. */
+export function countedApprovalsOf(articleId: number, locale: string): number {
+	const text = getText(articleId, locale);
+	return text ? countedApprovals(articleId, locale, text.revision) : 0;
+}
 
 /**
  * Journal "Lemiesz. Czy Neutralność jest możliwa? Rozprawy geoideologiczne" — articles (rozprawy).
@@ -206,9 +224,7 @@ export function approveText(articleId: number, locale: string, actor: Actor): { 
 		db.prepare('INSERT OR IGNORE INTO journal_approvals (article_id, locale, revision, approved_by) VALUES (?, ?, ?, ?)').run(
 			articleId, locale, text.revision, actor.name
 		);
-		const approvals = (
-			db.prepare('SELECT COUNT(*) AS n FROM journal_approvals WHERE article_id = ? AND locale = ? AND revision = ?').get(articleId, locale, text.revision) as { n: number }
-		).n;
+		const approvals = countedApprovals(articleId, locale, text.revision);
 		const approved = approvals >= required;
 		if (approved) db.prepare("UPDATE journal_article_texts SET status = 'human_approved' WHERE article_id = ? AND locale = ?").run(articleId, locale);
 		return { approvals, required, approved };
@@ -227,9 +243,7 @@ export function publishText(articleId: number, locale: string, actor: Actor): vo
 	const article = getArticle(articleId);
 	const text = getText(articleId, locale);
 	if (!article || !text) throw new JournalError(`Article ${articleId} (${locale}) not found`);
-	const approvals = (
-		db.prepare('SELECT COUNT(*) AS n FROM journal_approvals WHERE article_id = ? AND locale = ? AND revision = ?').get(articleId, locale, text.revision) as { n: number }
-	).n;
+	const approvals = countedApprovals(articleId, locale, text.revision);
 	if (text.status !== 'human_approved' || approvals < requiredApprovals(article.caliber)) {
 		throw new JournalError(`Revision ${text.revision} is not approved (${approvals}/${requiredApprovals(article.caliber)} approvals)`);
 	}
@@ -360,5 +374,5 @@ export function listForEditors(): EditorRow[] {
 			 ORDER BY a.updated_at DESC, a.id DESC, t.locale`
 		)
 		.all() as Omit<EditorRow, 'required'>[];
-	return rows.map((r) => ({ ...r, required: requiredApprovals(r.caliber) }));
+	return rows.map((r) => ({ ...r, approvals: countedApprovals(r.id, r.locale, r.revision), required: requiredApprovals(r.caliber) }));
 }

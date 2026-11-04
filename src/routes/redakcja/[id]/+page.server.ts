@@ -4,6 +4,7 @@ import {
 	CALIBERS,
 	JournalError,
 	approveText,
+	countedApprovalsOf,
 	deleteArticle,
 	flagText,
 	getArticle,
@@ -21,6 +22,7 @@ import {
 } from '$lib/server/journal';
 import { describeCitations } from '$lib/server/journal-citations';
 import { human } from '$lib/server/review';
+import { db } from '$lib/server/db';
 
 const LOCALES = ['pl', 'en'];
 const str = (d: FormData, k: string) => String(d.get(k) ?? '').trim();
@@ -45,6 +47,7 @@ export const load: PageServerLoad = ({ params, url, locals }) => {
 		allLocales: LOCALES,
 		text,
 		approvals: listApprovals(id, locale),
+		counted: countedApprovalsOf(id, locale),
 		required: requiredApprovals(article.caliber),
 		citations: text ? describeCitations(text.body, locale) : [],
 		twins: twinCandidates(id, locale),
@@ -76,12 +79,15 @@ export const actions: Actions = {
 	saveMeta: async ({ params, request, locals }) => {
 		const id = articleId(params);
 		const d = await request.formData();
-		return attempt(() => {
-			const actor = human(locals.user!.username);
-			updateArticleMeta(id, { caliber: str(d, 'caliber') as Caliber, author: str(d, 'author'), tags: str(d, 'tags') }, actor);
-			const twin = Number(d.get('twin_id'));
-			setTwin(id, Number.isInteger(twin) && twin > 0 ? twin : null, actor);
-		});
+		// One transaction: if the twin no longer fits (e.g. after a calibre change), nothing is half-saved.
+		return attempt(() =>
+			db.transaction(() => {
+				const actor = human(locals.user!.username);
+				updateArticleMeta(id, { caliber: str(d, 'caliber') as Caliber, author: str(d, 'author'), tags: str(d, 'tags') }, actor);
+				const twin = Number(d.get('twin_id'));
+				setTwin(id, Number.isInteger(twin) && twin > 0 ? twin : null, actor);
+			})()
+		);
 	},
 	approve: async ({ params, request, locals }) => {
 		const id = articleId(params);

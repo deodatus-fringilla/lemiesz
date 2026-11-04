@@ -784,5 +784,7 @@
 	"journal_link_broken": "Broken: {status} (checked {date})",
 	"journal_link_unreachable": "No response (checked {date})",
 	"journal_link_refused": "Address refused: private or invalid (checked {date})",
-	"pub_link_maybe_broken": "This link may no longer work."
+	"pub_link_maybe_broken": "This link may no longer work.",
+	"journal_needs_more": "Publishing needs {count} more approval(s) by another person.",
+	"journal_dev_not_counted": "A development-mode approval (\"dev\") does not count once real accounts are on."
 }

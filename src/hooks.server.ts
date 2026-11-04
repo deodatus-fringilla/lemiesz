@@ -4,6 +4,7 @@ import { sequence } from '@sveltejs/kit/hooks';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { RateLimiter, spendsLlm } from '$lib/server/rateLimit';
 import {
+	DEV_USERNAME,
 	SESSION_COOKIE,
 	authDisabled,
 	ensureBootstrapAdmin,
@@ -33,7 +34,7 @@ const readerLimiter = new RateLimiter(Number(process.env.JOURNAL_READS_PER_MINUT
 // Per signed-in user, per day: caps what a leaked session or a runaway script can spend on LLM calls.
 const llmBudget = new RateLimiter(Number(process.env.LLM_DAILY_REQUESTS ?? 300), 24 * 3_600_000);
 
-const DEV_USER: SessionUser = { id: 'dev', username: 'dev', role: 'admin' };
+const DEV_USER: SessionUser = { id: DEV_USERNAME, username: DEV_USERNAME, role: 'admin' };
 const PUBLIC_PATHS = ['/', '/login', '/api/health', '/robots.txt'];
 
 /** The public journal (articles, Biblioteka, RSS, sitemap) is readable without signing in, but only read. */

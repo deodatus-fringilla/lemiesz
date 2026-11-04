@@ -90,4 +90,10 @@ describe('LLM spend guard', () => {
 		expect([1, 2, 3, 4].map(() => budget.limited('alice', 0))).toEqual([false, false, false, true]);
 		expect(budget.limited('bob', 0)).toBe(false);
 	});
+
+	it('reserves the development-mode name "dev" so no real account can borrow its approvals', () => {
+		const pw = 'Correct-Horse-Battery-9';
+		expect(() => createUser('dev', pw)).toThrow(/reserved/);
+		expect(() => createUser('DEV', pw)).toThrow(/reserved/);
+	});
 });

@@ -18,7 +18,8 @@ import {
 	requiredApprovals,
 	saveText,
 	setTwin,
-	unpublishText
+	unpublishText,
+	countedApprovalsOf
 } from './journal';
 import { describeCitations, findCitationProblems } from './journal-citations';
 
@@ -209,5 +210,22 @@ describe('journal articles', () => {
 			{ token: `[[src:${src}]]`, kind: 'src', id: src, label: 'Konwencja haska — Art. 1', problem: null },
 			{ token: '[[quote:424242]]', kind: 'quote', id: 424242, label: null, problem: 'unknown_source' }
 		]);
+	});
+
+	it('with real accounts on, a development-mode "dev" approval is not a person and does not count', () => {
+		const id = article('heavy');
+		approveText(id, 'pl', human('dev')); // made while AUTH_DISABLED=true (as in these tests)
+		expect(countedApprovalsOf(id, 'pl')).toBe(1);
+		process.env.AUTH_DISABLED = 'false';
+		try {
+			expect(countedApprovalsOf(id, 'pl')).toBe(0);
+			expect(approveText(id, 'pl', ania)).toMatchObject({ approvals: 1, required: 2, approved: false });
+			expect(() => publishText(id, 'pl', ania)).toThrow(/not approved/);
+			expect(approveText(id, 'pl', bartek).approved).toBe(true);
+			publishText(id, 'pl', bartek);
+			expect(listForEditors().find((r) => r.id === id)!.approvals).toBe(2);
+		} finally {
+			process.env.AUTH_DISABLED = 'true';
+		}
 	});
 });

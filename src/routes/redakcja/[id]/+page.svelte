@@ -32,7 +32,7 @@
 		<JournalTextEditor text={data.text} locale={data.locale} />
 		<aside class="space-y-4">
 			{#if data.text}
-				<JournalReviewPanel text={data.text} locale={data.locale} approvals={data.approvals} required={data.required} me={data.me} {blocked} />
+				<JournalReviewPanel text={data.text} locale={data.locale} approvals={data.approvals} counted={data.counted} required={data.required} me={data.me} {blocked} />
 				<JournalCitationList citations={data.citations} />
 			{/if}
 			<JournalMetaForm article={data.article} twins={data.twins} />
