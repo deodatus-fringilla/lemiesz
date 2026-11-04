@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
-/* Gothic / cathedral accent: deep stained-glass crimson, paired with the amber "gilding". */
+/* Gothic / cathedral accent: deep oxblood, paired with the amber "gilding". */
 @theme {
-	--color-crimson-300: #e39aa4;
-	--color-crimson-400: #cc6674;
-	--color-crimson-500: #a8324a;
+	--color-crimson-300: #d9928c;
+	--color-crimson-400: #a8403c;
+	--color-crimson-500: #7a1c1f;
 }
 
 /* Mobile-first base: small-screen defaults, enhanced with sm/md/lg/xl in components. */
