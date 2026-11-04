@@ -1,0 +1,312 @@
+import { db } from '$lib/server/db';
+import type { Actor } from '$lib/server/review';
+import { slugify } from '$lib/server/media';
+import { findCitationProblems } from '$lib/server/journal-citations';
+import { prepareFtsQuery } from '$lib/server/rag/fts';
+
+/**
+ * Journal "Lemiesz. Czy Neutralność jest możliwa? Rozprawy geoideologiczne" — articles (rozprawy).
+ * Trust rules as everywhere: only signed-in humans approve or publish; any edit resets the working copy to draft.
+ * Readers see a separately stored published version, so fixing a typo never takes a live article offline:
+ * the fix goes live only when its own revision is approved and published.
+ */
+export const CALIBERS = ['light', 'heavy'] as const;
+export type Caliber = (typeof CALIBERS)[number];
+export type TextStatus = 'draft' | 'human_approved' | 'flagged';
+
+export class JournalError extends Error {}
+
+/** Distinct human approvals a revision needs: one for light calibre, two for heavy (JOURNAL_HEAVY_REVIEWERS overrides). */
+export function requiredApprovals(caliber: Caliber): number {
+	if (caliber === 'light') return 1;
+	const n = Number(process.env.JOURNAL_HEAVY_REVIEWERS ?? 2);
+	return Number.isInteger(n) && n >= 1 ? n : 2;
+}
+
+export interface Article {
+	id: number;
+	slug: string;
+	caliber: Caliber;
+	twin_id: number | null;
+	author: string | null;
+	tags: string | null;
+	created_by: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface ArticleText {
+	article_id: number;
+	locale: string;
+	title: string;
+	lead: string;
+	body: string;
+	revision: number;
+	status: TextStatus;
+	ai_assisted: boolean;
+	published_title: string | null;
+	published_lead: string | null;
+	published_body: string | null;
+	published_revision: number | null;
+	published_at: string | null;
+	published_by: string | null;
+	updated_at: string;
+}
+
+type TextRow = Omit<ArticleText, 'ai_assisted'> & { ai_assisted: number };
+const fromText = (r: TextRow): ArticleText => ({ ...r, ai_assisted: !!r.ai_assisted });
+
+const requireHuman = (actor: Actor, what: string) => {
+	if (actor.kind !== 'human') throw new JournalError(`${actor.kind} "${actor.name}" may not ${what}`);
+};
+
+function uniqueSlug(base: string, ownId?: number): string {
+	let slug = base || 'rozprawa';
+	for (let n = 2; ; n++) {
+		const row = db.prepare('SELECT id FROM journal_articles WHERE slug = ?').get(slug) as { id: number } | undefined;
+		if (!row || row.id === ownId) return slug;
+		slug = `${base}-${n}`;
+	}
+}
+
+export function getArticle(id: number): Article | null {
+	return (db.prepare('SELECT * FROM journal_articles WHERE id = ?').get(id) as Article | undefined) ?? null;
+}
+
+export function getText(articleId: number, locale: string): ArticleText | null {
+	const r = db.prepare('SELECT * FROM journal_article_texts WHERE article_id = ? AND locale = ?').get(articleId, locale) as TextRow | undefined;
+	return r ? fromText(r) : null;
+}
+
+export interface NewArticle {
+	caliber: Caliber;
+	locale: string;
+	title: string;
+	lead?: string;
+	body: string;
+	slug?: string;
+	author?: string | null;
+	tags?: string | null;
+	ai_assisted?: boolean;
+}
+
+/** Creates an article with its first text. Always a draft. A non-human author (the pipeline) means AI-assisted. */
+export function createArticle(input: NewArticle, actor: Actor): number {
+	if (!(CALIBERS as readonly string[]).includes(input.caliber)) throw new JournalError(`Calibre must be one of: ${CALIBERS.join(', ')}`);
+	if (!input.title?.trim()) throw new JournalError('Title is required');
+	if (!input.body?.trim()) throw new JournalError('Body is required');
+	return db.transaction(() => {
+		const slug = uniqueSlug(slugify(input.slug?.trim() || input.title));
+		const id = Number(
+			db
+				.prepare('INSERT INTO journal_articles (slug, caliber, author, tags, created_by) VALUES (?, ?, ?, ?, ?)')
+				.run(slug, input.caliber, input.author?.trim() || null, input.tags?.trim() || null, actor.name).lastInsertRowid
+		);
+		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, ai_assisted) VALUES (?, ?, ?, ?, ?, ?)').run(
+			id, input.locale, input.title.trim(), input.lead?.trim() ?? '', input.body, input.ai_assisted || actor.kind !== 'human' ? 1 : 0
+		);
+		return id;
+	})();
+}
+
+/**
+ * Saves the working copy of one language (adds the language if it is new). Any real change bumps the revision and
+ * resets the status to draft; the published version is untouched until the new revision is approved and published.
+ */
+export function saveText(
+	articleId: number,
+	locale: string,
+	input: { title: string; lead?: string; body: string; ai_assisted?: boolean },
+	actor: Actor
+): { changed: boolean; revision: number } {
+	if (!getArticle(articleId)) throw new JournalError(`Article ${articleId} not found`);
+	if (!input.title?.trim()) throw new JournalError('Title is required');
+	if (!input.body?.trim()) throw new JournalError('Body is required');
+	const ai = input.ai_assisted || actor.kind !== 'human' ? 1 : 0;
+	const current = getText(articleId, locale);
+	if (!current) {
+		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, ai_assisted) VALUES (?, ?, ?, ?, ?, ?)').run(
+			articleId, locale, input.title.trim(), input.lead?.trim() ?? '', input.body, ai
+		);
+		return { changed: true, revision: 1 };
+	}
+	const same = current.title === input.title.trim() && current.lead === (input.lead?.trim() ?? '') && current.body === input.body;
+	if (same && (current.ai_assisted ? 1 : 0) === ai) return { changed: false, revision: current.revision };
+	const revision = current.revision + 1;
+	db.prepare(
+		`UPDATE journal_article_texts SET title = ?, lead = ?, body = ?, ai_assisted = ?, revision = ?, status = 'draft',
+			updated_at = datetime('now') WHERE article_id = ? AND locale = ?`
+	).run(input.title.trim(), input.lead?.trim() ?? '', input.body, ai, revision, articleId, locale);
+	return { changed: true, revision };
+}
+
+/** Records one person's approval of the current revision; the text becomes human_approved once enough people agree. */
+export function approveText(articleId: number, locale: string, actor: Actor): { approvals: number; required: number; approved: boolean } {
+	requireHuman(actor, 'approve journal articles');
+	const article = getArticle(articleId);
+	const text = getText(articleId, locale);
+	if (!article || !text) throw new JournalError(`Article ${articleId} (${locale}) not found`);
+	if (text.status === 'flagged') throw new JournalError('A flagged text must be edited before it can be approved');
+	const problems = findCitationProblems(text.body, locale);
+	if (problems.length) throw new JournalError(`Citations that do not resolve to approved sources: ${problems.map((p) => p.token).join(', ')}`);
+	const required = requiredApprovals(article.caliber);
+	return db.transaction(() => {
+		db.prepare('INSERT OR IGNORE INTO journal_approvals (article_id, locale, revision, approved_by) VALUES (?, ?, ?, ?)').run(
+			articleId, locale, text.revision, actor.name
+		);
+		const approvals = (
+			db.prepare('SELECT COUNT(*) AS n FROM journal_approvals WHERE article_id = ? AND locale = ? AND revision = ?').get(articleId, locale, text.revision) as { n: number }
+		).n;
+		const approved = approvals >= required;
+		if (approved) db.prepare("UPDATE journal_article_texts SET status = 'human_approved' WHERE article_id = ? AND locale = ?").run(articleId, locale);
+		return { approvals, required, approved };
+	})();
+}
+
+export function flagText(articleId: number, locale: string, actor: Actor): void {
+	requireHuman(actor, 'flag journal articles');
+	const r = db.prepare("UPDATE journal_article_texts SET status = 'flagged', updated_at = datetime('now') WHERE article_id = ? AND locale = ?").run(articleId, locale);
+	if (!r.changes) throw new JournalError(`Article ${articleId} (${locale}) not found`);
+}
+
+/** Puts the approved current revision online. Refuses anything not approved by enough people for this calibre. */
+export function publishText(articleId: number, locale: string, actor: Actor): void {
+	requireHuman(actor, 'publish journal articles');
+	const article = getArticle(articleId);
+	const text = getText(articleId, locale);
+	if (!article || !text) throw new JournalError(`Article ${articleId} (${locale}) not found`);
+	const approvals = (
+		db.prepare('SELECT COUNT(*) AS n FROM journal_approvals WHERE article_id = ? AND locale = ? AND revision = ?').get(articleId, locale, text.revision) as { n: number }
+	).n;
+	if (text.status !== 'human_approved' || approvals < requiredApprovals(article.caliber)) {
+		throw new JournalError(`Revision ${text.revision} is not approved (${approvals}/${requiredApprovals(article.caliber)} approvals)`);
+	}
+	// A cited source may have lost its approval since: check again at the moment of publishing.
+	const problems = findCitationProblems(text.body, locale);
+	if (problems.length) throw new JournalError(`Citations that no longer resolve to approved sources: ${problems.map((p) => p.token).join(', ')}`);
+	db.prepare(
+		`UPDATE journal_article_texts SET published_title = title, published_lead = lead, published_body = body,
+			published_revision = revision, published_at = datetime('now'), published_by = ? WHERE article_id = ? AND locale = ?`
+	).run(actor.name, articleId, locale);
+}
+
+export function unpublishText(articleId: number, locale: string, actor: Actor): void {
+	requireHuman(actor, 'unpublish journal articles');
+	db.prepare(
+		`UPDATE journal_article_texts SET published_title = NULL, published_lead = NULL, published_body = NULL,
+			published_revision = NULL, published_at = NULL, published_by = NULL WHERE article_id = ? AND locale = ?`
+	).run(articleId, locale);
+}
+
+/** Links two articles of different calibres as twins (both directions); null clears the link. */
+export function setTwin(articleId: number, twinId: number | null, actor: Actor): void {
+	requireHuman(actor, 'link journal articles');
+	const a = getArticle(articleId);
+	if (!a) throw new JournalError(`Article ${articleId} not found`);
+	db.transaction(() => {
+		db.prepare('UPDATE journal_articles SET twin_id = NULL WHERE twin_id = ? OR id = ?').run(articleId, articleId);
+		if (twinId === null) return;
+		const b = getArticle(twinId);
+		if (!b) throw new JournalError(`Article ${twinId} not found`);
+		if (b.id === a.id) throw new JournalError('An article cannot be its own twin');
+		if (b.caliber === a.caliber) throw new JournalError('Twins must be of different calibres (light and heavy)');
+		db.prepare('UPDATE journal_articles SET twin_id = NULL WHERE twin_id = ? OR id = ?').run(b.id, b.id);
+		db.prepare('UPDATE journal_articles SET twin_id = ? WHERE id = ?').run(b.id, a.id);
+		db.prepare('UPDATE journal_articles SET twin_id = ? WHERE id = ?').run(a.id, b.id);
+	})();
+}
+
+/** Deleting a live article would break readers' links: unpublish every language first. */
+export function deleteArticle(id: number): boolean {
+	if (db.prepare('SELECT 1 FROM journal_article_texts WHERE article_id = ? AND published_body IS NOT NULL').get(id)) {
+		throw new JournalError('Unpublish the article in every language before deleting it');
+	}
+	return db.transaction(() => {
+		db.prepare('UPDATE journal_articles SET twin_id = NULL WHERE twin_id = ?').run(id);
+		return db.prepare('DELETE FROM journal_articles WHERE id = ?').run(id).changes > 0;
+	})();
+}
+
+// ---- reading (published versions only) ---------------------------------------------------------------
+
+export interface PublishedArticle {
+	id: number;
+	slug: string;
+	caliber: Caliber;
+	author: string | null;
+	tags: string | null;
+	locale: string;
+	title: string;
+	lead: string;
+	body: string;
+	published_at: string;
+	twin: { slug: string; caliber: Caliber; title: string } | null;
+}
+
+const PUBLISHED_SELECT = `
+	SELECT a.id, a.slug, a.caliber, a.author, a.tags, t.locale, t.published_title AS title, t.published_lead AS lead,
+		t.published_body AS body, t.published_at,
+		tw.slug AS twin_slug, tw.caliber AS twin_caliber, tt.published_title AS twin_title
+	FROM journal_article_texts t
+	JOIN journal_articles a ON a.id = t.article_id
+	LEFT JOIN journal_articles tw ON tw.id = a.twin_id
+	LEFT JOIN journal_article_texts tt ON tt.article_id = tw.id AND tt.locale = t.locale AND tt.published_body IS NOT NULL
+`;
+
+type PublishedRow = Omit<PublishedArticle, 'twin'> & { twin_slug: string | null; twin_caliber: Caliber | null; twin_title: string | null };
+const fromPublished = ({ twin_slug, twin_caliber, twin_title, ...r }: PublishedRow): PublishedArticle => ({
+	...r,
+	twin: twin_slug && twin_title && twin_caliber ? { slug: twin_slug, caliber: twin_caliber, title: twin_title } : null
+});
+
+export function getPublishedArticle(slug: string, locale: string): PublishedArticle | null {
+	const r = db.prepare(`${PUBLISHED_SELECT} WHERE a.slug = ? AND t.locale = ? AND t.published_body IS NOT NULL`).get(slug, locale) as PublishedRow | undefined;
+	return r ? fromPublished(r) : null;
+}
+
+export function listPublished(filter: { locale: string; caliber?: Caliber; tag?: string; q?: string; limit?: number }): PublishedArticle[] {
+	const where = ['t.locale = ?', 't.published_body IS NOT NULL'];
+	const params: unknown[] = [filter.locale];
+	if (filter.caliber) (where.push('a.caliber = ?'), params.push(filter.caliber));
+	// instr, not LIKE: a tag containing % or _ must not act as a wildcard.
+	if (filter.tag?.trim()) (where.push("instr(',' || replace(lower(coalesce(a.tags, '')), ' ', '') || ',', ?) > 0"), params.push(`,${filter.tag.trim().toLowerCase().replace(/\s+/g, '')},`));
+	if (filter.q?.trim()) {
+		// One sanitised group per word, joined with an explicit AND (as in media.ts: FTS5 rejects a bare group after a term).
+		const locale = filter.locale === 'en' ? 'en' : 'pl';
+		const q = filter.q
+			.split(/\s+/)
+			.map((w) => prepareFtsQuery(w, locale, 'and'))
+			.filter(Boolean)
+			.join(' AND ');
+		if (!q) return [];
+		where.push('t.id IN (SELECT rowid FROM fts_journal WHERE fts_journal MATCH ?)');
+		params.push(q);
+	}
+	const sql = `${PUBLISHED_SELECT} WHERE ${where.join(' AND ')} ORDER BY t.published_at DESC, a.id DESC LIMIT ?`;
+	return (db.prepare(sql).all(...params, filter.limit ?? 50) as PublishedRow[]).map(fromPublished);
+}
+
+// ---- editors' overview --------------------------------------------------------------------------------
+
+export interface EditorRow extends Article {
+	locale: string;
+	title: string;
+	status: TextStatus;
+	revision: number;
+	published_revision: number | null;
+	approvals: number;
+	required: number;
+}
+
+/** Every article and language with its state, for the editorial back-office. */
+export function listForEditors(): EditorRow[] {
+	const rows = db
+		.prepare(
+			`SELECT a.*, t.locale, t.title, t.status, t.revision, t.published_revision,
+				(SELECT COUNT(*) FROM journal_approvals p WHERE p.article_id = t.article_id AND p.locale = t.locale AND p.revision = t.revision) AS approvals
+			 FROM journal_articles a JOIN journal_article_texts t ON t.article_id = a.id
+			 ORDER BY a.updated_at DESC, a.id DESC, t.locale`
+		)
+		.all() as Omit<EditorRow, 'required'>[];
+	return rows.map((r) => ({ ...r, required: requiredApprovals(r.caliber) }));
+}

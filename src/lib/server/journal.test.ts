@@ -1,0 +1,182 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { db } from './db';
+import { human, system } from './review';
+import {
+	approveText,
+	createArticle,
+	deleteArticle,
+	flagText,
+	getArticle,
+	getPublishedArticle,
+	getText,
+	listForEditors,
+	listPublished,
+	publishText,
+	requiredApprovals,
+	saveText,
+	setTwin,
+	unpublishText
+} from './journal';
+import { findCitationProblems } from './journal-citations';
+
+const ania = human('ania');
+const bartek = human('bartek');
+let n = 0;
+const article = (caliber: 'light' | 'heavy' = 'light', body = 'Treść rozprawy o neutralności.') =>
+	createArticle({ caliber, locale: 'pl', title: `Rozprawa ${++n}`, lead: 'Lead', body, tags: 'Szwajcaria, retencja' }, ania);
+const approveAndPublish = (id: number, ...people: ReturnType<typeof human>[]) => {
+	for (const p of people) approveText(id, 'pl', p);
+	publishText(id, 'pl', people[0]);
+};
+
+function approvedSource(review = 'human_approved'): number {
+	const id = Number(
+		db.prepare("INSERT INTO sources (work, section_ref, category, license, original_locale) VALUES ('Konwencja haska', 'Art. 1', 'law', 'public domain', 'pl')").run()
+			.lastInsertRowid
+	);
+	db.prepare("INSERT INTO source_texts (source_id, locale, text, origin, review) VALUES (?, 'pl', 'Terytorium mocarstw neutralnych jest nietykalne.', 'original', ?)").run(id, review);
+	return id;
+}
+
+afterEach(() => {
+	delete process.env.JOURNAL_HEAVY_REVIEWERS;
+});
+
+describe('journal articles', () => {
+	it('keeps foreign keys on after the table-rebuild migration', () => {
+		expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
+	});
+
+	it('creates a draft with a clean unique slug; a pipeline author means AI-assisted', () => {
+		const a = createArticle({ caliber: 'light', locale: 'pl', title: 'Czy neutralność jest możliwa?', body: 'x' }, ania);
+		const b = createArticle({ caliber: 'heavy', locale: 'pl', title: 'Czy neutralność jest możliwa?', body: 'x' }, system('pipeline'));
+		expect(getArticle(a)!.slug).toBe('czy-neutralnosc-jest-mozliwa');
+		expect(getArticle(b)!.slug).toBe('czy-neutralnosc-jest-mozliwa-2');
+		expect(getText(a, 'pl')).toMatchObject({ status: 'draft', revision: 1, ai_assisted: false, published_body: null });
+		expect(getText(b, 'pl')!.ai_assisted).toBe(true);
+		expect(() => createArticle({ caliber: 'medium' as never, locale: 'pl', title: 't', body: 'x' }, ania)).toThrow();
+	});
+
+	it('needs one approval for light and two different people for heavy (configurable)', () => {
+		expect(requiredApprovals('light')).toBe(1);
+		expect(requiredApprovals('heavy')).toBe(2);
+		const heavy = article('heavy');
+		expect(approveText(heavy, 'pl', ania)).toEqual({ approvals: 1, required: 2, approved: false });
+		expect(approveText(heavy, 'pl', ania).approvals).toBe(1); // the same person twice still counts once
+		expect(() => publishText(heavy, 'pl', ania)).toThrow(/not approved/);
+		expect(approveText(heavy, 'pl', bartek).approved).toBe(true);
+		publishText(heavy, 'pl', bartek);
+		expect(getPublishedArticle(getArticle(heavy)!.slug, 'pl')).not.toBeNull();
+		process.env.JOURNAL_HEAVY_REVIEWERS = '1';
+		expect(requiredApprovals('heavy')).toBe(1);
+	});
+
+	it('only humans approve, flag or publish', () => {
+		const id = article();
+		expect(() => approveText(id, 'pl', system('pipeline'))).toThrow();
+		expect(() => publishText(id, 'pl', system('pipeline'))).toThrow();
+		expect(() => flagText(id, 'pl', system('pipeline'))).toThrow();
+	});
+
+	it('an edit resets the working copy to draft but keeps the published version online until the fix is approved', () => {
+		const id = article();
+		approveAndPublish(id, ania);
+		const slug = getArticle(id)!.slug;
+		saveText(id, 'pl', { title: 'Poprawiony tytuł', body: 'Nowa treść.' }, ania);
+		expect(getText(id, 'pl')).toMatchObject({ status: 'draft', revision: 2 });
+		expect(getPublishedArticle(slug, 'pl')!.body).toBe('Treść rozprawy o neutralności.');
+		expect(() => publishText(id, 'pl', ania)).toThrow(/not approved/); // the old approval was for revision 1
+		approveAndPublish(id, ania);
+		expect(getPublishedArticle(slug, 'pl')).toMatchObject({ title: 'Poprawiony tytuł', body: 'Nowa treść.' });
+	});
+
+	it('saving identical text changes nothing', () => {
+		const id = article();
+		const t = getText(id, 'pl')!;
+		expect(saveText(id, 'pl', { title: t.title, lead: t.lead, body: t.body }, ania)).toEqual({ changed: false, revision: 1 });
+	});
+
+	it('a flagged text must be edited before approval', () => {
+		const id = article();
+		flagText(id, 'pl', ania);
+		expect(() => approveText(id, 'pl', ania)).toThrow(/flagged/);
+		saveText(id, 'pl', { title: 'Nowy', body: 'Poprawione.' }, ania);
+		expect(approveText(id, 'pl', ania).approved).toBe(true);
+	});
+
+	it('refuses to approve or publish citations that do not resolve to approved stored text', () => {
+		const ok = approvedSource();
+		const notYet = approvedSource('draft');
+		expect(findCitationProblems(`[[src:${ok}]] [[quote:${ok}]]`, 'pl')).toEqual([]);
+		expect(findCitationProblems(`[[src:${notYet}]] [[src:999999]] [[quote:${ok}]]`, 'en').map((p) => p.reason)).toEqual([
+			'not_approved',
+			'unknown_source',
+			'no_approved_text_in_locale'
+		]);
+		const id = article('light', `Teza [[src:${notYet}]].`);
+		expect(() => approveText(id, 'pl', ania)).toThrow(/src:/);
+		// Approved, then the source loses its approval: publishing re-checks.
+		const id2 = article('light', `Teza [[quote:${ok}]].`);
+		approveText(id2, 'pl', ania);
+		db.prepare("UPDATE source_texts SET review = 'flagged' WHERE source_id = ?").run(ok);
+		expect(() => publishText(id2, 'pl', ania)).toThrow(/no longer/);
+	});
+
+	it('links twins of different calibres both ways and shows the published twin', () => {
+		const light = article('light');
+		const heavy = article('heavy');
+		const other = article('light');
+		expect(() => setTwin(light, other, ania)).toThrow(/different calibres/);
+		setTwin(light, heavy, ania);
+		expect(getArticle(heavy)!.twin_id).toBe(light);
+		approveAndPublish(light, ania);
+		expect(getPublishedArticle(getArticle(light)!.slug, 'pl')!.twin).toBeNull(); // twin not published yet
+		approveAndPublish(heavy, ania, bartek);
+		expect(getPublishedArticle(getArticle(light)!.slug, 'pl')!.twin).toMatchObject({ caliber: 'heavy', slug: getArticle(heavy)!.slug });
+		setTwin(light, null, ania);
+		expect(getArticle(heavy)!.twin_id).toBeNull();
+	});
+
+	it('lists and searches only published versions, by calibre and tag', () => {
+		const id = article('light', 'Retencja i zagrody jako kolce jeża.');
+		approveAndPublish(id, ania);
+		saveText(id, 'pl', { title: 'Szkic roboczy', body: 'Tajna wersja robocza o meandrach.' }, ania);
+		const found = listPublished({ locale: 'pl', q: 'kolce jeża' });
+		expect(found.some((a) => a.id === id)).toBe(true);
+		expect(listPublished({ locale: 'pl', q: 'meandrach' }).some((a) => a.id === id)).toBe(false);
+		expect(listPublished({ locale: 'pl', caliber: 'heavy' }).some((a) => a.id === id)).toBe(false);
+		expect(listPublished({ locale: 'pl', tag: 'retencja' }).some((a) => a.id === id)).toBe(true);
+		expect(listPublished({ locale: 'pl', tag: '%' }).some((a) => a.id === id)).toBe(false);
+		expect(listPublished({ locale: 'en' }).some((a) => a.id === id)).toBe(false);
+	});
+
+	it('will not delete a live article; unpublish first', () => {
+		const id = article();
+		approveAndPublish(id, ania);
+		expect(() => deleteArticle(id)).toThrow(/Unpublish/);
+		unpublishText(id, 'pl', ania);
+		expect(getPublishedArticle(getArticle(id)!.slug, 'pl')).toBeNull();
+		expect(deleteArticle(id)).toBe(true);
+	});
+
+	it('a baseline replay may insert an article before the twin it points at (deferred reference)', () => {
+		expect(() =>
+			db.transaction(() => {
+				const next = (db.prepare("SELECT COALESCE(MAX(id), 0) + 1 AS n FROM journal_articles").get() as { n: number }).n;
+				db.prepare("INSERT INTO journal_articles (id, slug, caliber, twin_id, created_by) VALUES (?, ?, 'light', ?, 't')").run(next, `replay-${next}`, next + 1);
+				db.prepare("INSERT INTO journal_articles (id, slug, caliber, twin_id, created_by) VALUES (?, ?, 'heavy', ?, 't')").run(next + 1, `replay-${next + 1}`, next);
+			})()
+		).not.toThrow();
+		expect(() =>
+			db.transaction(() => {
+				db.prepare("INSERT INTO journal_articles (slug, caliber, twin_id, created_by) VALUES ('dangling', 'light', 987654, 't')").run();
+			})()
+		).toThrow(/FOREIGN KEY/);
+	});
+
+	it("shows editors each language's state and approvals", () => {
+		const id = article('heavy');
+		approveText(id, 'pl', ania);
+		expect(listForEditors().find((r) => r.id === id)).toMatchObject({ status: 'draft', approvals: 1, required: 2, published_revision: null });
+	});
+});

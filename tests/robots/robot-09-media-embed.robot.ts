@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { db } from '$lib/server/db';
-import { EMBED_HOSTS, createMedia, getMedia, isAllowedEmbed, parseMediaUrl, MediaError } from '$lib/server/media';
+import { EMBED_HOSTS, createMedia, getMedia, isAllowedEmbed, listMedia, mediaForShield, parseMediaUrl, parseWebUrl, MediaError } from '$lib/server/media';
 import { human } from '$lib/server/review';
 
 // ROBOT-09 — The Media Link & Privacy Embed Gate (docs/17_Robots/ROBOT-09-media-link-privacy-gate.md), offline half.
@@ -46,13 +46,28 @@ describe('ROBOT-09 · only privacy-respecting hosts can ever be embedded', () =>
 	});
 
 	it('every stored link of data/baseline.sql is a valid, canonical, tracking-free link', () => {
-		const stored = db.prepare('SELECT url FROM media_assets').all() as { url: string }[];
+		const stored = db.prepare('SELECT url, platform, embed_url FROM media_assets').all() as { url: string; platform: string; embed_url: string | null }[];
 		expect(stored.length, 'the baseline project must load data/baseline.sql').toBeGreaterThan(0);
 		for (const s of stored) {
-			const p = parseMediaUrl(s.url);
+			// Biblioteka web links have no player at all; embeddable media must parse to their derived embed.
+			const p = s.platform === 'web' ? parseWebUrl(s.url) : parseMediaUrl(s.url);
 			expect(p, s.url).not.toBeNull();
 			expect(p!.url, s.url).toBe(s.url);
+			if (s.platform === 'web') expect(s.embed_url, s.url).toBeNull();
 		}
+	});
+
+	it('a plain web link (Biblioteka) can never become an embed or reach a player list', () => {
+		const id = createMedia(
+			{ title: 'Artykuł', artist_or_author: 'Autor', media_type: 'article', url: 'https://vimeo.com/76979871', as_link: true },
+			human('robot-09')
+		);
+		expect(getMedia(id)).toMatchObject({ platform: 'web', embed_url: null });
+		expect(listMedia().some((m) => m.id === id), 'player pages list embeddable media only').toBe(false);
+		db.prepare("INSERT INTO argument_media_links (argument_id, media_id, created_by) SELECT id, ?, 'robot-09' FROM arguments LIMIT 1").run(id);
+		const argumentIds = (db.prepare('SELECT argument_id FROM argument_media_links WHERE media_id = ?').all(id) as { argument_id: number }[]).map((r) => r.argument_id);
+		expect(mediaForShield(argumentIds, true).some((m) => m.id === id), 'the Shield embeds what it gets').toBe(false);
+		expect(() => db.prepare("UPDATE media_assets SET embed_url = 'https://www.youtube-nocookie.com/embed/AAAAAAAAAAA' WHERE id = ?").run(id)).toThrow(/CHECK/);
 	});
 });
 
@@ -76,6 +91,7 @@ describe('ROBOT-09 · the CSP and the code agree', () => {
 		};
 		walk('src');
 		expect(found.length).toBeGreaterThan(0);
-		for (const f of found) expect(f).toMatch(/src=\{[a-z]+\.embed_url\}/);
+		// A record's derived embed_url, however deep the record sits (e.g. deliberation.media.embed_url).
+		for (const f of found) expect(f).toMatch(/src=\{[a-z]+(\.[a-z]+)*\.embed_url\}/);
 	});
 });

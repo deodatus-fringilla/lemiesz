@@ -80,7 +80,10 @@ try {
 	}
 
 	// ---- 3. full-text indexes agree with stored texts -----------------------------
-	for (const fts of [...tables].filter((t) => /^fts_[a-z]+$/.test(t) && t !== 'fts_media' && t !== 'fts_meetings')) {
+	// External-content indexes over one table each (their docsize shadow holds one row per indexed row). Every other
+	// fts_<locale> table is a per-language index over source and argument texts.
+	const CONTENT_INDEXES = { fts_media: 'media_assets', fts_meetings: 'meeting_minutes', fts_journal: 'journal_article_texts' };
+	for (const fts of [...tables].filter((t) => /^fts_[a-z]+$/.test(t) && !(t in CONTENT_INDEXES))) {
 		const locale = fts.slice(4);
 		const indexed = one(`SELECT COUNT(*) AS c FROM ${fts} WHERE owner_type = 'source'`).c;
 		const stored = one('SELECT COUNT(*) AS c FROM source_texts WHERE locale = ?', locale).c;
@@ -93,17 +96,11 @@ try {
 		}
 	}
 
-	// The media index is an external-content table: its docsize shadow table holds one row per indexed asset.
-	if (tables.has('fts_media') && tables.has('fts_media_docsize')) {
-		const indexed = one('SELECT COUNT(*) AS c FROM fts_media_docsize').c;
-		const stored = one('SELECT COUNT(*) AS c FROM media_assets').c;
-		check(`fts_media: ${indexed} indexed media = ${stored} stored`, indexed === stored);
-	}
-
-	if (tables.has('fts_meetings') && tables.has('fts_meetings_docsize')) {
-		const indexed = one('SELECT COUNT(*) AS c FROM fts_meetings_docsize').c;
-		const stored = one('SELECT COUNT(*) AS c FROM meeting_minutes').c;
-		check(`fts_meetings: ${indexed} indexed meetings = ${stored} stored`, indexed === stored);
+	for (const [fts, table] of Object.entries(CONTENT_INDEXES)) {
+		if (!tables.has(fts) || !tables.has(`${fts}_docsize`)) continue;
+		const indexed = one(`SELECT COUNT(*) AS c FROM ${fts}_docsize`).c;
+		const stored = one(`SELECT COUNT(*) AS c FROM ${table}`).c;
+		check(`${fts}: ${indexed} indexed rows = ${stored} stored in ${table}`, indexed === stored);
 	}
 
 	const counts = {};

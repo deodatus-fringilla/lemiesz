@@ -104,6 +104,9 @@ const migrationModules = import.meta.glob<string>('./migrations/*.sql', {
 	eager: true
 });
 
+/** First-line marker for a migration that must run with foreign keys off (a table rebuild). */
+const FK_OFF_MARKER = /^-- lemiesz:foreign-keys-off\b/m;
+
 /** Applies pending migrations in name order; returns the names it applied. */
 export function runMigrations(): string[] {
 	db.exec(`
@@ -123,10 +126,23 @@ export function runMigrations(): string[] {
 		const name = path.basename(filepath);
 		if (!applied.has(name)) {
 			console.log(`[db] Applying migration: ${name}`);
-			db.transaction(() => {
-				db.exec(sql);
-				db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(name);
-			})();
+			// A migration that rebuilds a table other tables point at (SQLite cannot change a CHECK in place) must run
+			// with foreign keys off: with them on, DROP TABLE would fire ON DELETE CASCADE / SET NULL on the referencing
+			// rows. The pragma only works outside a transaction; integrity is verified before commit instead.
+			const fkOff = FK_OFF_MARKER.test(sql);
+			if (fkOff) db.pragma('foreign_keys = OFF');
+			try {
+				db.transaction(() => {
+					db.exec(sql);
+					if (fkOff) {
+						const broken = db.pragma('foreign_key_check') as unknown[];
+						if (broken.length) throw new Error(`[FATAL] ${name} left ${broken.length} broken foreign key reference(s)`);
+					}
+					db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(name);
+				})();
+			} finally {
+				if (fkOff) db.pragma('foreign_keys = ON');
+			}
 			newlyApplied.push(name);
 		}
 	}

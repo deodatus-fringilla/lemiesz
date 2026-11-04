@@ -7,7 +7,7 @@ import { prepareFtsQuery } from '$lib/server/rag/fts';
  * platform: a new asset is always a `draft`, only a signed-in human sets `human_approved`, and any edit of what the
  * public would see resets it. Embed URLs are derived here from platform + id, never accepted from input.
  */
-export const MEDIA_TYPES = ['music', 'video', 'speech', 'podcast', 'short_clip'] as const;
+export const MEDIA_TYPES = ['music', 'video', 'speech', 'podcast', 'short_clip', 'article', 'film', 'painting', 'poetry'] as const;
 export const GENRES = [
 	'gregorian_sacred', 'patriotic_folk', 'classical', 'reggae_acoustic', 'modern_synth', 'rock_metal', 'ambient', 'spoken_word', 'other'
 ] as const;
@@ -15,7 +15,8 @@ export const MEDIA_STATUSES = ['draft', 'human_approved', 'flagged'] as const;
 export type MediaType = (typeof MEDIA_TYPES)[number];
 export type Genre = (typeof GENRES)[number];
 export type MediaStatus = (typeof MEDIA_STATUSES)[number];
-export type MediaPlatform = 'youtube' | 'spotify';
+/** 'web' = a plain link for the journal's Biblioteka: no player, never embedded (embed_url is NULL). */
+export type MediaPlatform = 'youtube' | 'spotify' | 'web';
 
 /** The only hosts a media embed may use. Must equal the production CSP `frame-src` in vite.config.ts (ROBOT-09). */
 export const EMBED_HOSTS = ['www.youtube-nocookie.com', 'open.spotify.com'] as const;
@@ -34,7 +35,7 @@ export interface MediaRecord {
 	platform: MediaPlatform;
 	external_id: string;
 	url: string;
-	embed_url: string;
+	embed_url: string | null;
 	duration_seconds: number | null;
 	language: string | null;
 	ai_assisted: boolean;
@@ -43,6 +44,10 @@ export interface MediaRecord {
 	lyrics_license: string | null;
 	lyrics_cleared_to_store: boolean;
 	notes: string | null;
+	public_note: string | null;
+	archive_url: string | null;
+	link_checked_at: string | null;
+	link_status: number | null;
 	status: MediaStatus;
 	reviewed_by: string | null;
 	reviewed_at: string | null;
@@ -60,7 +65,7 @@ export interface ParsedMediaUrl {
 	platform: MediaPlatform;
 	external_id: string;
 	url: string;
-	embed_url: string;
+	embed_url: string | null;
 }
 
 const YT_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -71,7 +76,10 @@ const YT_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'mu
  * Turns a pasted link into a canonical, tracking-free URL and a privacy-respecting embed URL.
  * Returns null for anything that is not a YouTube video or a Spotify item (playlist and list parameters are dropped).
  */
-export function parseMediaUrl(raw: string): ParsedMediaUrl | null {
+/** An embeddable item always carries its derived embed_url. */
+export type ParsedEmbedUrl = ParsedMediaUrl & { platform: 'youtube' | 'spotify'; embed_url: string };
+
+export function parseMediaUrl(raw: string): ParsedEmbedUrl | null {
 	let u: URL;
 	try {
 		u = new URL(raw.trim());
@@ -114,6 +122,31 @@ export function parseMediaUrl(raw: string): ParsedMediaUrl | null {
 	return null;
 }
 
+const TRACKING_PARAMS = /^(utm_\w+|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid|igshid|si|ref_src|_hsenc|_hsmi)$/i;
+
+/**
+ * A plain web link for the Biblioteka (no player). http(s) only, no credentials, no local or private hosts, tracking
+ * parameters and the fragment dropped. The canonical URL doubles as the external_id, so one page is listed once.
+ */
+export function parseWebUrl(raw: string): ParsedMediaUrl | null {
+	let u: URL;
+	try {
+		u = new URL(raw.trim());
+	} catch {
+		return null;
+	}
+	if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+	if (u.username || u.password) return null;
+	const host = u.hostname.toLowerCase();
+	const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.startsWith('[');
+	if (isIp || !host.includes('.') || /(^|\.)(localhost|local|internal|lan|home|test|example|invalid)$/.test(host)) return null;
+	for (const k of [...u.searchParams.keys()]) if (TRACKING_PARAMS.test(k)) u.searchParams.delete(k);
+	u.hash = '';
+	u.hostname = host;
+	const url = u.toString();
+	return { platform: 'web', external_id: url, url, embed_url: null };
+}
+
 /** True when an embed URL points at an allowed privacy-respecting host over https. */
 export function isAllowedEmbed(embedUrl: string): boolean {
 	try {
@@ -143,6 +176,17 @@ export interface MediaInput {
 	lyrics_cleared_to_store?: boolean;
 	notes?: string;
 	slug?: string;
+	/** Allow a plain web link (Biblioteka) when the URL is not an embeddable YouTube/Spotify item. Off by default. */
+	as_link?: boolean;
+	/** Public editor's note for the Biblioteka ("why this matters"). */
+	public_note?: string;
+	/** An archived copy (e.g. web.archive.org), https. */
+	archive_url?: string;
+}
+
+/** Embeddable media first; a plain web link only when the caller opted in. */
+export function parseInputUrl(raw: string, asLink = false): ParsedMediaUrl | null {
+	return parseMediaUrl(raw) ?? (asLink ? parseWebUrl(raw) : null);
 }
 
 const blank = (v: unknown) => typeof v !== 'string' || v.trim().length === 0;
@@ -168,7 +212,14 @@ export function validateMedia(input: Partial<MediaInput>): string[] {
 	if (blank(input.artist_or_author)) errors.push('Artist or author is required');
 	if (!(MEDIA_TYPES as readonly string[]).includes(input.media_type as string)) errors.push(`Type must be one of: ${MEDIA_TYPES.join(', ')}`);
 	if (input.genre !== undefined && !(GENRES as readonly string[]).includes(input.genre)) errors.push(`Genre must be one of: ${GENRES.join(', ')}`);
-	if (blank(input.url) || !parseMediaUrl(input.url as string)) errors.push('URL must be a YouTube video or a Spotify track/episode/album/playlist/show link');
+	if (blank(input.url) || !parseInputUrl(input.url as string, input.as_link)) {
+		errors.push(
+			input.as_link
+				? 'URL must be a public http(s) web address'
+				: 'URL must be a YouTube video or a Spotify track/episode/album/playlist/show link'
+		);
+	}
+	if (!blank(input.archive_url) && !/^https:\/\/[^\s]+$/.test((input.archive_url as string).trim())) errors.push('The archive link must be an https address');
 	if (input.ai_assisted && blank(input.production_credits)) {
 		errors.push('An AI-assisted work must name the AI tools in the production credits');
 	}
@@ -187,7 +238,7 @@ export const CUE_PATTERN = /^\d{1,2}:\d{2}(\s?-\s?\d{1,2}:\d{2})?$/;
 
 const PUBLIC_FIELDS = [
 	'title', 'artist_or_author', 'media_type', 'genre', 'mood', 'target_audience', 'url', 'embed_url', 'duration_seconds', 'language',
-	'ai_assisted', 'production_credits', 'lyrics_or_transcript', 'lyrics_license', 'lyrics_cleared_to_store'
+	'ai_assisted', 'production_credits', 'lyrics_or_transcript', 'lyrics_license', 'lyrics_cleared_to_store', 'public_note', 'archive_url'
 ] as const;
 
 function uniqueSlug(base: string): string {
@@ -215,7 +266,9 @@ function columns(input: MediaInput, parsed: ParsedMediaUrl) {
 		lyrics_or_transcript: clean(input.lyrics_or_transcript),
 		lyrics_license: clean(input.lyrics_license),
 		lyrics_cleared_to_store: input.lyrics_cleared_to_store ? 1 : 0,
-		notes: clean(input.notes)
+		notes: clean(input.notes),
+		public_note: clean(input.public_note),
+		archive_url: clean(input.archive_url)
 	};
 }
 
@@ -223,9 +276,9 @@ function columns(input: MediaInput, parsed: ParsedMediaUrl) {
 export function createMedia(input: MediaInput, actor: Actor): number {
 	const errors = validateMedia(input);
 	if (errors.length) throw new MediaError(errors.join('; '));
-	const parsed = parseMediaUrl(input.url)!;
+	const parsed = parseInputUrl(input.url, input.as_link)!;
 	if (db.prepare('SELECT 1 FROM media_assets WHERE platform = ? AND external_id = ?').get(parsed.platform, parsed.external_id)) {
-		throw new MediaError('This video or track is already in the library');
+		throw new MediaError(parsed.platform === 'web' ? 'This link is already in the library' : 'This video or track is already in the library');
 	}
 	const c = columns(input, parsed);
 	const slug = uniqueSlug(slugify(input.slug ?? `${c.artist_or_author} ${c.title}`));
@@ -247,7 +300,7 @@ export function updateMedia(id: number, input: MediaInput, actor: Actor): { chan
 	if (!current) throw new MediaError(`Media ${id} not found`);
 	const errors = validateMedia(input);
 	if (errors.length) throw new MediaError(errors.join('; '));
-	const parsed = parseMediaUrl(input.url)!;
+	const parsed = parseInputUrl(input.url, input.as_link)!;
 	const clash = db.prepare('SELECT id FROM media_assets WHERE platform = ? AND external_id = ? AND id <> ?').get(parsed.platform, parsed.external_id, id);
 	if (clash) throw new MediaError('Another asset already uses this video or track');
 	const c = columns(input, parsed);
@@ -291,6 +344,8 @@ export function deleteMedia(id: number): boolean {
 }
 
 export interface MediaFilter {
+	/** 'embed' (default): YouTube/Spotify only, as every player page expects. 'link': Biblioteka web links. 'all': both. */
+	kind?: 'embed' | 'link' | 'all';
 	genre?: Genre;
 	status?: MediaStatus;
 	/** Free text over title, artist and lyrics/transcript. */
@@ -301,6 +356,9 @@ export interface MediaFilter {
 export function listMedia(filter: MediaFilter = {}): MediaRecord[] {
 	const where: string[] = [];
 	const params: unknown[] = [];
+	const kind = filter.kind ?? 'embed';
+	if (kind === 'embed') where.push("m.platform <> 'web'");
+	if (kind === 'link') where.push("m.platform = 'web'");
 	if (filter.genre) (where.push('m.genre = ?'), params.push(filter.genre));
 	if (filter.status) (where.push('m.status = ?'), params.push(filter.status));
 	let from = 'media_assets m';
@@ -391,7 +449,7 @@ export function mediaForContent(platform: string, argumentIds: number[], max = 3
 		const rows = db
 			.prepare(
 				`SELECT m.*, l.cue FROM argument_media_links l JOIN media_assets m ON m.id = l.media_id
-				 WHERE m.status = 'human_approved' AND l.argument_id IN (${argumentIds.map(() => '?').join(',')})
+				 WHERE m.status = 'human_approved' AND m.platform <> 'web' AND l.argument_id IN (${argumentIds.map(() => '?').join(',')})
 				 ORDER BY l.cue IS NULL, m.id`
 			)
 			.all(...argumentIds) as (Row & { cue: string | null })[];
@@ -400,7 +458,7 @@ export function mediaForContent(platform: string, argumentIds: number[], max = 3
 	const genres = PLATFORM_GENRES[platform] ?? [];
 	if (genres.length && out.size < max) {
 		const rows = db
-			.prepare(`SELECT * FROM media_assets WHERE status = 'human_approved' AND genre IN (${genres.map(() => '?').join(',')}) ORDER BY id`)
+			.prepare(`SELECT * FROM media_assets WHERE status = 'human_approved' AND platform <> 'web' AND genre IN (${genres.map(() => '?').join(',')}) ORDER BY id`)
 			.all(...genres) as Row[];
 		rows.forEach((r) => add(r));
 	}
@@ -415,7 +473,7 @@ export function mediaForShield(argumentIds: number[], includeDrafts = false): (C
 		const rows = db
 			.prepare(
 				`SELECT m.*, l.cue FROM argument_media_links l JOIN media_assets m ON m.id = l.media_id
-				 WHERE m.status IN (${statuses.map(() => '?').join(',')}) AND l.argument_id IN (${argumentIds.map(() => '?').join(',')})
+				 WHERE m.status IN (${statuses.map(() => '?').join(',')}) AND m.platform <> 'web' AND l.argument_id IN (${argumentIds.map(() => '?').join(',')})
 				 ORDER BY m.status = 'human_approved' DESC, l.cue IS NULL, m.id`
 			)
 			.all(...statuses, ...argumentIds) as (Row & { cue: string | null })[];
@@ -428,7 +486,8 @@ export function mediaForShield(argumentIds: number[], includeDrafts = false): (C
 					genre: r.genre,
 					mood: r.mood,
 					url: r.url,
-					embed_url: r.embed_url,
+					// Web links are excluded by the query above, so every row here has its derived embed_url.
+					embed_url: r.embed_url as string,
 					status: r.status,
 					cue: r.cue ?? null
 				});

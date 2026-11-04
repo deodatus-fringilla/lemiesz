@@ -66,7 +66,7 @@ export const load: PageServerLoad = ({ locals }) => {
 		return { ...item, spans };
 	});
 
-	const pendingMedia = listMedia().filter((m) => m.status !== 'human_approved');
+	const pendingMedia = listMedia({ kind: 'all' }).filter((m) => m.status !== 'human_approved');
 	const pendingPosters = listPosters().filter((p) => p.status !== 'human_approved');
 
 	return {

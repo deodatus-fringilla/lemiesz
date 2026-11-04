@@ -81,7 +81,7 @@ describe('media assets: creation and review rules', () => {
 		const id = make();
 		const m = getMedia(id)!;
 		expect(m.status).toBe('draft');
-		expect(m.embed_url.startsWith('https://www.youtube-nocookie.com/embed/')).toBe(true);
+		expect(m.embed_url?.startsWith('https://www.youtube-nocookie.com/embed/')).toBe(true);
 		expect(m.reviewed_by).toBeNull();
 	});
 
@@ -224,5 +224,33 @@ describe('Content Engine: only approved media, only by token', () => {
 		expect(body).not.toContain('Hidden Draft Song');
 		const d = ev.find((e) => e.type === 'done') as Extract<ContentEvent, { type: 'done' }>;
 		expect(getDraft(d.draftId!)!.media).toEqual([approved]);
+	});
+});
+
+describe('media library: Biblioteka web links', () => {
+	it('accepts a plain web link only when asked, canonical and tracking-free, never embeddable', async () => {
+		const { createMedia, getMedia, listMedia, parseWebUrl, MediaError } = await import('./media');
+		const { human } = await import('./review');
+		const input = { title: 'Neutralność Szwajcarii', artist_or_author: 'Redakcja', media_type: 'article' as const, url: 'https://Example.org/a?utm_source=x&id=7#top' };
+		expect(() => createMedia(input, human('t'))).toThrow(MediaError);
+		const id = createMedia({ ...input, url: 'https://neutralnosc.pl/a?utm_source=x&id=7#top', as_link: true, public_note: 'Dlaczego to ważne' }, human('t'));
+		const m = getMedia(id)!;
+		expect(m).toMatchObject({ platform: 'web', embed_url: null, url: 'https://neutralnosc.pl/a?id=7', public_note: 'Dlaczego to ważne', status: 'draft' });
+		expect(listMedia().some((x) => x.id === id)).toBe(false); // player pages never see links
+		expect(listMedia({ kind: 'link' }).some((x) => x.id === id)).toBe(true);
+		expect(() => createMedia({ ...input, url: 'https://neutralnosc.pl/a?id=7&fbclid=1', as_link: true }, human('t'))).toThrow(/already/);
+		for (const bad of ['javascript:alert(1)', 'ftp://x.pl/a', 'http://localhost/a', 'http://192.168.1.1/', 'https://user:pw@x.pl/', 'https://intranet/'])
+			expect(parseWebUrl(bad), bad).toBeNull();
+	});
+
+	it('the database refuses an embed URL on a web link, and a missing one on an embed', async () => {
+		const { db } = await import('./db');
+		const insert = (platform: string, embed: string | null) =>
+			db.prepare(
+				`INSERT INTO media_assets (slug, title, artist_or_author, media_type, platform, external_id, url, embed_url, created_by)
+				 VALUES (?, 't', 'a', 'article', ?, ?, 'https://x.pl/', ?, 't')`
+			).run(`s-${Math.random()}`, platform, `e-${Math.random()}`, embed);
+		expect(() => insert('web', 'https://www.youtube-nocookie.com/embed/AAAAAAAAAAA')).toThrow(/CHECK/);
+		expect(() => insert('youtube', null)).toThrow(/CHECK/);
 	});
 });

@@ -27,7 +27,10 @@ export const BASELINE_TABLES = [
 	'argument_media_links',
 	'review_events',
 	'meeting_minutes',
-	'kuznia_deliberations'
+	'kuznia_deliberations',
+	'journal_articles',
+	'journal_article_texts',
+	'journal_approvals'
 ];
 
 /** @param {unknown} v */
