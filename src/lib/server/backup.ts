@@ -4,7 +4,8 @@ import { uploadsDir } from '$lib/server/image-files';
 import Database from 'better-sqlite3';
 import { DB_FILE, db } from '$lib/server/db';
 
-const NAME = /^lemiesz-\d{8}-\d{6}\.db$/;
+/** lemiesz-YYYYMMDD-HHMMSS.db, or lemiesz-YYYYMMDD-HHMMSS-N.db for further backups within the same second. */
+const NAME = /^lemiesz-(\d{8}-\d{6})(?:-(\d+))?\.db$/;
 
 export interface BackupInfo {
 	file: string;
@@ -79,9 +80,15 @@ export const uploadsCopyOf = (dbFile: string) => dbFile.replace(/\.db$/, '.uploa
 export async function createBackup(dir = backupDir(), keep = Number(process.env.BACKUP_KEEP ?? 14)): Promise<BackupInfo> {
 	fs.mkdirSync(dir, { recursive: true });
 	const now = new Date();
-	let file = `lemiesz-${stamp(now)}.db`;
-	// two backups in the same second (manual click + scheduler) must not overwrite each other
-	for (let n = 1; fs.existsSync(path.join(dir, file)); n++) file = `lemiesz-${stamp(new Date(now.getTime() + n * 1000))}.db`;
+	// The name always tells the real time. Further backups in the same second get -2, -3, … (always above any number
+	// already used in that second, so the order within the second stays readable even after older ones are pruned).
+	const s = stamp(now);
+	const used = fs
+		.readdirSync(dir)
+		.map((f) => NAME.exec(f))
+		.filter((m): m is RegExpExecArray => !!m && m[1] === s)
+		.map((m) => Number(m[2] ?? 1));
+	const file = used.length ? `lemiesz-${s}-${Math.max(...used) + 1}.db` : `lemiesz-${s}.db`;
 	const dest = path.join(dir, file);
 
 	try {

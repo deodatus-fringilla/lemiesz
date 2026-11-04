@@ -37,7 +37,7 @@ let backup = target;
 if (fs.statSync(target).isDirectory()) {
 	const files = fs
 		.readdirSync(target)
-		.filter((f) => /^lemiesz-\d{8}-\d{6}(\.db)$/.test(f))
+		.filter((f) => /^lemiesz-\d{8}-\d{6}(-\d+)?\.db$/.test(f))
 		.map((f) => ({ f, t: fs.statSync(path.join(target, f)).mtimeMs }))
 		.sort((a, b) => b.t - a.t);
 	if (!files.length) {

@@ -26,7 +26,7 @@ The database must live on a **local disk** (SQLite WAL). The app refuses to star
 
 ## 2. Backups
 
-* The app takes a verified backup **every 24 h** (`BACKUP_INTERVAL_HOURS`, `0` turns it off) and keeps the newest **14** (`BACKUP_KEEP`). Backups are single self-contained `.db` files in `BACKUP_DIR` (default: `backups/` next to the database, i.e. on the `/data` volume).
+* The app takes a verified backup **every 24 h** (`BACKUP_INTERVAL_HOURS`, `0` turns it off) and keeps the newest **14** (`BACKUP_KEEP`). Backups are single self-contained `.db` files named after the moment they were taken (`lemiesz-YYYYMMDD-HHMMSS.db`; further backups in the same second get `-2`, `-3`, …) in `BACKUP_DIR` (default: `backups/` next to the database, i.e. on the `/data` volume).
 * **Journal images** uploaded in Redakcja are files in `uploads/journal/` next to the database, not rows in it. Each backup copies them into a folder with the same name as the `.db` file (`lemiesz-<stamp>.uploads/`), pruned together with it. When you copy backups off the machine, copy these folders too.
 * **That is not enough on its own.** A backup on the same disk does not survive losing the disk. Either point `BACKUP_DIR` at another disk, or copy the folder off the machine regularly. The dashboard shows an info notice while backups share the database's disk.
 * Take one now: Dashboard → *Back up now* (admin). Before an upgrade, always do this first.

@@ -33,10 +33,29 @@ describe('backups', () => {
 		copy.close();
 	});
 
-	it('never overwrites a backup taken in the same second', async () => {
-		const a = await createBackup(dir, 50);
-		const b = await createBackup(dir, 50);
-		expect(a.file).not.toBe(b.file);
+	it('never overwrites a backup taken in the same second, and names always tell the real time', async () => {
+		const own = path.join(dir, 'same-second');
+		const before = Date.now();
+		const made = [];
+		for (let i = 0; i < 3; i++) made.push(await createBackup(own, 50));
+		const after = Date.now();
+		expect(new Set(made.map((b) => b.file)).size).toBe(3);
+		const stampOf = (f: string) => /^lemiesz-(\d{8}-\d{6})/.exec(f)![1];
+		const fmt = (t: number) => {
+			const d = new Date(t);
+			const p = (n: number) => String(n).padStart(2, '0');
+			return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+		};
+		// No name is from the future: every stamp lies between the start and the end of the test.
+		for (const b of made) expect(stampOf(b.file) >= fmt(before) && stampOf(b.file) <= fmt(after), b.file).toBe(true);
+		expect(listBackups(own).map((b) => b.file)).toEqual(made.map((b) => b.file).reverse()); // newest first
+	});
+
+	it('after pruning within one second, a new backup still gets a higher number, never an old name', async () => {
+		const own = path.join(dir, 'reuse');
+		const names = [];
+		for (let i = 0; i < 4; i++) names.push((await createBackup(own, 2)).file);
+		expect(new Set(names).size).toBe(4); // e.g. …-120000.db, -2, -3, -4: pruning never frees a name for reuse
 	});
 
 	it('keeps only the newest N backups', async () => {
