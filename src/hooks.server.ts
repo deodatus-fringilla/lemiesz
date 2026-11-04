@@ -84,8 +84,12 @@ const i18nHandle: Handle = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request, locale }) => {
 		event.request = request;
 		event.locals.locale = locale;
+		// Journal pages are in the language of their URL (/en/… English, else Polish), whatever the app's language
+		// cookie says: <html lang> must match the text for screen readers, spellcheck and search engines.
+		const path = event.url.pathname;
+		const pageLang = PUBLIC_JOURNAL_PATH.test(path) && path !== '/sitemap.xml' ? (path.startsWith('/en/') ? 'en' : 'pl') : locale;
 		return resolve(event, {
-			transformPageChunk: ({ html }) => html.replace('%paraglide.lang%', locale)
+			transformPageChunk: ({ html }) => html.replace('%paraglide.lang%', pageLang)
 		});
 	});
 

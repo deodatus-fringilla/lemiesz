@@ -786,5 +786,9 @@
 	"journal_link_refused": "Adres odrzucony: prywatny lub nieprawidłowy (sprawdzono {date})",
 	"pub_link_maybe_broken": "Ten link mógł przestać działać.",
 	"journal_needs_more": "Do publikacji potrzeba jeszcze zatwierdzeń innej osoby: {count}.",
-	"journal_dev_not_counted": "Zatwierdzenie z trybu deweloperskiego („dev”) nie liczy się przy włączonych kontach."
+	"journal_dev_not_counted": "Zatwierdzenie z trybu deweloperskiego („dev”) nie liczy się przy włączonych kontach.",
+	"pub_not_found_title": "Nie znaleziono tej rozprawy",
+	"pub_not_found_text": "Mogła zostać wycofana albo adres jest błędny.",
+	"pub_error_title": "Coś poszło nie tak",
+	"pub_error_text": "Spróbuj ponownie za chwilę."
 }

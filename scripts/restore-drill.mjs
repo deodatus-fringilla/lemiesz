@@ -104,7 +104,7 @@ try {
 	}
 
 	const counts = {};
-	for (const t of ['sources', 'source_texts', 'arguments', 'argument_texts', 'users', 'review_events', 'media_assets', 'meeting_minutes', 'kuznia_deliberations']) {
+	for (const t of ['sources', 'source_texts', 'arguments', 'argument_texts', 'users', 'review_events', 'media_assets', 'meeting_minutes', 'kuznia_deliberations', 'journal_articles', 'journal_article_texts']) {
 		if (tables.has(t)) counts[t] = one(`SELECT COUNT(*) AS c FROM ${t}`).c;
 	}
 	console.log('      row counts:', JSON.stringify(counts));

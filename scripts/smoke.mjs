@@ -71,11 +71,15 @@ try {
 	r = await fetch(`${BASE}/czasopismo/rss.xml`);
 	check('journal RSS feed is public XML', r.status === 200 && (r.headers.get('content-type') ?? '').includes('rss+xml'), String(r.status));
 	r = await fetch(`${BASE}/czasopismo/nie-ma-takiej`, noRedirect);
-	check('an unpublished or missing article is 404', r.status === 404, String(r.status));
+	check('an unpublished or missing article is 404, inside the journal', r.status === 404 && (await r.text()).includes('Nie znaleziono tej rozprawy'), String(r.status));
 	r = await fetch(`${BASE}/czasopismo`, noRedirect);
 	check('signed-out journal pages may be cached briefly, keyed on cookies', /public, max-age=60/.test(r.headers.get('cache-control') ?? '') && /Cookie/i.test(r.headers.get('vary') ?? ''), `${r.headers.get('cache-control')} | ${r.headers.get('vary')}`);
 	const readerHtml = await r.text();
 	check('signed-out readers get the journal frame, without internal links', !readerHtml.includes('href="/spichlerz"') && !readerHtml.includes('href="/redakcja"') && readerHtml.includes('Lemiesz.'));
+	r = await fetch(`${BASE}/en/czasopismo`, { ...noRedirect, headers: { cookie: 'locale=pl' } });
+	check('an English journal page declares <html lang="en"> even with a Polish language cookie', (await r.text()).includes('<html lang="en">'));
+	r = await fetch(`${BASE}/czasopismo`, { ...noRedirect, headers: { cookie: 'locale=en' } });
+	check('a Polish journal page declares <html lang="pl"> even with an English language cookie', (await r.text()).includes('<html lang="pl">'));
 	r = await fetch(`${BASE}/robots.txt`);
 	const robots = await r.text();
 	check('robots.txt opens the journal, closes the rest and names the sitemap', r.status === 200 && robots.includes('Allow: /czasopismo') && robots.includes('Disallow: /') && /Sitemap: https?:\/\/\S+\/sitemap\.xml/.test(robots), robots.slice(0, 120));

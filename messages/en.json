@@ -786,5 +786,9 @@
 	"journal_link_refused": "Address refused: private or invalid (checked {date})",
 	"pub_link_maybe_broken": "This link may no longer work.",
 	"journal_needs_more": "Publishing needs {count} more approval(s) by another person.",
-	"journal_dev_not_counted": "A development-mode approval (\"dev\") does not count once real accounts are on."
+	"journal_dev_not_counted": "A development-mode approval (\"dev\") does not count once real accounts are on.",
+	"pub_not_found_title": "Treatise not found",
+	"pub_not_found_text": "It may have been withdrawn, or the address is wrong.",
+	"pub_error_title": "Something went wrong",
+	"pub_error_text": "Please try again in a moment."
 }
