@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { human, system } from './review';
-import { createPoster, getPoster, setPosterStatus } from './posters';
+import { createPoster, deletePoster, getPoster, setPosterStatus } from './posters';
+import fs from 'node:fs';
+import path from 'node:path';
+import { storeUpload, uploadsDir } from './image-files';
 import { assertUploadFields, findImageProblems, getJournalImage, registerUpload, renderImage, setImageMeta, webVersion } from './journal-images';
 import { approveText, createArticle, publishText } from './journal';
 
@@ -68,5 +71,14 @@ describe('journal images', () => {
 	it('refuses an incomplete upload description before any file is written', () => {
 		expect(() => assertUploadFields({ title: 'x', artist: 'y', license: '', alt: 'z', locale: 'pl' }, ania)).toThrow(/licence/);
 		expect(() => assertUploadFields({ title: 'x', artist: 'y', license: 'own', alt: 'z', locale: 'pl' }, ania)).not.toThrow();
+	});
+
+	it('deleting an uploaded image removes its file too', () => {
+		const p = storeUpload(Buffer.from(`RIFF\x1a\0\0\0WEBPVP8L\x05\0\0\0\x2f\0\0\0\0${Date.now()}`, 'binary'), 'webp');
+		const id = registerUpload({ path: p, width: 10, height: 10, title: 'Do usunięcia', artist: 'x', license: 'own', alt: 'opis', locale: 'pl' }, ania);
+		const file = path.join(uploadsDir(), path.basename(p));
+		expect(fs.existsSync(file)).toBe(true);
+		expect(deletePoster(id)).toBe(true);
+		expect(fs.existsSync(file)).toBe(false);
 	});
 });

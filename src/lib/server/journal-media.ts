@@ -1,6 +1,7 @@
 import { getMedia, listMedia, type MediaRecord } from '$lib/server/media';
 import { isBroken } from '$lib/components/journal/link-status';
 import { mediaBlocks, type Block } from '$lib/journal-blocks';
+import type { ContentIssue } from '$lib/server/journal-images';
 
 /**
  * Media in journal articles: YouTube/Spotify items play behind a click-to-load card (readers' browsers contact the
@@ -46,12 +47,16 @@ export function renderMedia(b: { mediaId: number; caption?: string }): RenderedM
 	return { type: 'embed', provider: m.platform as 'youtube' | 'spotify', embed_url, url: m.url, title: m.title, artist: m.artist_or_author, tall, caption };
 }
 
-/** Why the media of an article cannot go public yet (empty when they all can). */
-export function findMediaProblems(blocks: Block[]): string[] {
-	return mediaBlocks(blocks).flatMap((b) => {
+export function mediaIssues(blocks: Block[]): ContentIssue[] {
+	return mediaBlocks(blocks).flatMap((b): ContentIssue[] => {
 		const m = getMedia(b.mediaId);
-		if (!m) return [`media #${b.mediaId} no longer exists`];
-		if (m.status !== 'human_approved') return [`media "${m.title}" is not approved`];
+		if (!m) return [{ kind: 'media', reason: 'missing', id: b.mediaId, title: null }];
+		if (m.status !== 'human_approved') return [{ kind: 'media', reason: 'not_approved', id: m.id, title: m.title }];
 		return [];
 	});
+}
+
+/** The same as text, for errors: why the media of an article cannot go public yet (empty when they all can). */
+export function findMediaProblems(blocks: Block[]): string[] {
+	return mediaIssues(blocks).map((i) => (i.reason === 'missing' ? `media #${i.id} no longer exists` : `media "${i.title}" is not approved`));
 }

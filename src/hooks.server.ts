@@ -66,7 +66,8 @@ const authHandle: Handle = async ({ event, resolve }) => {
 	event.locals.user = authDisabled() ? DEV_USER : getSessionUser(event.cookies.get(SESSION_COOKIE));
 
 	// Readers are limited per IP; signed-in editors are not (their session is already accountable).
-	if (!event.locals.user && isPublicRead(path, event.request.method) && readerLimiter.limited(ip)) {
+	// Images are not counted: one article with several pictures must not use up a shared office's allowance.
+	if (!event.locals.user && isPublicRead(path, event.request.method) && !path.startsWith('/images/uploads/') && readerLimiter.limited(ip)) {
 		return new Response('Too many requests. Please slow down.', { status: 429, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Retry-After': '60' } });
 	}
 

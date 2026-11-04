@@ -10,9 +10,14 @@
 	import JournalTextEditor from '$lib/components/journal/JournalTextEditor.svelte';
 
 	let { data, form } = $props();
-	const blocked = $derived(data.citations.some((c) => c.problem));
+	const blocked = $derived(data.citations.some((c) => c.problem) || data.contentProblems.length > 0);
 	const anyLive = $derived(data.text?.published_body != null);
 	let dirty = $state(false);
+	const issueText = (p: (typeof data.contentProblems)[number]) => {
+		const what = p.kind === 'image' ? m.issue_image({ title: p.title ?? `#${p.id}` }) : m.issue_media({ title: p.title ?? `#${p.id}` });
+		const why = p.reason === 'missing' ? m.issue_missing() : p.reason === 'not_approved' ? m.issue_not_approved() : m.issue_no_alt({ lang: data.locale.toUpperCase() });
+		return `${what}: ${why}`;
+	};
 	let wide = $state(false);
 </script>
 
@@ -35,6 +40,12 @@
 		<aside class={wide ? 'grid items-start gap-4 lg:grid-cols-3' : 'space-y-4'}>
 			{#if data.text}
 				<JournalReviewPanel text={data.text} locale={data.locale} approvals={data.approvals} counted={data.counted} required={data.required} {dirty} me={data.me} {blocked} />
+				{#if data.contentProblems.length}
+					<section class="space-y-1.5 rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 text-xs">
+						<h3 class="font-semibold tracking-wider text-rose-300 uppercase">{m.journal_content_problems()}</h3>
+						<ul class="list-disc space-y-0.5 pl-4 text-rose-200">{#each data.contentProblems as p (`${p.kind}${p.id}${p.reason}`)}<li>{issueText(p)}</li>{/each}</ul>
+					</section>
+				{/if}
 				<JournalCitationList citations={data.citations} />
 			{/if}
 			<JournalMetaForm article={data.article} twins={data.twins} />

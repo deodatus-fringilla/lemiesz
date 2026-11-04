@@ -715,7 +715,6 @@
 	"journal_live_since": "Online: version {revision} since {date} ({by})",
 	"journal_approve_revision": "I approve version {revision}",
 	"journal_approved_by_you": "Approved by you",
-	"journal_blocked_citations": "Fix the citations marked in red first.",
 	"journal_publish": "Publish",
 	"journal_unpublish": "Unpublish",
 	"journal_unpublish_confirm": "Unpublish this text? Readers will no longer see it.",
@@ -874,5 +873,12 @@
 	"media_needs_approval": "This item awaits approval.",
 	"media_approve": "Approve",
 	"pub_media_play": "Play: {title}",
-	"pub_media_notice": "Playing connects your browser to {provider}."
+	"pub_media_notice": "Playing connects your browser to {provider}.",
+	"journal_content_problems": "Images and media to fix",
+	"journal_blocked_content": "Fix the items marked in red first (citations, images or media).",
+	"issue_image": "Image \"{title}\"",
+	"issue_media": "Media \"{title}\"",
+	"issue_missing": "no longer exists in the library",
+	"issue_not_approved": "awaits approval",
+	"issue_no_alt": "no description for blind readers ({lang})"
 }

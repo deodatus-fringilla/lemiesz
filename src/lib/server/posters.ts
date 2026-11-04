@@ -3,6 +3,7 @@ import path from 'node:path';
 import { db } from '$lib/server/db';
 import type { Actor } from '$lib/server/review';
 import { MediaError, slugify, type MediaStatus, MEDIA_STATUSES } from '$lib/server/media';
+import { UPLOAD_NAME, uploadsDir } from '$lib/server/image-files';
 
 export const POSTER_THEMES = ['sacred_life', 'sovereignty_peace', 'history_warning', 'agrarian_ethos', 'other'] as const;
 export type PosterTheme = (typeof POSTER_THEMES)[number];
@@ -216,8 +217,15 @@ export function setPosterStatus(id: number, to: MediaStatus, actor: Actor): void
 	).run(to, to === 'human_approved' ? actor.name : null, to, id);
 }
 
+/** Deletes a library image; an uploaded one also loses its file (backups keep their own copies). */
 export function deletePoster(id: number): boolean {
-	return db.prepare('DELETE FROM campaign_posters WHERE id = ?').run(id).changes > 0;
+	const row = db.prepare('SELECT image_path FROM campaign_posters WHERE id = ?').get(id) as { image_path: string } | undefined;
+	const deleted = db.prepare('DELETE FROM campaign_posters WHERE id = ?').run(id).changes > 0;
+	if (deleted && row?.image_path.startsWith('/images/uploads/')) {
+		const name = path.basename(row.image_path);
+		if (UPLOAD_NAME.test(name)) fs.rmSync(path.join(uploadsDir(), name), { force: true });
+	}
+	return deleted;
 }
 
 export function linkPosterToArgument(argumentId: number, posterId: number, actor: Actor): void {

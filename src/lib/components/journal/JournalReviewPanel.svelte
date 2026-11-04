@@ -72,7 +72,7 @@
 		</button>
 	</form>
 	{#if dirty}<p class="text-[11px] text-amber-300">{m.blocks_save_first()}</p>{/if}
-	{#if blocked}<p class="text-[11px] text-rose-300">{m.journal_blocked_citations()}</p>{/if}
+	{#if blocked}<p class="text-[11px] text-rose-300">{m.journal_blocked_content()}</p>{/if}
 	{#if text.status === 'flagged'}<p class="text-[11px] text-rose-300">{m.journal_flagged_hint_v2()}</p>{/if}
 
 	<form method="POST" action="?/publish" use:enhance>

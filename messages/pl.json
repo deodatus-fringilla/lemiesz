@@ -715,7 +715,6 @@
 	"journal_live_since": "Online: wersja {revision} od {date} ({by})",
 	"journal_approve_revision": "Zatwierdzam wersję {revision}",
 	"journal_approved_by_you": "Zatwierdzone przez Ciebie",
-	"journal_blocked_citations": "Najpierw popraw przypisy oznaczone na czerwono.",
 	"journal_publish": "Opublikuj",
 	"journal_unpublish": "Wycofaj z publikacji",
 	"journal_unpublish_confirm": "Wycofać ten tekst z publikacji? Czytelnicy przestaną go widzieć.",
@@ -874,5 +873,12 @@
 	"media_needs_approval": "Ta pozycja czeka na zatwierdzenie.",
 	"media_approve": "Zatwierdź",
 	"pub_media_play": "Odtwórz: {title}",
-	"pub_media_notice": "Odtworzenie połączy Twoją przeglądarkę z {provider}."
+	"pub_media_notice": "Odtworzenie połączy Twoją przeglądarkę z {provider}.",
+	"journal_content_problems": "Obrazy i media do poprawy",
+	"journal_blocked_content": "Najpierw popraw elementy oznaczone na czerwono (przypisy, obrazy lub media).",
+	"issue_image": "Obraz „{title}”",
+	"issue_media": "Media „{title}”",
+	"issue_missing": "już nie istnieje w bibliotece",
+	"issue_not_approved": "czeka na zatwierdzenie",
+	"issue_no_alt": "brak opisu dla niewidomych ({lang})"
 }

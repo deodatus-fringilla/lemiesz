@@ -23,10 +23,10 @@ import {
 } from '$lib/server/journal';
 import { describeCitations, listCitableSources } from '$lib/server/journal-citations';
 import { renderBlocks } from '$lib/server/journal-render';
-import { assertUploadFields, listJournalImages, registerUpload, setImageMeta } from '$lib/server/journal-images';
+import { assertUploadFields, imageIssues, listJournalImages, registerUpload, setImageMeta } from '$lib/server/journal-images';
 import { ImageUploadError, inspectUpload, storeUpload } from '$lib/server/image-files';
 import { setPosterStatus } from '$lib/server/posters';
-import { listEditorMedia } from '$lib/server/journal-media';
+import { listEditorMedia, mediaIssues } from '$lib/server/journal-media';
 import { setMediaStatus } from '$lib/server/media';
 import { BlockError, validateBlocks } from '$lib/journal-blocks';
 import { human } from '$lib/server/review';
@@ -58,6 +58,8 @@ export const load: PageServerLoad = ({ params, url, locals }) => {
 		counted: countedApprovalsOf(id, locale),
 		required: requiredApprovals(article.caliber),
 		citations: text ? describeCitations(text.body, locale) : [],
+		/** Images or media that keep the saved version from readers (shown before anyone presses approve). */
+		contentProblems: text ? [...imageIssues(text.blocks, locale), ...mediaIssues(text.blocks)] : [],
 		twins: twinCandidates(id, locale),
 		sources: listCitableSources(),
 		images: listJournalImages(),

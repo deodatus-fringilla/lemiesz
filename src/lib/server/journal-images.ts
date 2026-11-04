@@ -101,16 +101,29 @@ export function getJournalImage(id: number): JournalImage | null {
 
 const altFor = (img: JournalImage, locale: string) => ((locale === 'en' ? img.alt_en : img.alt_pl) ?? '').trim();
 
-/** Why the images of an article cannot go public yet (empty when they all can). */
-export function findImageProblems(blocks: Block[], locale: string): string[] {
-	const problems: string[] = [];
-	for (const b of imageBlocks(blocks)) {
+/** One reason an image or media item keeps an article from readers (structured, so screens can translate it). */
+export interface ContentIssue {
+	kind: 'image' | 'media';
+	reason: 'missing' | 'not_approved' | 'no_alt';
+	id: number;
+	title: string | null;
+}
+
+export function imageIssues(blocks: Block[], locale: string): ContentIssue[] {
+	return imageBlocks(blocks).flatMap((b): ContentIssue[] => {
 		const img = getJournalImage(b.imageId);
-		if (!img) problems.push(`image #${b.imageId} no longer exists`);
-		else if (img.status !== 'human_approved') problems.push(`image "${img.title}" is not approved`);
-		else if (!altFor(img, locale)) problems.push(`image "${img.title}" has no alternative text in ${locale.toUpperCase()}`);
-	}
-	return problems;
+		if (!img) return [{ kind: 'image', reason: 'missing', id: b.imageId, title: null }];
+		if (img.status !== 'human_approved') return [{ kind: 'image', reason: 'not_approved', id: img.id, title: img.title }];
+		if (!altFor(img, locale)) return [{ kind: 'image', reason: 'no_alt', id: img.id, title: img.title }];
+		return [];
+	});
+}
+
+/** The same as text, for errors: why the images of an article cannot go public yet (empty when they all can). */
+export function findImageProblems(blocks: Block[], locale: string): string[] {
+	return imageIssues(blocks, locale).map((i) =>
+		i.reason === 'missing' ? `image #${i.id} no longer exists` : i.reason === 'not_approved' ? `image "${i.title}" is not approved` : `image "${i.title}" has no alternative text in ${locale.toUpperCase()}`
+	);
 }
 
 export interface RenderedImage {
