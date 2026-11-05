@@ -7,6 +7,8 @@ const prefix = (lang: JournalLang) => (lang === 'en' ? '/en' : '');
 export const journalHome = (lang: JournalLang) => `${prefix(lang)}/czasopismo`;
 export const articlePath = (lang: JournalLang, slug: string) => `${prefix(lang)}/czasopismo/${slug}`;
 export const libraryPath = (lang: JournalLang) => `${prefix(lang)}/biblioteka`;
+/** The page explaining the RSS feed (and holding its address to copy). */
+export const followPath = (lang: JournalLang) => `${prefix(lang)}/czasopismo/sledz`;
 export const feedPath = (lang: JournalLang) => `${prefix(lang)}/czasopismo/rss.xml`;
 
 /** Paths readers may open without signing in (read-only: the hook allows GET and HEAD only). */

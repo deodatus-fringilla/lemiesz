@@ -48,6 +48,11 @@ afterEach(() => {
 });
 
 describe('journal articles', () => {
+	it('never gives an article the slug of a journal page of its own', () => {
+		const id = createArticle({ caliber: 'light', locale: 'pl', title: 'Sledz', body: 'x' }, ania);
+		expect(getArticle(id)?.slug).not.toBe('sledz');
+	});
+
 	it('keeps foreign keys on after the table-rebuild migration', () => {
 		expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
 	});

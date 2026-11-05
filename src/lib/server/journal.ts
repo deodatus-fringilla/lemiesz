@@ -102,11 +102,14 @@ const requireHuman = (actor: Actor, what: string) => {
 	if (actor.kind !== 'human') throw new JournalError(`${actor.kind} "${actor.name}" may not ${what}`);
 };
 
+/** Slugs that are pages of their own under /czasopismo, so no article may take them. */
+const RESERVED_SLUGS = new Set(['sledz']);
+
 function uniqueSlug(base: string, ownId?: number): string {
 	let slug = base || 'rozprawa';
 	for (let n = 2; ; n++) {
 		const row = db.prepare('SELECT id FROM journal_articles WHERE slug = ?').get(slug) as { id: number } | undefined;
-		if (!row || row.id === ownId) return slug;
+		if (!RESERVED_SLUGS.has(slug) && (!row || row.id === ownId)) return slug;
 		slug = `${base}-${n}`;
 	}
 }
