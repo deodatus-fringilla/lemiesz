@@ -5,10 +5,11 @@
 	import ImageUpload from './ImageUpload.svelte';
 
 	/** The image library (existing studio images and uploads) with search, plus "upload a new one". */
-	let { onpick }: { onpick: (id: number) => void } = $props();
+	let { onpick, file }: { onpick: (id: number) => void; file?: File } = $props();
 	const ctx = editorContext();
 	let q = $state('');
-	let uploading = $state(false);
+	// svelte-ignore state_referenced_locally
+	let uploading = $state(!!file);
 	const found = $derived(ctx.images.filter((i) => `${i.title} ${i.artist}`.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 60));
 </script>
 
@@ -17,7 +18,7 @@
 		<input bind:value={q} placeholder={m.img_search()} class="min-w-0 flex-1 rounded border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-100 focus:border-amber-500/50 focus:outline-none" />
 		<button type="button" onclick={() => (uploading = !uploading)} class="rounded border border-amber-500/40 px-2.5 py-1.5 text-xs text-amber-300 hover:bg-amber-500/10">{m.img_new()}</button>
 	</div>
-	{#if uploading}<ImageUpload locale={ctx.locale} onuploaded={(id) => { uploading = false; onpick(id); }} />{/if}
+	{#if uploading}<ImageUpload locale={ctx.locale} {file} onuploaded={(id) => { uploading = false; onpick(id); }} />{/if}
 	<ul class="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
 		{#each found as img (img.id)}
 			<li>

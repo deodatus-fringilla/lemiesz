@@ -62,10 +62,30 @@ Since migration 014 an article text is a **list of blocks** (`src/lib/journal-bl
 * Rendering (`renderBlocks`) numbers footnotes across the whole article, columns included. Columns sit side by side
   from 768 px and stack on phones; running text keeps a 68-character measure in an article with columns.
 * **The block editor** (`src/lib/components/journal/blocks/`) is the only article editor: cards with "+" between them,
-  ↑/↓ and ✕, a Markdown toolbar (bold, italic, link, lists, footnote), a source picker for `[[src:ID]]` and quotation
-  blocks (approved sources only; a quotation needs approved text in the article's language), and Edycja / Podgląd /
-  Obok. The preview is rendered by the server with the readers' renderer. Columns stack when their space is narrow
+  ↑/↓ and ✕, the **visual text editor** (below), a source picker for `[[src:ID]]` and quotation blocks (approved
+  sources only; a quotation needs approved text in the article's language), and Edycja / Podgląd / Obok. The preview is rendered by the server with the readers' renderer. Columns stack when their space is narrow
   (container queries), in the editor, the preview and the public page alike.
+* **The visual text editor** (text and highlight blocks) replaced the Markdown textarea. Writers see bold, headings 2-4,
+  lists, quotations, links, separator lines and source notes as they will look; what is stored is still the same
+  Markdown. It is the standalone article editor from its own repository (https://github.com/deodatus-fringilla/editor),
+  kept in `src/lib/editor/` as a **copy that is never edited by hand**: change the Editor repository and run
+  `pnpm editor:sync <path to the Editor checkout>` (see `src/lib/editor/SOURCE.md` for the version in use). Its tests
+  live there (they need a real browser). The copy is exempt from the 150-line component guideline for that reason.
+  The platform's side of it is `blocks/BlockTextField.svelte` (the editor with the dark amber theme), `PickModal.svelte`
+  (the window for choosing an image or a source) and `editor-labels.ts` (every editor text from Paraglide, `ed_*` keys).
+  Things it keeps but does not edit (tables, code blocks) show as locked boxes and are saved exactly as written; lists
+  are flat (a nested list becomes a flat one when the text is edited); pasting from Word or Google Docs is cleaned to
+  the formatting the editor knows.
+* **Images in text.** The editor's image button opens the platform's image library (search, or upload a new one with
+  author, licence and description) and writes one line: `![description](library address "caption"){.left}`, with
+  `.left`, `.right` or nothing (centred, as wide as the text). Everything readers see about the picture, its
+  description, credit and licence, comes from the **library image**, never from that line: the line only says which
+  picture and where, so a text can never show a picture the library has not approved. An image shows to readers only
+  when it is approved **and** described in the article's language; approval and publishing check it exactly like image
+  blocks (`imageIssues` reads both), and the problems panel names each one with a button to approve the image or add the
+  missing description right there. An address that is not in the library (another site, a deleted image) shows nothing
+  and is reported as "missing". Search and the feed see only the caption. Left and right images float with the text
+  around them (not inside columns, and not on narrow screens). A wide or edge-to-edge image still needs an image block.
 * **Images** (block `image`: picture, size `column` / `wide` / `full`, optional caption). The library is
   `campaign_posters` (migration 015 adds `alt_pl`, `alt_en`, `license`, `origin`, `width`, `height`). Readers see an image
   only when it is approved **and** has alternative text in the article's language; approval and publishing check this,
@@ -133,6 +153,8 @@ material rules: to be checked with a lawyer before launch.
 6. **Only humans** approve, flag, publish, unpublish or link twins. A pipeline author marks the text AI-assisted.
 7. **No deleting a live article**: unpublish every language first.
 8. **Public search sees published text only** (`fts_journal` over `published_*`).
+9. **Images in text come from the library.** An image line is resolved to a library image (`imageBySrc`); picture,
+   description, credit and licence are the library's, and it shows only while approved and described in the language.
 
 ## Migration notes
 

@@ -132,7 +132,8 @@ export const actions: Actions = {
 		if (!Number.isInteger(id) || id <= 0) return fail(400, { error: 'Missing image' });
 		const locale = str(d, 'locale') === 'en' ? 'en' : 'pl';
 		try {
-			setImageMeta(id, { [locale === 'en' ? 'alt_en' : 'alt_pl']: str(d, 'alt'), license: str(d, 'license') }, human(locals.user!.username));
+			// A licence is changed only when one is sent: adding a description must not erase the licence.
+			setImageMeta(id, { [locale === 'en' ? 'alt_en' : 'alt_pl']: str(d, 'alt'), ...(str(d, 'license') ? { license: str(d, 'license') } : {}) }, human(locals.user!.username));
 			return { success: true };
 		} catch (e) {
 			return fail(400, { error: (e as Error).message });

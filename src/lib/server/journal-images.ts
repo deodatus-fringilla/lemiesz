@@ -4,7 +4,7 @@ import { db } from '$lib/server/db';
 import type { Actor } from '$lib/server/review';
 import { createPoster, getPoster, type PosterRecord } from '$lib/server/posters';
 import { dimensions, detectType, uploadsDir, type ImageType } from '$lib/server/image-files';
-import { imageBlocks, type Block, type ImageSize } from '$lib/journal-blocks';
+import { imageBlocks, inlineImagesOf, type Block, type ImageSize, type InlineImage } from '$lib/journal-blocks';
 
 /**
  * Images in journal articles. The library is campaign_posters (existing studio images and uploads). Readers get a light
@@ -101,6 +101,17 @@ export function getJournalImage(id: number): JournalImage | null {
 
 const altFor = (img: JournalImage, locale: string) => ((locale === 'en' ? img.alt_en : img.alt_pl) ?? '').trim();
 
+/**
+ * The library image an address in the article editor stands for: the file's stored path, or the light web copy readers
+ * get for a heavy picture (which is what the editor shows). Anything else is not an image of this site's library.
+ */
+export function imageBySrc(src: string): JournalImage | null {
+	if (!src.startsWith('/images/')) return null;
+	const rows = db.prepare('SELECT id, image_path FROM campaign_posters').all() as { id: number; image_path: string }[];
+	const hit = rows.find((r) => r.image_path === src) ?? rows.find((r) => webVersion(r.image_path).src === src);
+	return hit ? getJournalImage(hit.id) : null;
+}
+
 /** One reason an image or media item keeps an article from readers (structured, so screens can translate it). */
 export interface ContentIssue {
 	kind: 'image' | 'media';
@@ -109,20 +120,28 @@ export interface ContentIssue {
 	title: string | null;
 }
 
+function issueFor(img: JournalImage | null, missing: { id: number; title: string | null }, locale: string): ContentIssue[] {
+	if (!img) return [{ kind: 'image', reason: 'missing', ...missing }];
+	if (img.status !== 'human_approved') return [{ kind: 'image', reason: 'not_approved', id: img.id, title: img.title }];
+	if (!altFor(img, locale)) return [{ kind: 'image', reason: 'no_alt', id: img.id, title: img.title }];
+	return [];
+}
+
+/** Image blocks and images written into text, each problem once (the same picture used twice is one problem). */
 export function imageIssues(blocks: Block[], locale: string): ContentIssue[] {
-	return imageBlocks(blocks).flatMap((b): ContentIssue[] => {
-		const img = getJournalImage(b.imageId);
-		if (!img) return [{ kind: 'image', reason: 'missing', id: b.imageId, title: null }];
-		if (img.status !== 'human_approved') return [{ kind: 'image', reason: 'not_approved', id: img.id, title: img.title }];
-		if (!altFor(img, locale)) return [{ kind: 'image', reason: 'no_alt', id: img.id, title: img.title }];
-		return [];
-	});
+	const all = [
+		...imageBlocks(blocks).flatMap((b) => issueFor(getJournalImage(b.imageId), { id: b.imageId, title: null }, locale)),
+		// An address that is not in the library is "missing": id 0, the address stands in for the title.
+		...inlineImagesOf(blocks).flatMap((i) => issueFor(imageBySrc(i.src), { id: 0, title: i.src }, locale))
+	];
+	const seen = new Set<string>();
+	return all.filter((i) => !seen.has(`${i.id}|${i.title}|${i.reason}`) && seen.add(`${i.id}|${i.title}|${i.reason}`));
 }
 
 /** The same as text, for errors: why the images of an article cannot go public yet (empty when they all can). */
 export function findImageProblems(blocks: Block[], locale: string): string[] {
 	return imageIssues(blocks, locale).map((i) =>
-		i.reason === 'missing' ? `image #${i.id} no longer exists` : i.reason === 'not_approved' ? `image "${i.title}" is not approved` : `image "${i.title}" has no alternative text in ${locale.toUpperCase()}`
+		i.reason === 'missing' ? (i.id ? `image #${i.id} no longer exists` : `image "${i.title}" is not in the image library`) : i.reason === 'not_approved' ? `image "${i.title}" is not approved` : `image "${i.title}" has no alternative text in ${locale.toUpperCase()}`
 	);
 }
 
@@ -138,12 +157,20 @@ export interface RenderedImage {
 	license: string | null;
 }
 
+function rendered(img: JournalImage | null, size: ImageSize, caption: string | undefined, locale: string): RenderedImage | null {
+	if (!img || img.status !== 'human_approved' || !altFor(img, locale)) return null;
+	const text = caption ?? ((locale === 'en' ? img.caption_en : img.caption_pl) ?? '');
+	return { type: 'image', src: img.src, alt: altFor(img, locale), width: img.width, height: img.height, size, caption: text, credit: img.artist, license: img.license };
+}
+
 /** What readers see for an image block; nothing at all for an image that is not approved or has no text alternative. */
 export function renderImage(b: { imageId: number; size: ImageSize; caption?: string }, locale: string): RenderedImage | null {
-	const img = getJournalImage(b.imageId);
-	if (!img || img.status !== 'human_approved' || !altFor(img, locale)) return null;
-	const caption = b.caption ?? ((locale === 'en' ? img.caption_en : img.caption_pl) ?? '');
-	return { type: 'image', src: img.src, alt: altFor(img, locale), width: img.width, height: img.height, size: b.size, caption, credit: img.artist, license: img.license };
+	return rendered(getJournalImage(b.imageId), b.size, b.caption, locale);
+}
+
+/** The same for an image written into text: only a library image that is approved and described in this language. */
+export function renderInlineImage(i: InlineImage, locale: string): RenderedImage | null {
+	return rendered(imageBySrc(i.src), 'column', i.caption || undefined, locale);
 }
 
 const clean = (v: string | null | undefined) => (v && v.trim() ? v.trim() : null);

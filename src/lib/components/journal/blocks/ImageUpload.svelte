@@ -1,19 +1,23 @@
 <script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { compressImage, MAX_BYTES } from './compress-image';
 
 	/** Pick a photo, see it shrunk to ≤ 400 kB, describe it (author, licence, alt text), upload it as a draft image. */
-	let { locale, onuploaded }: { locale: string; onuploaded: (id: number) => void } = $props();
+	let { locale, onuploaded, file: given }: { locale: string; onuploaded: (id: number) => void; file?: File } = $props();
 
 	let shrunk = $state<{ blob: Blob; width: number; height: number; url: string } | null>(null);
 	let error = $state<string | null>(null);
 	let busy = $state(false);
 	let fields = $state({ title: '', artist: '', license: '', alt: '', caption: '' });
 
-	async function choose(e: Event) {
-		const file = (e.currentTarget as HTMLInputElement).files?.[0];
+	const choose = (e: Event) => useFile((e.currentTarget as HTMLInputElement).files?.[0]);
+	// An image pasted or dropped into the text starts the form with that file already chosen.
+	onMount(() => void useFile(given));
+
+	async function useFile(file: File | undefined) {
 		error = null;
 		if (!file) return;
 		busy = true;

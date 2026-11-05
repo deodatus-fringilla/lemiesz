@@ -1,8 +1,8 @@
 import { Marked, type Tokens } from 'marked';
 import { db } from '$lib/server/db';
 import { citationIds } from '$lib/server/journal-citations';
-import type { Block, ContentBlock } from '$lib/journal-blocks';
-import { renderImage, type RenderedImage } from '$lib/server/journal-images';
+import { imageLineRegExp, type Block, type ContentBlock } from '$lib/journal-blocks';
+import { renderImage, renderInlineImage, type RenderedImage } from '$lib/server/journal-images';
 import { renderMedia, type RenderedMedia } from '$lib/server/journal-media';
 
 /**
@@ -52,6 +52,15 @@ markdown.use({
 });
 
 const PLACEHOLDER = (k: number) => `LEMIESZCITE${k}X`;
+const IMAGE_PLACEHOLDER = (k: number) => `LEMIESZIMAGE${k}X`;
+
+/** An image written into text, as readers get it: the same markup as an image block, floated left or right if asked. */
+function figureHtml(r: RenderedImage, place: 'left' | 'right' | undefined): string {
+	const size = r.width && r.height ? ` width="${r.width}" height="${r.height}"` : '';
+	const credit = `${escapeHtml(r.credit)}${r.license ? ` · ${escapeHtml(r.license)}` : ''}`;
+	const caption = r.caption ? `<span>${escapeHtml(r.caption)}</span>` : '';
+	return `<figure class="img img-column${place ? ` img-${place}` : ''}"><img src="${escapeHtml(r.src)}" alt="${escapeHtml(r.alt)}"${size} loading="lazy" decoding="async" /><figcaption>${caption}<span class="credit">${credit}</span></figcaption></figure>`;
+}
 
 /**
  * Renders the Markdown parts of one article. One instance per article, so footnotes are numbered by first appearance
@@ -76,8 +85,14 @@ export class ArticleRenderer {
 	markdown(md: string): string {
 		const parts: { html: string; blockHtml?: string }[] = [];
 		const marker = (n: Footnote) => `<sup class="fn"><a href="#przypis-${n.n}" aria-label="${n.n}">${n.n}</a></sup>`;
-		let source = md;
-		for (const c of citationIds(md)) {
+		// Image lines first: each becomes a placeholder, and later a figure (or nothing, for an image that is not approved).
+		const figures: string[] = [];
+		let source = md.replace(imageLineRegExp(), (_m, prefix: string, _alt: string, src: string, caption: string | undefined, place: string | undefined) => {
+			const r = renderInlineImage({ src, caption: (caption ?? '').replace(/\\(.)/g, '$1'), ...(place === 'left' || place === 'right' ? { place } : {}) }, this.locale);
+			figures.push(r ? figureHtml(r, place === 'left' || place === 'right' ? place : undefined) : '');
+			return `${prefix}${IMAGE_PLACEHOLDER(figures.length - 1)}`;
+		});
+		for (const c of citationIds(source)) {
 			const note = this.footnote(c.id);
 			const k = parts.length;
 			if (!note) {
@@ -96,6 +111,10 @@ export class ArticleRenderer {
 			source = source.replace(c.token, PLACEHOLDER(k));
 		}
 		let html = markdown.parse(source, { async: false }) as string;
+		figures.forEach((f, k) => {
+			const ph = IMAGE_PLACEHOLDER(k);
+			html = html.replace(`<p>${ph}</p>`, f).replace(ph, f);
+		});
 		parts.forEach((p, k) => {
 			const ph = PLACEHOLDER(k);
 			if (p.blockHtml) html = html.replace(`<p>${ph}</p>`, p.blockHtml);

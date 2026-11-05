@@ -117,6 +117,46 @@ function hasContent(b: Block): boolean {
 	return b.type !== 'separator';
 }
 
+/**
+ * The article editor writes an image into text as a line of its own: `![alt](src "caption"){.left}`. The address is
+ * that of a library image (campaign_posters); everything readers see about it (picture, description, credit, licence)
+ * comes from the library, never from this line, so nothing written here can show a picture the library has not approved.
+ * `prefix` holds the `> ` of an image inside a quotation.
+ */
+const IMAGE_LINE = String.raw`^((?: {0,3}> ?)* {0,3})!\[((?:[^\]\\]|\\.)*)\]\(([^\s)]+)(?: "((?:[^"\\]|\\.)*)")?\)(?:\{\.([a-z]+)\})?[ \t]*$`;
+export const imageLineRegExp = () => new RegExp(IMAGE_LINE, 'gm');
+
+const unescapeMd = (s: string) => s.replace(/\\(.)/g, '$1');
+
+/** Where an inline image floats; none means it stands on its own line, centred. */
+export type InlinePlace = 'left' | 'right';
+
+export interface InlineImage {
+	src: string;
+	caption: string;
+	place?: InlinePlace;
+}
+
+/** The inline images of one Markdown text, in order. */
+export function inlineImages(md: string): InlineImage[] {
+	return [...md.matchAll(imageLineRegExp())].map((m) => ({
+		src: m[3],
+		caption: unescapeMd(m[4] ?? ''),
+		...(m[5] === 'left' || m[5] === 'right' ? { place: m[5] as InlinePlace } : {})
+	}));
+}
+
+/** Every Markdown text of an article (text and highlight blocks, columns included). */
+function markdownTexts(blocks: Block[]): string[] {
+	return blocks.flatMap((b) => (b.type === 'columns' ? b.columns.flat() : [b])).flatMap((b) => (b.type === 'text' || b.type === 'callout' ? [b.md] : []));
+}
+
+/** Every inline image of an article, wherever it sits. */
+export const inlineImagesOf = (blocks: Block[]): InlineImage[] => markdownTexts(blocks).flatMap(inlineImages);
+
+/** The same Markdown with each image line replaced by its caption (what search and the feed should see). */
+export const withoutImageLines = (md: string): string => md.replace(imageLineRegExp(), (_m, _prefix, _alt, _src, caption) => unescapeMd(caption ?? '')).replace(/\n{3,}/g, '\n\n');
+
 /** Every media block, wherever it sits (columns included). */
 export function mediaBlocks(blocks: Block[]): Extract<ContentBlock, { type: 'media' }>[] {
 	return blocks.flatMap((b) => (b.type === 'columns' ? b.columns.flat() : [b])).filter((b): b is Extract<ContentBlock, { type: 'media' }> => b.type === 'media');
@@ -139,7 +179,7 @@ export function flattenBlocks(blocks: Block[]): string {
 		switch (b.type) {
 			case 'text':
 			case 'callout':
-				return b.md.trim();
+				return withoutImageLines(b.md).trim();
 			case 'heading':
 				return `${'#'.repeat(b.level)} ${b.text}`;
 			case 'quote':
