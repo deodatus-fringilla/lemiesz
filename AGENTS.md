@@ -23,6 +23,14 @@
 * **Route pages (`+page.svelte`) must be lean orchestrators (<80–120 lines):** Their job is strictly to receive `data`, bind top-level state, and assemble focused child components.
 * **Single Responsibility Components (<100–150 lines):** Break every feature down into small, digestible, single-responsibility components.
 
+### Rule 2.1a: The article editor is a copy (`src/lib/editor/`)
+* `src/lib/editor/` is a **copy of the standalone Editor repository** (https://github.com/deodatus-fringilla/editor).
+  **Never edit it by hand.** Change the Editor repository (where its tests live) and run
+  `pnpm editor:sync <path to the Editor checkout>`; commit the result. `src/lib/editor/SOURCE.md` names the version.
+* Because it is a copy of an external package, it is exempt from the 150-line guideline above. The platform's own code
+  around it (`blocks/BlockTextField.svelte`, `PickModal.svelte`, `editor-labels.ts`) follows all the rules.
+* A new editor label breaks `editor-labels.ts` at compile time until its `ed_*` message exists in `pl.json` and `en.json`.
+
 ### Rule 2.2: Reusability & Component Placement
 * Place reusable components in `src/lib/components/` (e.g. `ReviewBadge.svelte`, `TopicCard.svelte`).
 * Group feature-specific modular components into feature subdirectories:
