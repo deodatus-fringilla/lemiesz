@@ -27,7 +27,29 @@
 			<form method="dialog"><button aria-label={m.pub_close({}, o)} class="rounded-md p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"><X class="h-5 w-5" /></button></form>
 		</div>
 		<p class="text-xs font-semibold tracking-wider text-zinc-500 uppercase">{m.pub_abstract({}, o)} · {m.pub_minutes({ n: article.minutes }, o)}</p>
-		<p class="leading-relaxed whitespace-pre-line text-zinc-300 {article.caliber === 'heavy' ? 'font-serif' : ''}">{article.lead}</p>
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+		<div class="abstract leading-relaxed text-zinc-300 {article.caliber === 'heavy' ? 'font-serif' : ''}">{@html article.lead_html}</div>
 		<a href={articlePath(lang, article.slug)} class="inline-flex rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400">{m.pub_read({}, o)}</a>
 	</div>
 </dialog>
+
+<style>
+	/* The abstract is Markdown from the editor, rendered on the server. */
+	.abstract :global(p) {
+		margin: 0 0 0.8em;
+	}
+	.abstract :global(p:last-child) {
+		margin-bottom: 0;
+	}
+	.abstract :global(ul),
+	.abstract :global(ol) {
+		margin: 0 0 0.8em;
+		padding-left: 1.4em;
+		list-style: revert;
+	}
+	.abstract :global(a) {
+		color: rgb(252 211 77);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+</style>

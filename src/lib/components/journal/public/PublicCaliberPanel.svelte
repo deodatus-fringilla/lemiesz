@@ -22,7 +22,7 @@
 	</div>
 	{#if article}
 		<div class="flex flex-wrap gap-2">
-			{#if article.lead}<PublicAbstractModal {article} {lang} />{/if}
+			{#if article.lead_html}<PublicAbstractModal {article} {lang} />{/if}
 			<a href={articlePath(lang, article.slug)} class="inline-flex rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400">{m.pub_read({}, o)}</a>
 		</div>
 	{/if}

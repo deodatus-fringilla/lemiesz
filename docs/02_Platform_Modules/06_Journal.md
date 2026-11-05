@@ -94,6 +94,11 @@ Since migration 014 an article text is a **list of blocks** (`src/lib/journal-bl
   missing description right there. An address that is not in the library (another site, a deleted image) shows nothing
   and is reported as "missing". Search and the feed see only the caption. Left and right images float with the text
   around them (not on narrow screens, and not in two-column layout, where they are column wide). A wide or edge-to-edge image still needs an image block.
+* **The lead** (the abstract under the title, opened from the list with "Abstrakt") is written in the same visual
+  editor, without images and source notes, and is stored as **Markdown** in `lead` / `published_lead`. Readers get it
+  as safe HTML (`renderLeadHtml`, the body's rules: raw HTML shown as text, only safe links); cards, the feed and the
+  page description get one line of plain text (`leadParts`, `lead_plain`). Search indexes the Markdown. An older plain
+  lead is valid Markdown; only single line breaks inside it now flow together unless separated by a blank line.
 * **Images** (block `image`: picture, size `column` / `wide` / `full`, optional caption). The library is
   `campaign_posters` (migration 015 adds `alt_pl`, `alt_en`, `license`, `origin`, `width`, `height`). Readers see an image
   only when it is approved **and** has alternative text in the article's language; approval and publishing check this,

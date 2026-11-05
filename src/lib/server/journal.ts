@@ -7,6 +7,7 @@ import { findImageProblems } from '$lib/server/journal-images';
 import { findMediaProblems } from '$lib/server/journal-media';
 import { prepareFtsQuery } from '$lib/server/rag/fts';
 import { DEV_USERNAME, authDisabled } from '$lib/server/auth';
+import { leadParts } from '$lib/server/journal-lead';
 import { BlockError, blocksFromMarkdown, flattenBlocks, isLayoutColumns, parseStoredBlocks, validateBlocks, type Block, type LayoutColumns } from '$lib/journal-blocks';
 
 /** Blocks from the caller (block editor) or a Markdown body (plain editor, pipeline), validated; JournalError on problems. */
@@ -360,6 +361,9 @@ export interface PublishedArticle {
 	blocks: Block[];
 	/** Columns of the published layout. */
 	columns: LayoutColumns;
+	/** `lead` is Markdown; these are what readers and cards need: safe HTML and one line of plain text. */
+	lead_html: string;
+	lead_plain: string;
 	twin: { slug: string; caliber: Caliber; title: string } | null;
 }
 
@@ -373,7 +377,7 @@ const PUBLISHED_SELECT = `
 	LEFT JOIN journal_article_texts tt ON tt.article_id = tw.id AND tt.locale = t.locale AND tt.published_body IS NOT NULL
 `;
 
-type PublishedRow = Omit<PublishedArticle, 'twin' | 'blocks'> & {
+type PublishedRow = Omit<PublishedArticle, 'twin' | 'blocks' | 'lead_html' | 'lead_plain'> & {
 	published_blocks_json: string | null;
 	twin_slug: string | null;
 	twin_caliber: Caliber | null;
@@ -381,6 +385,7 @@ type PublishedRow = Omit<PublishedArticle, 'twin' | 'blocks'> & {
 };
 const fromPublished = ({ twin_slug, twin_caliber, twin_title, published_blocks_json, ...r }: PublishedRow): PublishedArticle => ({
 	...r,
+	...(({ html, plain }) => ({ lead_html: html, lead_plain: plain }))(leadParts(r.lead)),
 	blocks: parseStoredBlocks(published_blocks_json, r.body),
 	twin: twin_slug && twin_title && twin_caliber ? { slug: twin_slug, caliber: twin_caliber, title: twin_title } : null
 });
@@ -391,8 +396,8 @@ export function getPublishedArticle(slug: string, locale: string): PublishedArti
 }
 
 /** What a list or card needs: no body and no blocks (the front page would otherwise ship every article in full). */
-export type PublishedSummary = Omit<PublishedArticle, 'body' | 'blocks'> & { minutes: number };
-export const summarise = ({ body, blocks: _k, ...s }: PublishedArticle): PublishedSummary => ({ ...s, minutes: readingMinutes(body) });
+export type PublishedSummary = Omit<PublishedArticle, 'body' | 'blocks' | 'lead'> & { minutes: number };
+export const summarise = ({ body, blocks: _k, lead: _lead, ...s }: PublishedArticle): PublishedSummary => ({ ...s, minutes: readingMinutes(body) });
 
 export function listPublished(filter: { locale: string; caliber?: Caliber; tag?: string; q?: string; limit?: number }): PublishedArticle[] {
 	const where = ['t.locale = ?', 't.published_body IS NOT NULL'];

@@ -11,7 +11,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 	if (!article) error(404, 'Not found');
 	const other: JournalLang = lang === 'pl' ? 'en' : 'pl';
 	// Readers get the rendered blocks only: neither the raw blocks nor the derived Markdown body is sent.
-	const { body: _body, blocks: raw, ...meta } = article;
+	const { body: _body, blocks: raw, lead: _lead, ...meta } = article;
 	const { blocks, notes } = renderBlocks(raw, lang);
 	return {
 		lang,

@@ -4,6 +4,7 @@
 	import type { ArticleText } from '$lib/server/journal';
 	import type { CitableSource } from '$lib/server/journal-citations';
 	import BlockEditor from './blocks/BlockEditor.svelte';
+	import LeadField from './blocks/LeadField.svelte';
 	import type { JournalImage } from '$lib/server/journal-images';
 	import type { EditorMedia } from '$lib/server/journal-media';
 
@@ -25,7 +26,7 @@
 <form method="POST" action="?/saveText" use:enhance={() => async ({ update }) => update({ reset: false })} class="space-y-3">
 	<input type="hidden" name="locale" value={locale} />
 	<input name="title" lang={locale} required value={text?.title ?? ''} placeholder={m.journal_field_title()} class="{input} text-lg font-semibold" />
-	<textarea name="lead" lang={locale} rows="3" placeholder={m.journal_field_lead()} class="{input} text-sm">{text?.lead ?? ''}</textarea>
+	{#key `${locale}-${text?.revision ?? 0}`}<LeadField value={text?.lead ?? ''} {locale} />{/key}
 	<BlockEditor initial={text?.blocks ?? []} initialColumns={text?.layout_columns ?? 1} {locale} {caliber} {sources} {images} {media} bind:dirty bind:wide />
 	<p class="text-[11px] text-zinc-500">{m.journal_body_hint()}</p>
 	{#if error}<p class="text-xs text-rose-300">{error}</p>{/if}

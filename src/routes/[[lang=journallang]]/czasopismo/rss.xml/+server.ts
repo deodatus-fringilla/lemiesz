@@ -30,7 +30,7 @@ ${items
 <guid isPermaLink="true">${xml(link)}</guid>
 <pubDate>${rfc822(a.published_at)}</pubDate>
 <category>${xml(kind)}</category>
-<description>${xml(a.lead)}</description>
+<description>${xml(a.lead_plain)}</description>
 </item>`;
 	})
 	.join('\n')}

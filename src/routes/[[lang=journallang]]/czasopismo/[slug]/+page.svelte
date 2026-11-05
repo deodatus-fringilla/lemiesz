@@ -19,7 +19,7 @@
 
 <JournalHead
 	title={`${a.title} · Lemiesz.`}
-	description={a.lead || m.pub_tagline({}, o)}
+	description={a.lead_plain || m.pub_tagline({}, o)}
 	{url}
 	lang={data.lang}
 	type="article"
@@ -36,7 +36,8 @@
 		<header class="space-y-3">
 			<JournalCaliberBadge caliber={a.caliber} lang={data.lang} />
 			<h1 class="text-3xl leading-tight font-bold text-zinc-50 sm:text-4xl {a.caliber === 'heavy' ? 'font-serif' : ''}">{a.title}</h1>
-			{#if a.lead}<p class="text-lg leading-relaxed text-zinc-300">{a.lead}</p>{/if}
+			{#if a.lead_html}<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+				<div class="lead text-lg leading-relaxed text-zinc-300">{@html a.lead_html}</div>{/if}
 			<p class="text-sm text-zinc-500">
 				{a.author ?? m.pub_editorial({}, o)} · <time datetime={a.published_at.slice(0, 10)}>{m.pub_published({ date: a.published_at.slice(0, 10) }, o)}</time>
 			</p>
@@ -53,3 +54,24 @@
 		{/if}
 	</article>
 </div>
+
+<style>
+	/* The lead is Markdown from the editor, rendered on the server: spacing and links inside it. */
+	.lead :global(p) {
+		margin: 0 0 0.7em;
+	}
+	.lead :global(p:last-child) {
+		margin-bottom: 0;
+	}
+	.lead :global(ul),
+	.lead :global(ol) {
+		margin: 0 0 0.7em;
+		padding-left: 1.4em;
+		list-style: revert;
+	}
+	.lead :global(a) {
+		color: rgb(252 211 77);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+</style>

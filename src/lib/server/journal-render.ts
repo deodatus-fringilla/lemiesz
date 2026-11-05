@@ -51,6 +51,9 @@ markdown.use({
 	}
 });
 
+/** An article's lead (its abstract) as safe HTML: Markdown with the same rules as the body, minus images and notes. */
+export const renderLeadHtml = (md: string): string => (md.trim() ? (markdown.parse(md.trim(), { async: false }) as string) : '');
+
 const PLACEHOLDER = (k: number) => `LEMIESZCITE${k}X`;
 const IMAGE_PLACEHOLDER = (k: number) => `LEMIESZIMAGE${k}X`;
 
