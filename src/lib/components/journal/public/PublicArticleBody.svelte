@@ -5,12 +5,15 @@
 	 */
 	import type { RenderedBlock } from '$lib/server/journal-render';
 	import PublicBlocks from './PublicBlocks.svelte';
-	/** `breakout`: "full" images span the whole screen (public page only; in the editor's preview they stay inside). */
-	let { blocks, caliber, breakout = false, lang = 'pl' }: { blocks: RenderedBlock[]; caliber: 'light' | 'heavy'; breakout?: boolean; lang?: 'pl' | 'en' } = $props();
-	const hasColumns = $derived(blocks.some((b) => b.type === 'columns' || (b.type === 'image' && b.size !== 'column')));
+	/**
+	 * `breakout`: "full" images span the whole screen (public page only; in the editor's preview they stay inside).
+	 * `columns`: 2 lets the text flow from a first column into a second (magazine layout) where there is room for it.
+	 */
+	let { blocks, caliber, breakout = false, lang = 'pl', columns = 1 }: { blocks: RenderedBlock[]; caliber: 'light' | 'heavy'; breakout?: boolean; lang?: 'pl' | 'en'; columns?: 1 | 2 } = $props();
+	const wide = $derived(columns === 2 || blocks.some((b) => b.type === 'image' && b.size !== 'column'));
 </script>
 
-<div class="article {caliber}" class:wide={hasColumns} class:breakout><PublicBlocks {blocks} {lang} /></div>
+<div class="article {caliber}" class:wide class:breakout><div class="flow" class:cols2={columns === 2}><PublicBlocks {blocks} {lang} /></div></div>
 
 <style>
 	.article {
@@ -96,8 +99,8 @@
 		text-decoration: none;
 		color: var(--color-crimson-300);
 	}
-	/* Article with columns: the page is wider, but running text keeps a comfortable measure. */
-	.article.wide > :global(:not(.cols):not(.img-wide):not(.img-full)) {
+	/* A wide article (wide images): the page is wider, but running text keeps a comfortable measure. */
+	.article.wide .flow:not(.cols2) > :global(:not(.img-wide):not(.img-full)) {
 		max-width: 68ch;
 	}
 	.article :global(figure.img) {
@@ -149,7 +152,7 @@
 		float: right;
 		margin-left: 1.4em;
 	}
-	/* Where the article is narrow, and inside columns, an image is as wide as the text instead. */
+	/* Where the article is narrow, an image is as wide as the text instead. */
 	@container (max-width: 34rem) {
 		.article :global(figure.img-left),
 		.article :global(figure.img-right) {
@@ -157,12 +160,6 @@
 			width: auto;
 			margin-inline: 0;
 		}
-	}
-	.article :global(.col figure.img-left),
-	.article :global(.col figure.img-right) {
-		float: none;
-		width: auto;
-		margin-inline: 0;
 	}
 	/* A quotation or highlight next to a floated image sits beside it instead of running under it. */
 	.article :global(blockquote),
@@ -198,23 +195,43 @@
 	.article :global(pre code) {
 		font-size: inherit;
 	}
-	.article :global(.cols) {
-		display: grid;
-		gap: 2rem;
-		margin: 0 0 1.15em;
-	}
-	@container (min-width: 34rem) {
-		.article :global(.cols-2) {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+	/* Two columns: one text that flows from the first column into the second, where the article is wide enough. */
+	@container (min-width: 40rem) {
+		.flow.cols2 {
+			column-count: 2;
+			column-gap: 2.5rem;
+			column-rule: 1px solid rgb(63 63 70);
 		}
-	}
-	@container (min-width: 48rem) {
-		.article :global(.cols-3) {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+		/* Both columns start at the same height: the first block has no top margin. */
+		.flow.cols2 > :global(:first-child) {
+			margin-top: 0;
 		}
-	}
-	.article :global(.col > :last-child) {
-		margin-bottom: 0;
+		.flow.cols2 > :global(p) {
+			orphans: 2;
+			widows: 2;
+		}
+		.flow.cols2 > :global(h2),
+		.flow.cols2 > :global(h3),
+		.flow.cols2 > :global(h4) {
+			break-after: avoid;
+		}
+		.flow.cols2 :global(figure),
+		.flow.cols2 :global(blockquote),
+		.flow.cols2 :global(.callout),
+		.flow.cols2 :global(li) {
+			break-inside: avoid;
+		}
+		.flow.cols2 > :global(figure.img-wide),
+		.flow.cols2 > :global(figure.img-full) {
+			column-span: all;
+		}
+		/* Inside a column, an image written into the text is as wide as the column instead of floating. */
+		.flow.cols2 :global(figure.img-left),
+		.flow.cols2 :global(figure.img-right) {
+			float: none;
+			width: auto;
+			margin-inline: 0;
+		}
 	}
 	.article :global(h4) {
 		margin: 1.3em 0 0.4em;

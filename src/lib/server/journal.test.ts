@@ -22,6 +22,8 @@ import {
 	unflagText,
 	countedApprovalsOf
 } from './journal';
+import fs from 'node:fs';
+import Database from 'better-sqlite3';
 import { describeCitations, findCitationProblems } from './journal-citations';
 
 const ania = human('ania');
@@ -258,11 +260,13 @@ describe('journal articles', () => {
 	});
 
 	it('stores articles as blocks: body is derived, publishing copies the blocks, edits leave the live blocks alone', () => {
-		const blocks = [
+		// An old `columns` block is stored as its blocks in reading order (the layout is a setting of the text now).
+		const old = [
 			{ type: 'heading', level: 2, text: 'Teza' },
 			{ type: 'columns', columns: [[{ type: 'text', md: 'Lewa' }], [{ type: 'text', md: 'Prawa' }]] }
 		];
-		const id = createArticle({ caliber: 'light', locale: 'pl', title: 'Bloki', blocks }, ania);
+		const blocks = [{ type: 'heading', level: 2, text: 'Teza' }, { type: 'text', md: 'Lewa' }, { type: 'text', md: 'Prawa' }];
+		const id = createArticle({ caliber: 'light', locale: 'pl', title: 'Bloki', blocks: old }, ania);
 		expect(getText(id, 'pl')).toMatchObject({ blocks, body: '## Teza\n\nLewa\n\nPrawa' });
 		approveAndPublish(id, ania);
 		const slug = getArticle(id)!.slug;
@@ -284,12 +288,54 @@ describe('journal articles', () => {
 		expect(getText(id, 'pl')!.blocks).toEqual([{ type: 'text', md: 'Zwykły tekst z edytora.' }]);
 	});
 
-	it('checks citations inside every block, including quotation blocks in columns', () => {
+	it('checks citations inside every block, including quotation blocks (also in an old columns block)', () => {
 		const unknown = 987650 + n;
 		const id = createArticle(
 			{ caliber: 'light', locale: 'pl', title: 'Cytaty', blocks: [{ type: 'columns', columns: [[{ type: 'text', md: 'ok' }], [{ type: 'quote', sourceId: unknown }]] }] },
 			ania
 		);
 		expect(() => approveText(id, 'pl', ania)).toThrow(new RegExp(`quote:${unknown}`));
+	});
+});
+
+describe('layout columns', () => {
+	it('is a setting of each text: saved with it, a change needs approval again, published as a copy', () => {
+		const id = createArticle({ caliber: 'light', locale: 'pl', title: 'Układ', body: 'Tekst.' }, ania);
+		expect(getText(id, 'pl')).toMatchObject({ layout_columns: 1, published_layout_columns: null });
+		approveAndPublish(id, ania);
+		const slug = getArticle(id)!.slug;
+		expect(getPublishedArticle(slug, 'pl')!.columns).toBe(1);
+		const r = saveText(id, 'pl', { title: 'Układ', blocks: [{ type: 'text', md: 'Tekst.' }], columns: 2 }, ania);
+		expect(r.changed).toBe(true); // only the layout differs, and that is a new revision
+		expect(getText(id, 'pl')).toMatchObject({ layout_columns: 2, status: 'draft', published_layout_columns: 1 });
+		expect(getPublishedArticle(slug, 'pl')!.columns).toBe(1); // readers keep the approved layout
+		// Callers that know nothing about layouts (the pipeline) leave it alone; nonsense is ignored.
+		expect(saveText(id, 'pl', { title: 'Układ', blocks: [{ type: 'text', md: 'Tekst.' }] }, ania).changed).toBe(false);
+		expect(saveText(id, 'pl', { title: 'Układ', blocks: [{ type: 'text', md: 'Tekst.' }], columns: 7 }, ania).changed).toBe(false);
+		approveAndPublish(id, ania);
+		expect(getPublishedArticle(slug, 'pl')!.columns).toBe(2);
+		unpublishText(id, 'pl', ania);
+		expect(getText(id, 'pl')!.published_layout_columns).toBeNull();
+	});
+});
+
+describe('migration 016 (layout columns)', () => {
+	it('gives two columns to texts that used the old columns block, and one to the rest', () => {
+		const mem = new Database(':memory:');
+		mem.exec('CREATE TABLE journal_article_texts (id INTEGER PRIMARY KEY, blocks_json TEXT, published_blocks_json TEXT, published_body TEXT)');
+		const cols = JSON.stringify([{ type: 'columns', columns: [[{ type: 'text', md: 'a' }], [{ type: 'text', md: 'b' }]] }]);
+		const flat = JSON.stringify([{ type: 'text', md: 'a' }]);
+		const insert = mem.prepare('INSERT INTO journal_article_texts (blocks_json, published_blocks_json, published_body) VALUES (?, ?, ?)');
+		insert.run(cols, cols, 'ab'); // 1: old columns, live
+		insert.run(flat, null, null); // 2: plain draft
+		insert.run(cols, flat, 'a'); // 3: columns in the draft, a plain live version
+		mem.exec(fs.readFileSync('./src/lib/server/migrations/016_journal_layout.sql', 'utf8'));
+		const rows = mem.prepare('SELECT id, layout_columns AS l, published_layout_columns AS p FROM journal_article_texts ORDER BY id').all();
+		expect(rows).toEqual([
+			{ id: 1, l: 2, p: 2 },
+			{ id: 2, l: 1, p: null },
+			{ id: 3, l: 2, p: 1 }
+		]);
+		mem.close();
 	});
 });

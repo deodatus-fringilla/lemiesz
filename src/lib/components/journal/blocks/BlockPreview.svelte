@@ -6,7 +6,7 @@
 	import PublicFootnotes from '../public/PublicFootnotes.svelte';
 
 	/** Unsaved blocks rendered by the server with the readers' renderer, refreshed shortly after each change. */
-	let { json, locale, caliber }: { json: string; locale: string; caliber: 'light' | 'heavy' } = $props();
+	let { json, locale, caliber, columns = 1 }: { json: string; locale: string; caliber: 'light' | 'heavy'; columns?: 1 | 2 } = $props();
 
 	let result = $state<{ blocks: RenderedBlock[]; notes: Footnote[] } | null>(null);
 	let error = $state<string | null>(null);
@@ -37,7 +37,7 @@
 	<p class="mb-3 h-4 text-[11px] text-zinc-500">{loading ? m.blocks_preview_loading() : ''}</p>
 	{#if error}<p role="alert" class="mb-3 text-sm text-rose-300">{error}</p>{/if}
 	{#if result}
-		<PublicArticleBody blocks={result.blocks} {caliber} lang={locale === 'en' ? 'en' : 'pl'} />
+		<PublicArticleBody blocks={result.blocks} {caliber} {columns} lang={locale === 'en' ? 'en' : 'pl'} />
 		<PublicFootnotes notes={result.notes} lang={locale === 'en' ? 'en' : 'pl'} />
 	{/if}
 </div>

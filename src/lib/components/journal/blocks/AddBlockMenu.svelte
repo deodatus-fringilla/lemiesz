@@ -4,10 +4,10 @@
 	import type { BlockType } from './block-utils';
 	import { blockLabel } from './labels';
 
-	/** The "+" between blocks: opens the list of block types. Columns are offered only at the top level. */
-	let { allowColumns, onadd, always = false }: { allowColumns: boolean; onadd: (t: BlockType) => void; always?: boolean } = $props();
+	/** The "+" between blocks: opens the list of block types. */
+	let { onadd, always = false }: { onadd: (t: BlockType) => void; always?: boolean } = $props();
 	let open = $state(false);
-	const types = $derived<BlockType[]>(['text', 'heading', ...(allowColumns ? (['columns'] as BlockType[]) : []), 'image', 'media', 'quote', 'callout', 'separator']);
+	const types: BlockType[] = ['text', 'heading', 'image', 'media', 'quote', 'callout', 'separator'];
 </script>
 
 <div class="group relative flex items-center justify-center py-1 {always ? '' : 'opacity-50 hover:opacity-100 focus-within:opacity-100'}">

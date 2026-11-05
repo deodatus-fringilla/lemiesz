@@ -7,7 +7,7 @@ import { findImageProblems } from '$lib/server/journal-images';
 import { findMediaProblems } from '$lib/server/journal-media';
 import { prepareFtsQuery } from '$lib/server/rag/fts';
 import { DEV_USERNAME, authDisabled } from '$lib/server/auth';
-import { BlockError, blocksFromMarkdown, flattenBlocks, parseStoredBlocks, validateBlocks, type Block } from '$lib/journal-blocks';
+import { BlockError, blocksFromMarkdown, flattenBlocks, isLayoutColumns, parseStoredBlocks, validateBlocks, type Block, type LayoutColumns } from '$lib/journal-blocks';
 
 /** Blocks from the caller (block editor) or a Markdown body (plain editor, pipeline), validated; JournalError on problems. */
 function toBlocks(input: { blocks?: unknown; body?: string }): Block[] {
@@ -89,6 +89,9 @@ export interface ArticleText {
 	updated_at: string;
 	/** The article as blocks (working copy); `body` is derived from them. */
 	blocks: Block[];
+	/** One column, or two (the text flows from the first into the second). Working copy. */
+	layout_columns: LayoutColumns;
+	published_layout_columns: LayoutColumns | null;
 }
 
 type TextRow = Omit<ArticleText, 'ai_assisted' | 'blocks'> & { ai_assisted: number; blocks_json: string | null; published_blocks_json: string | null };
@@ -131,6 +134,8 @@ export interface NewArticle {
 	body?: string;
 	/** Block-editor content; when given it replaces `body`. */
 	blocks?: unknown;
+	/** One column (default) or two. */
+	columns?: unknown;
 	slug?: string;
 	author?: string | null;
 	tags?: string | null;
@@ -149,8 +154,8 @@ export function createArticle(input: NewArticle, actor: Actor): number {
 				.prepare('INSERT INTO journal_articles (slug, caliber, author, tags, created_by) VALUES (?, ?, ?, ?, ?)')
 				.run(slug, input.caliber, input.author?.trim() || null, input.tags?.trim() || null, actor.name).lastInsertRowid
 		);
-		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, blocks_json, ai_assisted) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-			id, input.locale, input.title.trim(), input.lead?.trim() ?? '', flattenBlocks(blocks), JSON.stringify(blocks), input.ai_assisted || actor.kind !== 'human' ? 1 : 0
+		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, blocks_json, layout_columns, ai_assisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+			id, input.locale, input.title.trim(), input.lead?.trim() ?? '', flattenBlocks(blocks), JSON.stringify(blocks), isLayoutColumns(input.columns) ? input.columns : 1, input.ai_assisted || actor.kind !== 'human' ? 1 : 0
 		);
 		return id;
 	})();
@@ -163,7 +168,7 @@ export function createArticle(input: NewArticle, actor: Actor): number {
 export function saveText(
 	articleId: number,
 	locale: string,
-	input: { title: string; lead?: string; body?: string; blocks?: unknown; ai_assisted?: boolean },
+	input: { title: string; lead?: string; body?: string; blocks?: unknown; columns?: unknown; ai_assisted?: boolean },
 	actor: Actor
 ): { changed: boolean; revision: number } {
 	if (!getArticle(articleId)) throw new JournalError(`Article ${articleId} not found`);
@@ -173,19 +178,21 @@ export function saveText(
 	const body = flattenBlocks(blocks);
 	const ai = input.ai_assisted || actor.kind !== 'human' ? 1 : 0;
 	const current = getText(articleId, locale);
+	// Callers that do not know about layouts (the pipeline, old forms) leave it as it is.
+	const layout: LayoutColumns = isLayoutColumns(input.columns) ? input.columns : (current?.layout_columns ?? 1);
 	if (!current) {
-		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, blocks_json, ai_assisted) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-			articleId, locale, input.title.trim(), input.lead?.trim() ?? '', body, blocksJson, ai
+		db.prepare('INSERT INTO journal_article_texts (article_id, locale, title, lead, body, blocks_json, layout_columns, ai_assisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+			articleId, locale, input.title.trim(), input.lead?.trim() ?? '', body, blocksJson, layout, ai
 		);
 		return { changed: true, revision: 1 };
 	}
-	const same = current.title === input.title.trim() && current.lead === (input.lead?.trim() ?? '') && JSON.stringify(current.blocks) === blocksJson;
+	const same = current.title === input.title.trim() && current.lead === (input.lead?.trim() ?? '') && JSON.stringify(current.blocks) === blocksJson && current.layout_columns === layout;
 	if (same && (current.ai_assisted ? 1 : 0) === ai) return { changed: false, revision: current.revision };
 	const revision = current.revision + 1;
 	db.prepare(
-		`UPDATE journal_article_texts SET title = ?, lead = ?, body = ?, blocks_json = ?, ai_assisted = ?, revision = ?, status = 'draft',
+		`UPDATE journal_article_texts SET title = ?, lead = ?, body = ?, blocks_json = ?, layout_columns = ?, ai_assisted = ?, revision = ?, status = 'draft',
 			updated_at = datetime('now') WHERE article_id = ? AND locale = ?`
-	).run(input.title.trim(), input.lead?.trim() ?? '', body, blocksJson, ai, revision, articleId, locale);
+	).run(input.title.trim(), input.lead?.trim() ?? '', body, blocksJson, layout, ai, revision, articleId, locale);
 	return { changed: true, revision };
 }
 
@@ -295,14 +302,14 @@ export function publishText(articleId: number, locale: string, actor: Actor): vo
 	if (imageProblems.length) throw new JournalError(`Images or media not ready: ${imageProblems.join('; ')}`);
 	db.prepare(
 		`UPDATE journal_article_texts SET status = 'human_approved', published_title = title, published_lead = lead, published_body = body,
-			published_blocks_json = blocks_json, published_revision = revision, published_at = datetime('now'), published_by = ? WHERE article_id = ? AND locale = ?`
+			published_blocks_json = blocks_json, published_layout_columns = layout_columns, published_revision = revision, published_at = datetime('now'), published_by = ? WHERE article_id = ? AND locale = ?`
 	).run(actor.name, articleId, locale);
 }
 
 export function unpublishText(articleId: number, locale: string, actor: Actor): void {
 	requireHuman(actor, 'unpublish journal articles');
 	db.prepare(
-		`UPDATE journal_article_texts SET published_title = NULL, published_lead = NULL, published_body = NULL, published_blocks_json = NULL,
+		`UPDATE journal_article_texts SET published_title = NULL, published_lead = NULL, published_body = NULL, published_blocks_json = NULL, published_layout_columns = NULL,
 			published_revision = NULL, published_at = NULL, published_by = NULL WHERE article_id = ? AND locale = ?`
 	).run(articleId, locale);
 }
@@ -351,12 +358,14 @@ export interface PublishedArticle {
 	published_at: string;
 	/** The published version as blocks (what readers see). */
 	blocks: Block[];
+	/** Columns of the published layout. */
+	columns: LayoutColumns;
 	twin: { slug: string; caliber: Caliber; title: string } | null;
 }
 
 const PUBLISHED_SELECT = `
 	SELECT a.id, a.slug, a.caliber, a.author, a.tags, t.locale, t.published_title AS title, t.published_lead AS lead,
-		t.published_body AS body, t.published_blocks_json, t.published_at,
+		t.published_body AS body, t.published_blocks_json, COALESCE(t.published_layout_columns, 1) AS columns, t.published_at,
 		tw.slug AS twin_slug, tw.caliber AS twin_caliber, tt.published_title AS twin_title
 	FROM journal_article_texts t
 	JOIN journal_articles a ON a.id = t.article_id

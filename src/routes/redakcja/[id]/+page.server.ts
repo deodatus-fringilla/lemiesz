@@ -92,7 +92,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'The article content could not be read; reload the page' });
 		}
 		return attempt(() => {
-			saveText(id, locale, { title: str(d, 'title'), lead: str(d, 'lead'), blocks }, human(locals.user!.username));
+			saveText(id, locale, { title: str(d, 'title'), lead: str(d, 'lead'), blocks, columns: Number(d.get('columns')) }, human(locals.user!.username));
 		});
 	},
 	/** Renders unsaved blocks exactly as readers would see them (same renderer as the public page). */

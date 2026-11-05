@@ -53,18 +53,26 @@
 
 Since migration 014 an article text is a **list of blocks** (`src/lib/journal-blocks.ts`): `text` and `callout`
 (Markdown with `[[src:ID]]` / `[[quote:ID]]`), `heading` (level 2–4), `quote` (a source id), `separator`, and
-`columns` (2 or 3 columns of the blocks above; never columns inside columns). Image and media blocks come later.
+`image` and `media`. The list is flat: the layout is **not a block** (see "Layout: one or two columns" below).
 
 * Stored as `blocks_json` (working copy) and `published_blocks_json` (what readers see), validated on every save by
   `validateBlocks` (known types and fields only, size and nesting limits). `body` / `published_body` are **derived**
   (`flattenBlocks`) for search, RSS and citation checks and are never edited directly.
 * Existing texts were converted to one text block by the migration; nothing had to be republished.
-* Rendering (`renderBlocks`) numbers footnotes across the whole article, columns included. Columns sit side by side
-  from 768 px and stack on phones; running text keeps a 68-character measure in an article with columns.
+* Rendering (`renderBlocks`) numbers footnotes across the whole article.
+* **Layout: one or two columns** (migration 016). A setting of each text (language), `layout_columns` for the working
+  copy and `published_layout_columns` for what readers see, so changing it is a revision that needs approval like any
+  other change. With two columns the text flows from the first column into the second (CSS multi-column, as in the
+  article editor's two-column preview); it applies where the article is at least 40 rem wide and is one column on a
+  phone. Wide and edge-to-edge images and the footnotes span both columns; images written into the text stand column
+  wide. Articles that used the old `columns` block keep their look: `validateBlocks` reads such a block as its blocks
+  in reading order, and the migration gave those texts two columns. Nothing is lost; the stored JSON is rewritten the
+  next time the text is saved.
 * **The block editor** (`src/lib/components/journal/blocks/`) is the only article editor: cards with "+" between them,
   ↑/↓ and ✕, the **visual text editor** (below), a source picker for `[[src:ID]]` and quotation blocks (approved
-  sources only; a quotation needs approved text in the article's language), and Edycja / Podgląd / Obok. The preview is rendered by the server with the readers' renderer. Columns stack when their space is narrow
-  (container queries), in the editor, the preview and the public page alike.
+  sources only; a quotation needs approved text in the article's language), and Edycja / Podgląd / Obok, and the **Układ** switch (1 or 2 columns). The preview is rendered by the server with the
+  readers' renderer and shows the chosen layout (two columns need the full-width preview: the page widens for it, and
+  Obok is too narrow, which it says).
 * **The visual text editor** (text and highlight blocks) replaced the Markdown textarea. Writers see bold, headings 2-4,
   lists, quotations, links, separator lines and source notes as they will look; what is stored is still the same
   Markdown. It is the standalone article editor from its own repository (https://github.com/deodatus-fringilla/editor),
@@ -85,7 +93,7 @@ Since migration 014 an article text is a **list of blocks** (`src/lib/journal-bl
   blocks (`imageIssues` reads both), and the problems panel names each one with a button to approve the image or add the
   missing description right there. An address that is not in the library (another site, a deleted image) shows nothing
   and is reported as "missing". Search and the feed see only the caption. Left and right images float with the text
-  around them (not inside columns, and not on narrow screens). A wide or edge-to-edge image still needs an image block.
+  around them (not on narrow screens, and not in two-column layout, where they are column wide). A wide or edge-to-edge image still needs an image block.
 * **Images** (block `image`: picture, size `column` / `wide` / `full`, optional caption). The library is
   `campaign_posters` (migration 015 adds `alt_pl`, `alt_en`, `license`, `origin`, `width`, `height`). Readers see an image
   only when it is approved **and** has alternative text in the article's language; approval and publishing check this,
@@ -99,7 +107,7 @@ Since migration 014 an article text is a **list of blocks** (`src/lib/journal-bl
   click-to-load card: nothing is requested from the provider until the reader presses play (verified: zero third-party
   requests before the click), then the record's derived privacy-host `embed_url` loads (ROBOT-09). Biblioteka web links
   render as link cards with the editor's note (and the archived copy when the link check found it broken). Only
-  approved items reach readers; approval and publishing check it. Images inside columns are always column-wide.
+  approved items reach readers; approval and publishing check it.
 * **Print:** articles print black on white without navigation; a player prints its title and address, a link card
   its address.
 * Unsaved changes block approving and publishing (they apply to the saved version) and warn before leaving the page.

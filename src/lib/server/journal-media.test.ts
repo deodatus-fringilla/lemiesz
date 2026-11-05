@@ -32,7 +32,7 @@ describe('journal media', () => {
 	it('shows nothing for unapproved or missing items, and blocks approval of an article using them', () => {
 		const draft = yt(false);
 		expect(renderMedia({ mediaId: draft })).toBeNull();
-		expect(findMediaProblems([{ type: 'media', mediaId: draft }, { type: 'columns', columns: [[{ type: 'media', mediaId: 999999 }], []] }])).toEqual([
+		expect(findMediaProblems([{ type: 'media', mediaId: draft }, { type: 'media', mediaId: 999999 }])).toEqual([
 			expect.stringMatching(/not approved/),
 			expect.stringMatching(/no longer exists/)
 		]);
@@ -40,9 +40,9 @@ describe('journal media', () => {
 		expect(() => approveText(a, 'pl', ania)).toThrow(/media .* not approved/);
 	});
 
-	it('renders inside articles and columns', () => {
-		const { blocks } = renderBlocks([{ type: 'media', mediaId: yt() }, { type: 'columns', columns: [[{ type: 'media', mediaId: link() }], [{ type: 'text', md: 'x' }]] }], 'pl');
+	it('renders inside articles', () => {
+		const { blocks } = renderBlocks([{ type: 'media', mediaId: yt() }, { type: 'media', mediaId: link() }], 'pl');
 		expect(blocks[0]).toMatchObject({ type: 'embed' });
-		expect((blocks[1] as { columns: { type: string }[][] }).columns[0][0]).toMatchObject({ type: 'linkcard' });
+		expect(blocks[1]).toMatchObject({ type: 'linkcard' });
 	});
 });

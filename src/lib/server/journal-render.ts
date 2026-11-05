@@ -64,7 +64,7 @@ function figureHtml(r: RenderedImage, place: 'left' | 'right' | undefined): stri
 
 /**
  * Renders the Markdown parts of one article. One instance per article, so footnotes are numbered by first appearance
- * across every block (columns included) and a repeated source keeps its number.
+ * across every block and a repeated source keeps its number.
  */
 export class ArticleRenderer {
 	readonly notes: Footnote[] = [];
@@ -139,7 +139,7 @@ export type RenderedContent =
 	| { type: 'separator' }
 	| RenderedImage
 	| RenderedMedia;
-export type RenderedBlock = RenderedContent | { type: 'columns'; columns: RenderedContent[][] };
+export type RenderedBlock = RenderedContent;
 
 export function renderBlocks(blocks: Block[], locale: string): { blocks: RenderedBlock[]; notes: Footnote[] } {
 	const r = new ArticleRenderer(locale);
@@ -161,8 +161,5 @@ export function renderBlocks(blocks: Block[], locale: string): { blocks: Rendere
 				return renderMedia(b) ?? { type: 'html', html: '' };
 		}
 	};
-	// Inside a column an image can only be as wide as the column ("full screen" would break out of the grid).
-	const inColumn = (b: ContentBlock): RenderedContent => content(b.type === 'image' ? { ...b, size: 'column' } : b);
-	const out = blocks.map((b): RenderedBlock => (b.type === 'columns' ? { type: 'columns', columns: b.columns.map((c) => c.map(inColumn)) } : content(b)));
-	return { blocks: out, notes: r.notes };
+	return { blocks: blocks.map(content), notes: r.notes };
 }

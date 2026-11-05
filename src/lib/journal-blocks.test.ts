@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLOCK_LIMITS, BlockError, flattenBlocks, parseStoredBlocks, validateBlocks } from './journal-blocks';
+import { BLOCK_LIMITS, BlockError, flattenBlocks, isLayoutColumns, parseStoredBlocks, validateBlocks } from './journal-blocks';
 
 describe('journal blocks', () => {
 	it('accepts every block type, keeps only known fields, and trims headings', () => {
@@ -10,7 +10,15 @@ describe('journal blocks', () => {
 			{ type: 'callout', md: 'Wniosek.' }
 		]);
 		expect(out[0]).toEqual({ type: 'heading', level: 2, text: 'Teza' });
-		expect(out[2]).toEqual({ type: 'columns', columns: [[{ type: 'text', md: 'Lewa' }], [{ type: 'quote', sourceId: 3 }, { type: 'separator' }]] });
+		// An old `columns` block is read as its blocks in reading order: nothing is lost, the layout is a setting of the text.
+		expect(out).toHaveLength(6);
+		expect(out.slice(2, 5)).toEqual([{ type: 'text', md: 'Lewa' }, { type: 'quote', sourceId: 3 }, { type: 'separator' }]);
+		expect(out.some((b) => (b.type as string) === 'columns')).toBe(false);
+	});
+
+	it('knows the two layouts', () => {
+		expect([1, 2].every(isLayoutColumns)).toBe(true);
+		expect([0, 3, '2', null, undefined, NaN].some(isLayoutColumns)).toBe(false);
 	});
 
 	it('refuses malformed input with a message naming the place', () => {
@@ -77,11 +85,12 @@ describe('images written into text by the article editor', () => {
 		expect(inlineImages('> ![x](/images/q.webp "w cytacie")')).toEqual([{ src: '/images/q.webp', caption: 'w cytacie' }]);
 	});
 
-	it('finds them in text and highlight blocks, columns included', async () => {
+	it('finds them in text and highlight blocks', async () => {
 		const { inlineImagesOf } = await import('./journal-blocks');
 		const found = inlineImagesOf([
 			{ type: 'text', md: '![a](/images/1.webp)' },
-			{ type: 'columns', columns: [[{ type: 'callout', md: '![b](/images/2.webp)' }], [{ type: 'heading', level: 2, text: '![c](/images/3.webp)' }]] }
+			{ type: 'callout', md: '![b](/images/2.webp)' },
+			{ type: 'heading', level: 2, text: '![c](/images/3.webp)' }
 		]);
 		expect(found.map((i) => i.src)).toEqual(['/images/1.webp', '/images/2.webp']);
 	});

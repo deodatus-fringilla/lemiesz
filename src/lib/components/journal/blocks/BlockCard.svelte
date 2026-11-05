@@ -6,7 +6,6 @@
 	import type { CitableSource } from '$lib/server/journal-citations';
 	import type { EditorBlock } from './block-utils';
 	import { blockLabel } from './labels';
-	import BlockColumnsField from './BlockColumnsField.svelte';
 	import BlockHeadingField from './BlockHeadingField.svelte';
 	import BlockImageField from './BlockImageField.svelte';
 	import BlockMediaField from './BlockMediaField.svelte';
@@ -34,7 +33,7 @@
 	const btn = 'rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent';
 </script>
 
-<section class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 {block.type === 'columns' ? 'border-dashed' : ''}">
+<section class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
 	<header class="mb-2 flex items-center justify-between gap-2">
 		<span class="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase">{blockLabel(block.type)}</span>
 		<span class="flex gap-0.5">
@@ -55,7 +54,5 @@
 		<BlockMediaField bind:mediaId={block.mediaId} bind:caption={block.caption} />
 	{:else if block.type === 'separator'}
 		<hr class="mx-auto my-2 w-32 border-zinc-700" />
-	{:else if block.type === 'columns'}
-		<BlockColumnsField bind:block {sources} {locale} />
 	{/if}
 </section>

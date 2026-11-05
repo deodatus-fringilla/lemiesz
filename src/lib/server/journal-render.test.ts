@@ -64,7 +64,7 @@ describe('renderArticle', () => {
 });
 
 describe('renderBlocks', () => {
-	it('renders every block type and numbers footnotes across the whole article, columns included', async () => {
+	it('renders every block type and numbers footnotes across the whole article', async () => {
 		const { renderBlocks } = await import('./journal-render');
 		const a = source();
 		const b = source();
@@ -72,36 +72,21 @@ describe('renderBlocks', () => {
 			[
 				{ type: 'heading', level: 2, text: 'Teza <b>' },
 				{ type: 'text', md: `Wstęp [[src:${a}]].` },
-				{ type: 'columns', columns: [[{ type: 'text', md: `Lewa [[src:${b}]]` }], [{ type: 'quote', sourceId: a }, { type: 'separator' }]] },
+				{ type: 'text', md: `Lewa [[src:${b}]]` },
+				{ type: 'quote', sourceId: a },
+				{ type: 'separator' },
 				{ type: 'callout', md: `**Wniosek** [[src:${b}]] <script>x</script>` }
 			],
 			'pl'
 		);
 		expect(blocks[0]).toEqual({ type: 'heading', level: 2, text: 'Teza <b>' }); // plain text: the page escapes it
 		expect(notes.map((n) => n.sourceId)).toEqual([a, b]); // a first, b second, repeats keep their number
-		const cols = blocks[2] as { type: 'columns'; columns: { type: string; html?: string }[][] };
-		expect(cols.columns[0][0].html).toContain('href="#przypis-2"');
-		expect(cols.columns[1][0].html).toContain('<blockquote class="quote">');
-		expect(cols.columns[1][1]).toEqual({ type: 'separator' });
-		const callout = blocks[3] as { type: 'callout'; html: string };
+		expect((blocks[2] as { html: string }).html).toContain('href="#przypis-2"');
+		expect((blocks[3] as { html: string }).html).toContain('<blockquote class="quote">');
+		expect(blocks[4]).toEqual({ type: 'separator' });
+		const callout = blocks[5] as { type: 'callout'; html: string };
 		expect(callout.html).toContain('<strong>Wniosek</strong>');
 		expect(callout.html).not.toMatch(/<script/i);
-	});
-});
-
-describe('images inside columns', () => {
-	it('are always as wide as their column, whatever size the editor chose', async () => {
-		const { renderBlocks } = await import('./journal-render');
-		const { createPoster, setPosterStatus } = await import('./posters');
-		const { setImageMeta } = await import('./journal-images');
-		const { human } = await import('./review');
-		const id = createPoster({ title: 'K', artist_or_author: 'S', image_path: `/images/test/col-${Date.now()}.jpg` }, human('t'));
-		setImageMeta(id, { alt_pl: 'opis' }, human('t'));
-		setPosterStatus(id, 'human_approved', human('t'));
-		const { blocks } = renderBlocks([{ type: 'columns', columns: [[{ type: 'image', imageId: id, size: 'full' }], [{ type: 'text', md: 'x' }]] }, { type: 'image', imageId: id, size: 'full' }], 'pl');
-		const col = blocks[0] as { columns: { type: string; size?: string }[][] };
-		expect(col.columns[0][0]).toMatchObject({ type: 'image', size: 'column' });
-		expect(blocks[1]).toMatchObject({ type: 'image', size: 'full' }); // outside columns the choice stands
 	});
 });
 
@@ -167,11 +152,10 @@ describe('images written into text by the article editor', () => {
 		expect(notes.map((n) => n.sourceId)).toEqual([id]);
 	});
 
-	it('goes through renderBlocks like any other text, in a column too', async () => {
+	it('goes through renderBlocks like any other text', async () => {
 		const { renderBlocks } = await import('./journal-render');
 		const src = await library();
-		const { blocks } = renderBlocks([{ type: 'columns', columns: [[{ type: 'text', md: `![x](${src})` }], [{ type: 'text', md: 'x' }]] }], 'pl');
-		const col = blocks[0] as { columns: { html?: string }[][] };
-		expect(col.columns[0][0].html).toContain('<figure class="img img-column">');
+		const { blocks } = renderBlocks([{ type: 'text', md: `![x](${src})` }], 'pl');
+		expect((blocks[0] as { html?: string }).html).toContain('<figure class="img img-column">');
 	});
 });

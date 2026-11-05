@@ -28,9 +28,5 @@
 		</figure>
 	{:else if b.type === 'embed' || b.type === 'linkcard'}
 		<PublicMedia media={b} {lang} />
-	{:else if b.type === 'columns'}
-		<div class="cols cols-{b.columns.length}">
-			{#each b.columns as col, c (c)}<div class="col"><PublicBlocks blocks={col} {lang} /></div>{/each}
-		</div>
 	{/if}
 {/each}

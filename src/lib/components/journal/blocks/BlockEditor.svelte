@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import { m } from '$lib/paraglide/messages.js';
-	import type { Block } from '$lib/journal-blocks';
+	import type { Block, LayoutColumns } from '$lib/journal-blocks';
 	import type { CitableSource } from '$lib/server/journal-citations';
 	import { toJson, withKeys } from './block-utils';
 	import BlockList from './BlockList.svelte';
@@ -17,6 +17,7 @@
 	 */
 	let {
 		initial,
+		initialColumns = 1,
 		locale,
 		caliber,
 		sources,
@@ -24,7 +25,7 @@
 		media = [],
 		dirty = $bindable(false),
 		wide = $bindable(false)
-	}: { initial: Block[]; locale: string; caliber: 'light' | 'heavy'; sources: CitableSource[]; images?: JournalImage[]; media?: EditorMedia[]; dirty?: boolean; wide?: boolean } = $props();
+	}: { initial: Block[]; initialColumns?: LayoutColumns; locale: string; caliber: 'light' | 'heavy'; sources: CitableSource[]; images?: JournalImage[]; media?: EditorMedia[]; dirty?: boolean; wide?: boolean } = $props();
 	setEditorContext({
 		get images() {
 			return images;
@@ -40,11 +41,15 @@
 	let blocks = $state(withKeys(untrack(() => initial)));
 	// Reactive on purpose: after Save the editor's text is usually identical, so only this change re-checks `dirty`.
 	let savedJson = $state(untrack(() => JSON.stringify(initial)));
+	// The layout (one column or two) belongs to the whole text and is saved with it, like the blocks.
+	let columns = $state<LayoutColumns>(untrack(() => initialColumns));
+	let savedColumns = $state<LayoutColumns>(untrack(() => initialColumns));
 	let mode = $state<'edit' | 'preview' | 'split'>('edit');
 	const json = $derived(toJson(blocks));
 	// Tells the page that editor and preview sit side by side, so it can give them the full width.
+	// Two columns need room: the preview alone then takes the page's full width too.
 	$effect(() => {
-		wide = mode === 'split';
+		wide = mode === 'split' || (mode === 'preview' && columns === 2);
 	});
 
 	// A new saved version (after Save) replaces the editor's copy; other reloads (approve, flag) keep unsaved edits.
@@ -56,7 +61,13 @@
 		}
 	});
 	$effect(() => {
-		dirty = json !== savedJson;
+		if (initialColumns !== savedColumns) {
+			savedColumns = initialColumns;
+			columns = initialColumns;
+		}
+	});
+	$effect(() => {
+		dirty = json !== savedJson || columns !== savedColumns;
 	});
 	$effect(() => {
 		if (!dirty) return;
@@ -72,6 +83,7 @@
 </script>
 
 <input type="hidden" name="blocks" value={json} />
+<input type="hidden" name="columns" value={columns} />
 <div class="space-y-3">
 	<div class="flex flex-wrap items-center gap-3">
 		<div class="inline-flex rounded-lg border border-zinc-800 bg-zinc-950 p-0.5 text-xs" role="tablist">
@@ -79,10 +91,18 @@
 			<button type="button" role="tab" aria-selected={mode === 'preview'} class={tab(mode === 'preview')} onclick={() => (mode = 'preview')}>{m.blocks_mode_preview()}</button>
 			<button type="button" role="tab" aria-selected={mode === 'split'} class="{tab(mode === 'split')} hidden lg:inline-block" onclick={() => (mode = 'split')}>{m.blocks_mode_split()}</button>
 		</div>
+		<div class="inline-flex items-center gap-2 text-xs text-zinc-400">
+			{m.blocks_layout()}
+			<div class="inline-flex rounded-lg border border-zinc-800 bg-zinc-950 p-0.5" role="radiogroup" aria-label={m.blocks_layout()}>
+				<button type="button" role="radio" aria-checked={columns === 1} class={tab(columns === 1)} onclick={() => (columns = 1)}>{m.blocks_layout_one()}</button>
+				<button type="button" role="radio" aria-checked={columns === 2} class={tab(columns === 2)} onclick={() => (columns = 2)} title={m.blocks_layout_two_hint()}>{m.blocks_layout_two()}</button>
+			</div>
+		</div>
+		{#if columns === 2 && mode === 'split'}<span class="text-xs text-zinc-500">{m.blocks_layout_split_hint()}</span>{/if}
 		{#if dirty}<span class="text-xs text-amber-300">● {m.blocks_unsaved()}</span>{/if}
 	</div>
 	<div class={mode === 'split' ? 'grid gap-4 lg:grid-cols-2' : ''}>
-		{#if mode !== 'preview'}<BlockList bind:blocks allowColumns {sources} {locale} />{/if}
-		{#if mode !== 'edit'}<div class={mode === 'split' ? 'lg:sticky lg:top-24 lg:self-start' : ''}><BlockPreview {json} {locale} {caliber} /></div>{/if}
+		{#if mode !== 'preview'}<BlockList bind:blocks {sources} {locale} />{/if}
+		{#if mode !== 'edit'}<div class={mode === 'split' ? 'lg:sticky lg:top-24 lg:self-start' : ''}><BlockPreview {json} {locale} {caliber} {columns} /></div>{/if}
 	</div>
 </div>

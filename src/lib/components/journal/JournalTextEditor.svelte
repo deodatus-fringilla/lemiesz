@@ -26,7 +26,7 @@
 	<input type="hidden" name="locale" value={locale} />
 	<input name="title" lang={locale} required value={text?.title ?? ''} placeholder={m.journal_field_title()} class="{input} text-lg font-semibold" />
 	<textarea name="lead" lang={locale} rows="3" placeholder={m.journal_field_lead()} class="{input} text-sm">{text?.lead ?? ''}</textarea>
-	<BlockEditor initial={text?.blocks ?? []} {locale} {caliber} {sources} {images} {media} bind:dirty bind:wide />
+	<BlockEditor initial={text?.blocks ?? []} initialColumns={text?.layout_columns ?? 1} {locale} {caliber} {sources} {images} {media} bind:dirty bind:wide />
 	<p class="text-[11px] text-zinc-500">{m.journal_body_hint()}</p>
 	{#if error}<p class="text-xs text-rose-300">{error}</p>{/if}
 	<div class="flex flex-wrap items-center gap-3">

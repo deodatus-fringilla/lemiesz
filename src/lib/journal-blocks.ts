@@ -18,14 +18,17 @@ export type ContentBlock =
 export const IMAGE_SIZES = ['column', 'wide', 'full'] as const;
 export type ImageSize = (typeof IMAGE_SIZES)[number];
 
-/** Columns hold content blocks only: one level deep, never columns inside columns. */
-export type ColumnsBlock = { type: 'columns'; columns: ContentBlock[][] };
-export type Block = ContentBlock | ColumnsBlock;
+/**
+ * An article is a flat list of content blocks. Its layout (one or two columns) is a setting of the whole text, not a
+ * block: the text flows from the first column into the second. Articles saved before that had a `columns` block;
+ * `validateBlocks` still reads one, but puts its contents in a row (see below), so none is ever lost.
+ */
+export type Block = ContentBlock;
+export type LayoutColumns = 1 | 2;
+export const isLayoutColumns = (v: unknown): v is LayoutColumns => v === 1 || v === 2;
 
 export const BLOCK_LIMITS = {
-	blocks: 400, // all blocks, counting those inside columns
-	columns: [2, 3] as readonly number[],
-	blocksPerColumn: 100,
+	blocks: 400,
 	mdChars: 60_000,
 	headingChars: 300,
 	captionChars: 600,
@@ -40,6 +43,7 @@ const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object
 /**
  * Turns untrusted input (a saved form, an old row) into well-formed blocks, or throws a BlockError naming the first
  * problem. Unknown fields are dropped, so nothing unexpected is ever stored or rendered.
+ * An old `columns` block (2 or 3 lists of blocks) is replaced by the blocks of its columns, in reading order.
  */
 /** `allowEmpty`: a draft may have no content yet (approval checks for content separately). */
 export function validateBlocks(input: unknown, opts: { allowEmpty?: boolean } = {}): Block[] {
@@ -88,22 +92,18 @@ export function validateBlocks(input: unknown, opts: { allowEmpty?: boolean } = 
 				throw new BlockError(`${where}: unknown block type "${String(b.type)}"`);
 		}
 	};
-	const blocks = input.map((b, i): Block => {
+	const blocks = input.flatMap((b, i): Block[] => {
 		const where = `Block ${i + 1}`;
 		if (isObj(b) && b.type === 'columns') {
 			count++;
 			const cols = b.columns;
-			if (!Array.isArray(cols) || !BLOCK_LIMITS.columns.includes(cols.length)) throw new BlockError(`${where}: columns must be 2 or 3`);
-			return {
-				type: 'columns',
-				columns: cols.map((col, c) => {
-					if (!Array.isArray(col)) throw new BlockError(`${where}, column ${c + 1}: not a list`);
-					if (col.length > BLOCK_LIMITS.blocksPerColumn) throw new BlockError(`${where}, column ${c + 1}: too many blocks`);
-					return col.map((x, k) => content(x, `${where}, column ${c + 1}, block ${k + 1}`));
-				})
-			};
+			if (!Array.isArray(cols) || cols.length < 2 || cols.length > 3) throw new BlockError(`${where}: columns must be 2 or 3`);
+			return cols.flatMap((col, c) => {
+				if (!Array.isArray(col)) throw new BlockError(`${where}, column ${c + 1}: not a list`);
+				return col.map((x, k) => content(x, `${where}, column ${c + 1}, block ${k + 1}`));
+			});
 		}
-		return content(b, where);
+		return [content(b, where)];
 	});
 	if (count > BLOCK_LIMITS.blocks) throw new BlockError(`An article may have at most ${BLOCK_LIMITS.blocks} blocks`);
 	if (chars > BLOCK_LIMITS.totalChars) throw new BlockError('The article is too long');
@@ -112,7 +112,6 @@ export function validateBlocks(input: unknown, opts: { allowEmpty?: boolean } = 
 }
 
 function hasContent(b: Block): boolean {
-	if (b.type === 'columns') return b.columns.some((c) => c.some(hasContent));
 	if (b.type === 'text' || b.type === 'callout') return b.md.trim().length > 0;
 	return b.type !== 'separator';
 }
@@ -146,9 +145,9 @@ export function inlineImages(md: string): InlineImage[] {
 	}));
 }
 
-/** Every Markdown text of an article (text and highlight blocks, columns included). */
+/** Every Markdown text of an article (text and highlight blocks). */
 function markdownTexts(blocks: Block[]): string[] {
-	return blocks.flatMap((b) => (b.type === 'columns' ? b.columns.flat() : [b])).flatMap((b) => (b.type === 'text' || b.type === 'callout' ? [b.md] : []));
+	return blocks.flatMap((b) => (b.type === 'text' || b.type === 'callout' ? [b.md] : []));
 }
 
 /** Every inline image of an article, wherever it sits. */
@@ -157,14 +156,14 @@ export const inlineImagesOf = (blocks: Block[]): InlineImage[] => markdownTexts(
 /** The same Markdown with each image line replaced by its caption (what search and the feed should see). */
 export const withoutImageLines = (md: string): string => md.replace(imageLineRegExp(), (_m, _prefix, _alt, _src, caption) => unescapeMd(caption ?? '')).replace(/\n{3,}/g, '\n\n');
 
-/** Every media block, wherever it sits (columns included). */
+/** Every media block. */
 export function mediaBlocks(blocks: Block[]): Extract<ContentBlock, { type: 'media' }>[] {
-	return blocks.flatMap((b) => (b.type === 'columns' ? b.columns.flat() : [b])).filter((b): b is Extract<ContentBlock, { type: 'media' }> => b.type === 'media');
+	return blocks.filter((b): b is Extract<ContentBlock, { type: 'media' }> => b.type === 'media');
 }
 
-/** Every image block, wherever it sits (columns included). */
+/** Every image block. */
 export function imageBlocks(blocks: Block[]): Extract<ContentBlock, { type: 'image' }>[] {
-	return blocks.flatMap((b) => (b.type === 'columns' ? b.columns.flat() : [b])).filter((b): b is Extract<ContentBlock, { type: 'image' }> => b.type === 'image');
+	return blocks.filter((b): b is Extract<ContentBlock, { type: 'image' }> => b.type === 'image');
 }
 
 /** A Markdown body (articles written before blocks existed, or the plain editor) as blocks. */
@@ -189,8 +188,6 @@ export function flattenBlocks(blocks: Block[]): string {
 			case 'image':
 			case 'media':
 				return b.caption ?? '';
-			case 'columns':
-				return b.columns.map((c) => c.map(one).filter(Boolean).join('\n\n')).join('\n\n');
 		}
 	};
 	return blocks.map(one).filter(Boolean).join('\n\n');

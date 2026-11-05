@@ -14,7 +14,7 @@
 	const o = $derived({ locale: data.lang });
 	const tags = $derived((a.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean));
 	const url = $derived(`${data.origin}${articlePath(data.lang, a.slug)}`);
-	const hasColumns = $derived(data.blocks.some((b) => b.type === 'columns' || (b.type === 'image' && b.size !== 'column')));
+	const hasColumns = $derived(a.columns === 2 || data.blocks.some((b) => b.type === 'image' && b.size !== 'column'));
 </script>
 
 <JournalHead
@@ -42,7 +42,7 @@
 			</p>
 		</header>
 
-		<PublicArticleBody blocks={data.blocks} caliber={a.caliber} breakout lang={data.lang} />
+		<PublicArticleBody blocks={data.blocks} caliber={a.caliber} columns={a.columns} breakout lang={data.lang} />
 		<PublicFootnotes notes={data.notes} lang={data.lang} />
 		{#if a.twin}<PublicTwinCallout twin={a.twin} lang={data.lang} />{/if}
 
