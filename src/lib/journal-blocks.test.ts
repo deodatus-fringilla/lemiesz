@@ -58,3 +58,38 @@ describe('media blocks', () => {
 		expect(flattenBlocks([{ type: 'media', mediaId: 4, caption: 'Hymn' }])).toBe('Hymn');
 	});
 });
+
+describe('images written into text by the article editor', () => {
+	it('reads each image line: address, caption (unescaped) and floating', async () => {
+		const { inlineImages } = await import('./journal-blocks');
+		const md = 'Tekst.\n\n![Opis](/images/a.webp "Podpis \\"cytat\\"")\n\n![x](/images/b.webp){.left}\n\n![y](/images/c.webp "C"){.right}\n\n![z](/images/d.webp){.full}';
+		expect(inlineImages(md)).toEqual([
+			{ src: '/images/a.webp', caption: 'Podpis "cytat"' },
+			{ src: '/images/b.webp', caption: '', place: 'left' },
+			{ src: '/images/c.webp', caption: 'C', place: 'right' },
+			{ src: '/images/d.webp', caption: '' } // "full" is not a position here: Lemiesz has its own wide image blocks
+		]);
+	});
+
+	it('only a line of its own counts; an image in the middle of a sentence is not one', async () => {
+		const { inlineImages } = await import('./journal-blocks');
+		expect(inlineImages('Zobacz ![x](/images/a.webp) tutaj.')).toEqual([]);
+		expect(inlineImages('> ![x](/images/q.webp "w cytacie")')).toEqual([{ src: '/images/q.webp', caption: 'w cytacie' }]);
+	});
+
+	it('finds them in text and highlight blocks, columns included', async () => {
+		const { inlineImagesOf } = await import('./journal-blocks');
+		const found = inlineImagesOf([
+			{ type: 'text', md: '![a](/images/1.webp)' },
+			{ type: 'columns', columns: [[{ type: 'callout', md: '![b](/images/2.webp)' }], [{ type: 'heading', level: 2, text: '![c](/images/3.webp)' }]] }
+		]);
+		expect(found.map((i) => i.src)).toEqual(['/images/1.webp', '/images/2.webp']);
+	});
+
+	it('leaves only the caption in the article body that search and the feed use', async () => {
+		const { flattenBlocks } = await import('./journal-blocks');
+		const body = flattenBlocks([{ type: 'text', md: 'Przed.\n\n![Opis](/images/a.webp "Jeż pod dębem"){.left}\n\nPo.' }]);
+		expect(body).toBe('Przed.\n\nJeż pod dębem\n\nPo.');
+		expect(body).not.toContain('/images/');
+	});
+});
