@@ -131,6 +131,73 @@
 		display: block;
 		color: rgb(113 113 122);
 	}
+	/* Images written into text by the article editor: left or right, with the text flowing around them. */
+	.article {
+		display: flow-root;
+	}
+	.article :global(figure.img-left),
+	.article :global(figure.img-right) {
+		width: 45%;
+		margin-top: 0.3em;
+		margin-bottom: 0.9em;
+	}
+	.article :global(figure.img-left) {
+		float: left;
+		margin-right: 1.4em;
+	}
+	.article :global(figure.img-right) {
+		float: right;
+		margin-left: 1.4em;
+	}
+	/* Where the article is narrow, and inside columns, an image is as wide as the text instead. */
+	@container (max-width: 34rem) {
+		.article :global(figure.img-left),
+		.article :global(figure.img-right) {
+			float: none;
+			width: auto;
+			margin-inline: 0;
+		}
+	}
+	.article :global(.col figure.img-left),
+	.article :global(.col figure.img-right) {
+		float: none;
+		width: auto;
+		margin-inline: 0;
+	}
+	/* A quotation or highlight next to a floated image sits beside it instead of running under it. */
+	.article :global(blockquote),
+	.article :global(.callout) {
+		display: flow-root;
+	}
+	.article :global(table) {
+		display: block;
+		overflow-x: auto;
+		margin: 0 0 1.15em;
+		border-collapse: collapse;
+		font-size: 0.92em;
+	}
+	.article :global(th),
+	.article :global(td) {
+		border: 1px solid rgb(63 63 70);
+		padding: 0.4em 0.7em;
+		text-align: left;
+		vertical-align: top;
+	}
+	.article :global(th) {
+		background: rgb(39 39 42);
+		color: rgb(250 250 250);
+	}
+	.article :global(pre) {
+		overflow-x: auto;
+		margin: 0 0 1.15em;
+		border-radius: 0.5rem;
+		background: rgb(24 24 27);
+		padding: 0.8em 1em;
+		font-size: 0.88em;
+	}
+	.article :global(pre code) {
+		font-size: inherit;
+	}
 	.article :global(.cols) {
 		display: grid;
 		gap: 2rem;
