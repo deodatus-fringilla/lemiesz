@@ -21,6 +21,8 @@ import {
 } from '$lib/server/review';
 import { LOCALE_CODES, ORIGINAL_ONLY, isLocale, isStorableLocale } from '$lib/i18n/locales';
 import { getCanon, listCanons } from '$lib/server/canon';
+import { deleteTranscript, getTranscript, listTranscripts, saveTranscript } from '$lib/server/transcripts';
+import { createArgument } from '$lib/server/arguments';
 import {
 	createLetter,
 	deleteLetter,
@@ -32,11 +34,10 @@ import {
 	type LetterInput
 } from '$lib/server/correspondence';
 
-// "Spichlerz Lemiesza" (docs/00_Architect_Exchange/Propozycja_Spichlerz_UI.md): one reader for sources, canons and
-// letters. All state is in the URL — ?view=sources|canon|letters &id=… &lang=… plus the list filters — so any
-// document can be linked to directly.
+// "Spichlerz Lemiesza" (docs/00_Architect_Exchange/Propozycja_Spichlerz_UI.md): one reader for sources, canons,
+// letters and raw intake transcripts. All state is in the URL — ?view=sources|canon|letters|transcripts &id=… &lang=…
 
-const VIEWS = ['sources', 'canon', 'letters'] as const;
+const VIEWS = ['sources', 'canon', 'letters', 'transcripts'] as const;
 type View = (typeof VIEWS)[number];
 
 const str = (data: FormData, key: string) => String(data.get(key) ?? '').trim();
@@ -49,12 +50,13 @@ export const load: PageServerLoad = ({ url, locals }) => {
 	const lang = isLocale(langParam) ? langParam : isLocale(locals.locale) ? locals.locale : 'pl';
 	const id = p.get('id') ?? '';
 	const creating = p.get('new');
+	const folder = p.get('folder') ?? '';
 
 	const base = {
 		view,
-		filters: { q: q ?? '', category: p.get('category') ?? '', review: p.get('review') ?? '', thread: p.get('thread') ?? '', lang },
+		filters: { q: q ?? '', category: p.get('category') ?? '', review: p.get('review') ?? '', thread: p.get('thread') ?? '', folder, lang },
 		selectedId: id,
-		creating: creating === 'source' || creating === 'letter' ? creating : null,
+		creating: creating === 'source' || creating === 'letter' || creating === 'transcript' ? creating : null,
 		options: {
 			categories: [...CATEGORIES],
 			origins: [...ORIGINS],
@@ -69,11 +71,36 @@ export const load: PageServerLoad = ({ url, locals }) => {
 				r.n
 			])
 		) as Record<string, number>,
-		threads: listCorrespondenceThreads()
+		threads: listCorrespondenceThreads(),
+		transcripts: [] as ReturnType<typeof listTranscripts>['transcripts'],
+		transcriptFolders: [] as ReturnType<typeof listTranscripts>['folders'],
+		transcript: null as ReturnType<typeof getTranscript>,
+		sourceOptions: [] as { id: number; label: string }[]
 	};
 
 	if (view === 'canon') {
 		return { ...base, sources: [], letters: [], canons: listCanons(q), source: null, letter: null, canon: id ? getCanon(id) : null, nextTurn: 1 };
+	}
+	if (view === 'transcripts') {
+		const { transcripts, folders } = listTranscripts({ search: q, folder: folder || undefined });
+		const sourceOptions = listSources({ locale: lang, limit: 300 }).sources.map((s) => ({
+			id: s.id,
+			label: `${s.work} ${s.section_ref}`
+		}));
+		return {
+			...base,
+			sources: [],
+			canons: [],
+			letters: [],
+			transcripts,
+			transcriptFolders: folders,
+			transcript: id ? getTranscript(id) : null,
+			sourceOptions,
+			source: null,
+			letter: null,
+			canon: null,
+			nextTurn: 1
+		};
 	}
 	if (view === 'letters') {
 		const threadId = Number(p.get('thread')) || undefined;
@@ -238,5 +265,62 @@ export const actions: Actions = {
 		if (!Number.isInteger(id)) return fail(400, { action: 'deleteLetter', errors: ['Missing letterId'] });
 		deleteLetter(id);
 		return { action: 'deleteLetter', deletedId: id };
+	},
+
+	saveTranscript: async ({ request }) => {
+		const data = await request.formData();
+		let slug: string;
+		try {
+			slug = saveTranscript({
+				slug: str(data, 'slug') || undefined,
+				folder: str(data, 'folder') || 'for_processing',
+				title: str(data, 'title'),
+				speaker: str(data, 'speaker') || undefined,
+				date: str(data, 'date') || undefined,
+				sourceUrl: str(data, 'sourceUrl') || undefined,
+				body: String(data.get('body') ?? '')
+			});
+		} catch (err) {
+			return fail(400, { action: 'saveTranscript', errors: [(err as Error).message] });
+		}
+		redirect(303, readerUrl(request, 'transcripts', slug));
+	},
+
+	deleteTranscript: async ({ request, locals }) => {
+		if (locals.user?.role !== 'admin') return fail(403, { action: 'deleteTranscript', errors: ['Admin only'] });
+		const data = await request.formData();
+		const slug = str(data, 'slug');
+		try {
+			deleteTranscript(slug);
+		} catch (err) {
+			return fail(400, { action: 'deleteTranscript', errors: [(err as Error).message] });
+		}
+		redirect(303, '/repository?view=transcripts');
+	},
+
+	carveArgument: async ({ request, locals }) => {
+		const d = await request.formData();
+		const locale = str(d, 'locale') || 'pl';
+		if (!isStorableLocale(locale)) return fail(400, { action: 'carveArgument', errors: ['Unknown language'] });
+		const sourceIds = d.getAll('source_ids').map(Number).filter((n) => Number.isInteger(n) && n > 0);
+		let id: number;
+		try {
+			id = createArgument(
+				{
+					locale,
+					opponent_claim: str(d, 'opponent_claim'),
+					counter_punch: str(d, 'counter_punch'),
+					core_principle: str(d, 'core_principle'),
+					fallacy_type: str(d, 'fallacy_type') || null,
+					keywords: str(d, 'keywords') || null,
+					source_ids: sourceIds,
+					origin: 'original'
+				},
+				human(locals.user!.username)
+			);
+		} catch (e) {
+			return fail(400, { action: 'carveArgument', errors: [(e as Error).message] });
+		}
+		redirect(303, `/arguments?q=${encodeURIComponent(str(d, 'core_principle'))}`);
 	}
 };

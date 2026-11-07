@@ -283,6 +283,17 @@ export function unflagText(articleId: number, locale: string, actor: Actor): voi
 	if (!r.changes) throw new JournalError(`Article ${articleId} (${locale}) is not flagged`);
 }
 
+/**
+ * Takes an approved, unpublished text back to a working draft so it can be corrected. Starts a new revision, so the
+ * earlier approvals no longer count; refuses while the text is live (unpublish it first).
+ */
+export function draftText(articleId: number, locale: string, actor: Actor): void {
+	requireHuman(actor, 'return journal articles to draft');
+	const text = getText(articleId, locale);
+	if (!text) throw new JournalError(`Article ${articleId} (${locale}) not found`);
+	if (text.published_body !== null) throw new JournalError('Unpublish the text before returning it to draft');
+	db.prepare("UPDATE journal_article_texts SET revision = revision + 1, status = 'draft', updated_at = datetime('now') WHERE article_id = ? AND locale = ?").run(articleId, locale);
+}
 /** Puts the approved current revision online. Refuses anything not approved by enough people for this calibre. */
 export function publishText(articleId: number, locale: string, actor: Actor): void {
 	requireHuman(actor, 'publish journal articles');

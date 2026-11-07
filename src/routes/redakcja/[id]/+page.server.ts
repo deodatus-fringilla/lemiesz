@@ -8,6 +8,7 @@ import {
 	deleteArticle,
 	flagText,
 	unflagText,
+	draftText,
 	getArticle,
 	getText,
 	listApprovals,
@@ -190,6 +191,13 @@ export const actions: Actions = {
 		const id = articleId(params);
 		const locale = str(await request.formData(), 'locale') || 'pl';
 		return attempt(() => unpublishText(id, locale, human(locals.user!.username)));
+	},
+	draft: async ({ params, request, locals }) => {
+		const id = articleId(params);
+		const locale = str(await request.formData(), 'locale') || 'pl';
+		const result = attempt(() => draftText(id, locale, human(locals.user!.username)));
+		if ('success' in result) redirect(303, `/redakcja/${id}?lang=${locale}`);
+		return result;
 	},
 	delete: async ({ params }) => {
 		const id = articleId(params);

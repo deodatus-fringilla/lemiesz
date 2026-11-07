@@ -10,9 +10,14 @@
 	import Mail from 'lucide-svelte/icons/mail';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Search from 'lucide-svelte/icons/search';
+	import FileText from 'lucide-svelte/icons/file-text';
 	import Shield from 'lucide-svelte/icons/shield';
+	import TranscriptList from '$lib/components/repository/TranscriptList.svelte';
+	import TranscriptReader from '$lib/components/repository/TranscriptReader.svelte';
+	import TranscriptForm from '$lib/components/repository/TranscriptForm.svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import ReviewBadge from '$lib/components/ReviewBadge.svelte';
+	import DocumentReader from '$lib/components/DocumentReader.svelte';
 	import { categoryLabel, languageLabel, originLabel, reviewLabel } from '$lib/i18n/labels';
 
 	// "Spichlerz Lemiesza" — the three-panel corpus reader (docs/00_Architect_Exchange/Propozycja_Spichlerz_UI.md):
@@ -22,6 +27,7 @@
 
 	let bilingualView = $state(true);
 	let copied = $state<string | null>(null);
+	let readingDoc = $state<{ title: string; subtitle?: string; html?: string; text?: string } | null>(null);
 	const coverage = $derived(Object.entries(data.coverage));
 	const errors = $derived((form && 'errors' in form ? (form.errors as string[]) : []) ?? []);
 	const saved = $derived(!!form && ('updatedId' in form || 'deletedId' in form));
@@ -61,10 +67,11 @@
 	const views = [
 		{ id: 'sources', label: () => m.spichlerz_view_sources(), icon: Library },
 		{ id: 'canon', label: () => m.spichlerz_view_canon(), icon: BookOpen },
-		{ id: 'letters', label: () => m.spichlerz_view_letters(), icon: Mail }
+		{ id: 'letters', label: () => m.spichlerz_view_letters(), icon: Mail },
+		{ id: 'transcripts', label: () => m.spichlerz_view_transcripts(), icon: FileText }
 	] as const;
 
-	const resultCount = $derived(data.view === 'canon' ? data.canons.length : data.view === 'letters' ? data.letters.length : data.sources.length);
+	const resultCount = $derived(data.view === 'canon' ? data.canons.length : data.view === 'letters' ? data.letters.length : data.view === 'transcripts' ? data.transcripts.length : data.sources.length);
 	const input = 'w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm';
 </script>
 
@@ -92,6 +99,10 @@
 			{:else if data.view === 'letters'}
 				<a href={link({ new: 'letter', id: '' })} class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400">
 					<Plus class="h-4 w-4" />{m.letter_add()}
+				</a>
+			{:else if data.view === 'transcripts'}
+				<a href={link({ new: 'transcript', id: '' })} class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400">
+					<Plus class="h-4 w-4" />{m.tr_add()}
 				</a>
 			{/if}
 		</div>
@@ -134,7 +145,7 @@
 						{@const Icon = v.icon}
 						<li>
 							<a
-								href={link({ view: v.id, id: '', q: '', category: '', review: '', thread: '' })}
+								href={link({ view: v.id, id: '', q: '', category: '', review: '', thread: '', folder: '', new: '' })}
 								aria-current={data.view === v.id ? 'page' : undefined}
 								class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {data.view === v.id
 									? 'bg-amber-500/10 font-semibold text-amber-300'
@@ -190,6 +201,28 @@
 						{/each}
 					</ul>
 				</div>
+			{:else if data.view === 'transcripts'}
+				<div>
+					<h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{m.tr_folders()}</h2>
+					<ul class="space-y-1 text-sm">
+						<li>
+							<a href={link({ folder: '', id: '' })} class="block rounded px-3 py-1.5 {data.filters.folder === '' ? 'text-amber-300' : 'text-zinc-400 hover:bg-zinc-900'}">
+								{m.spichlerz_all()}
+							</a>
+						</li>
+						{#each data.transcriptFolders as f (f.name)}
+							<li>
+								<a
+									href={link({ folder: f.name, id: '' })}
+									title={f.name}
+									class="flex justify-between gap-2 rounded px-3 py-1.5 {data.filters.folder === f.name ? 'text-amber-300' : 'text-zinc-400 hover:bg-zinc-900'}"
+								>
+									<span class="truncate font-mono text-xs">{f.name}</span><span class="text-zinc-600">{f.count}</span>
+								</a>
+							</li>
+						{/each}
+					</ul>
+				</div>
 			{/if}
 		</nav>
 
@@ -199,13 +232,14 @@
 				<input type="hidden" name="view" value={data.view} />
 				<input type="hidden" name="category" value={data.filters.category} />
 				<input type="hidden" name="thread" value={data.filters.thread} />
+				<input type="hidden" name="folder" value={data.filters.folder} />
 				<div class="relative">
 					<Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
 					<input
 						name="q"
 						value={data.filters.q}
 						oninput={(e) => debouncedSubmit((e.currentTarget as HTMLInputElement).form)}
-						placeholder={data.view === 'canon' ? m.spichlerz_canon_search() : data.view === 'letters' ? m.spichlerz_letter_search() : m.repo_search()}
+						placeholder={data.view === 'canon' ? m.spichlerz_canon_search() : data.view === 'letters' ? m.spichlerz_letter_search() : data.view === 'transcripts' ? m.tr_search() : m.repo_search()}
 						class="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-2 pl-9 pr-3 text-sm"
 					/>
 				</div>
@@ -258,6 +292,8 @@
 					{:else}
 						<li class="text-sm text-zinc-500">{m.repo_none()}</li>
 					{/each}
+				{:else if data.view === 'transcripts'}
+					<TranscriptList transcripts={data.transcripts} selectedId={data.selectedId} {link} />
 				{:else if data.view === 'canon'}
 					{#each data.canons as c (c.slug)}
 						<li>
@@ -300,13 +336,20 @@
 				{@render sourceForm()}
 			{:else if data.creating === 'letter'}
 				{@render letterForm(null)}
+			{:else if data.creating === 'transcript'}
+				<TranscriptForm folders={data.transcriptFolders} cancelHref={link({ new: '' })} />
+			{:else if data.transcript}
+				<TranscriptReader transcript={data.transcript} folders={data.transcriptFolders} options={data.options} sourceOptions={data.sourceOptions} {isAdmin} />
 			{:else if data.source}
 				{@render sourceReader(data.source)}
 			{:else if data.letter}
 				{@render letterReader(data.letter)}
 			{:else if data.canon}
 				<article class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
-					<p class="mb-4 rounded bg-zinc-800/60 px-3 py-2 text-xs text-zinc-400">{m.spichlerz_canon_readonly({ file: data.canon.file })}</p>
+					<div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded bg-zinc-800/60 px-3 py-2 text-xs text-zinc-400">
+						<span>{m.spichlerz_canon_readonly({ file: data.canon.file })}</span>
+						<button type="button" onclick={() => data.canon && (readingDoc = { title: data.canon.title, subtitle: data.canon.file, html: data.canon.html })} class="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"><BookOpen class="h-3.5 w-3.5" />{m.dr_open()}</button>
+					</div>
 					<!-- Repository-owned Markdown (corpus/canon), never user input: see $lib/server/canon.ts -->
 					<div class="canon">{@html data.canon.html}</div>
 				</article>
@@ -353,6 +396,9 @@
 				<a href="/shield?source={source.id}" class="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs text-amber-300 hover:bg-amber-500/10">
 					<Shield class="h-3.5 w-3.5" />{m.spichlerz_to_shield()}
 				</a>
+				{#if shown}
+					<button type="button" onclick={() => (readingDoc = { title: `${source.work} ${source.section_ref}`, subtitle: shown.locale.toUpperCase(), text: shown.text })} class="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"><BookOpen class="h-3.5 w-3.5" />{m.dr_open()}</button>
+				{/if}
 			</div>
 		</header>
 
@@ -475,6 +521,7 @@
 				>
 					<Shield class="h-3.5 w-3.5" />{m.spichlerz_to_shield()}
 				</a>
+				<button type="button" onclick={() => (readingDoc = { title: `${letter.thread_title} ? #${letter.turn_number}`, subtitle: `${letter.sender} ? ${letter.recipient} ? ${letter.date_label}`, text: letter.body })} class="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"><BookOpen class="h-3.5 w-3.5" />{m.dr_open()}</button>
 			</div>
 		</header>
 		<p class="rounded-lg bg-zinc-950/60 p-3 text-sm italic text-zinc-300">{data.filters.lang === 'en' ? letter.summary_en : letter.summary_pl}</p>
@@ -601,6 +648,10 @@
 		</div>
 	</form>
 {/snippet}
+
+{#if readingDoc}
+	<DocumentReader title={readingDoc.title} subtitle={readingDoc.subtitle} html={readingDoc.html} text={readingDoc.text} onclose={() => (readingDoc = null)} />
+{/if}
 
 <style>
 	.canon {

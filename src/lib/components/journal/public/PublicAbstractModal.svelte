@@ -3,8 +3,9 @@
 	import X from 'lucide-svelte/icons/x';
 	import { m } from '$lib/paraglide/messages.js';
 	import type { PublishedSummary } from '$lib/server/journal';
-	import { articlePath, type JournalLang } from '$lib/journal-paths';
+	import type { JournalLang } from '$lib/journal-paths';
 	import JournalCaliberBadge from '../JournalCaliberBadge.svelte';
+	import PublicReadButton from './PublicReadButton.svelte';
 
 	/** An "Abstrakt" button that opens the article's full abstract (its lead) in a dialog, with a way on to the text. */
 	let { article, lang }: { article: PublishedSummary; lang: JournalLang } = $props();
@@ -29,7 +30,7 @@
 		<p class="text-xs font-semibold tracking-wider text-zinc-500 uppercase">{m.pub_abstract({}, o)} · {m.pub_minutes({ n: article.minutes }, o)}</p>
 		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 		<div class="abstract leading-relaxed text-zinc-300 {article.caliber === 'heavy' ? 'font-serif' : ''}">{@html article.lead_html}</div>
-		<a href={articlePath(lang, article.slug)} class="inline-flex rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400">{m.pub_read({}, o)}</a>
+		<PublicReadButton {article} {lang} beforeOpen={() => dialog?.close()} />
 	</div>
 </dialog>
 

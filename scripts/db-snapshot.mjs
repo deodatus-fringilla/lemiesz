@@ -72,7 +72,18 @@ export function snapshot(dbPath) {
 			const names = cols.map((c) => c.name);
 			const rows = /** @type {unknown[][]} */ (db.prepare(`SELECT * FROM ${table} ORDER BY ${order}`).raw().all());
 			out.push(`-- ${table}: ${rows.length} row(s)`);
-			for (const r of rows) out.push(`INSERT INTO ${table} (${names.join(', ')}) VALUES (${r.map(literal).join(', ')});`);
+			// Twins point at each other, so no insert order satisfies the foreign key: insert them unlinked, link after.
+			const twinAt = table === 'journal_articles' ? names.indexOf('twin_id') : -1;
+			/** @type {string[]} */
+			const links = [];
+			for (const r of rows) {
+				if (twinAt >= 0 && r[twinAt] !== null) {
+					links.push(`UPDATE journal_articles SET twin_id = ${literal(r[twinAt])} WHERE id = ${literal(r[names.indexOf('id')])};`);
+					r[twinAt] = null;
+				}
+				out.push(`INSERT INTO ${table} (${names.join(', ')}) VALUES (${r.map(literal).join(', ')});`);
+			}
+			out.push(...links);
 			out.push('');
 		}
 		return out.join('\n');

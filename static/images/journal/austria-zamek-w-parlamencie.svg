@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" font-family="Arial, Helvetica, sans-serif">
+  <rect width="900" height="520" fill="#fbf7ee"/>
+  <text x="450" y="40" text-anchor="middle" font-size="26" font-weight="bold" fill="#1f2937">Kto decyduje o wysłaniu żołnierza?</text>
+
+  <!-- LEFT: Austria -->
+  <rect x="25" y="65" width="415" height="430" rx="16" fill="#ecfdf5" stroke="#059669" stroke-width="3"/>
+  <text x="232" y="100" text-anchor="middle" font-size="22" font-weight="bold" fill="#065f46">AUSTRIA (neutralna)</text>
+  <text x="232" y="124" text-anchor="middle" font-size="15" fill="#065f46">decyzja za każdym razem osobno</text>
+
+  <rect x="85" y="145" width="295" height="52" rx="10" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+  <text x="232" y="168" text-anchor="middle" font-size="16" fill="#1f2937">Prośba o udział w misji</text>
+  <text x="232" y="187" text-anchor="middle" font-size="14" fill="#4b5563">(np. misja pokojowa)</text>
+  <path d="M232 197 v28" stroke="#059669" stroke-width="3"/><path d="M222 217 l10 12 l10 -12 z" fill="#059669"/>
+
+  <rect x="85" y="232" width="295" height="52" rx="10" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+  <text x="232" y="255" text-anchor="middle" font-size="16" fill="#1f2937">1. Zgoda rządu</text>
+  <text x="232" y="274" text-anchor="middle" font-size="14" fill="#4b5563">(Rada Ministrów)</text>
+  <path d="M232 284 v28" stroke="#059669" stroke-width="3"/><path d="M222 304 l10 12 l10 -12 z" fill="#059669"/>
+
+  <rect x="85" y="319" width="295" height="52" rx="10" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+  <text x="232" y="342" text-anchor="middle" font-size="16" fill="#1f2937">2. Zgoda parlamentu</text>
+  <text x="232" y="361" text-anchor="middle" font-size="14" fill="#4b5563">(Komisja Główna w Wiedniu)</text>
+  <path d="M232 371 v28" stroke="#059669" stroke-width="3"/><path d="M222 391 l10 12 l10 -12 z" fill="#059669"/>
+
+  <rect x="110" y="406" width="245" height="68" rx="12" fill="#059669"/>
+  <text x="232" y="434" text-anchor="middle" font-size="18" font-weight="bold" fill="#ffffff">TAK albo NIE</text>
+  <text x="232" y="458" text-anchor="middle" font-size="15" fill="#ffffff">Klucz leży w Wiedniu 🔑</text>
+
+  <!-- RIGHT: Article 5 -->
+  <rect x="460" y="65" width="415" height="430" rx="16" fill="#fef2f2" stroke="#dc2626" stroke-width="3"/>
+  <text x="667" y="100" text-anchor="middle" font-size="22" font-weight="bold" fill="#991b1b">SOJUSZ Z ARTYKUŁEM 5</text>
+  <text x="667" y="124" text-anchor="middle" font-size="15" fill="#991b1b">zasada wspólnej obrony</text>
+
+  <rect x="520" y="145" width="295" height="52" rx="10" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+  <text x="667" y="168" text-anchor="middle" font-size="16" fill="#1f2937">Atak na jednego członka</text>
+  <text x="667" y="187" text-anchor="middle" font-size="14" fill="#4b5563">gdzieś na mapie</text>
+  <path d="M667 197 v28" stroke="#dc2626" stroke-width="3"/><path d="M657 217 l10 12 l10 -12 z" fill="#dc2626"/>
+
+  <rect x="520" y="232" width="295" height="52" rx="10" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+  <text x="667" y="255" text-anchor="middle" font-size="16" fill="#1f2937">Uznany za atak</text>
+  <text x="667" y="274" text-anchor="middle" font-size="14" fill="#4b5563">na wszystkich członków</text>
+  <path d="M667 284 v28" stroke="#dc2626" stroke-width="3"/><path d="M657 304 l10 12 l10 -12 z" fill="#dc2626"/>
+
+  <rect x="520" y="319" width="295" height="52" rx="10" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+  <text x="667" y="342" text-anchor="middle" font-size="16" fill="#1f2937">Zobowiązanie do pomocy</text>
+  <text x="667" y="361" text-anchor="middle" font-size="14" fill="#4b5563">wynika z umowy</text>
+  <path d="M667 371 v28" stroke="#dc2626" stroke-width="3"/><path d="M657 391 l10 12 l10 -12 z" fill="#dc2626"/>
+
+  <rect x="545" y="406" width="245" height="68" rx="12" fill="#dc2626"/>
+  <text x="667" y="434" text-anchor="middle" font-size="18" fill="#ffffff" font-weight="bold">Decyzja zapadła wcześniej</text>
+  <text x="667" y="458" text-anchor="middle" font-size="15" fill="#ffffff">w umowie sojuszniczej</text>
+</svg>

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages.js';
 	import type { PublishedSummary } from '$lib/server/journal';
-	import { articlePath, type JournalLang } from '$lib/journal-paths';
+	import type { JournalLang } from '$lib/journal-paths';
 	import JournalCaliberBadge from '../JournalCaliberBadge.svelte';
 	import PublicAbstractModal from './PublicAbstractModal.svelte';
+	import PublicReadButton from './PublicReadButton.svelte';
 
 	/** One version of a rozprawa: its calibre, reading time and the two ways in (abstract, text); or a note that it is still being written. */
 	let { article, caliber, lang }: { article: PublishedSummary | null; caliber: 'light' | 'heavy'; lang: JournalLang } = $props();
@@ -23,7 +24,7 @@
 	{#if article}
 		<div class="flex flex-wrap gap-2">
 			{#if article.lead_html}<PublicAbstractModal {article} {lang} />{/if}
-			<a href={articlePath(lang, article.slug)} class="inline-flex rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400">{m.pub_read({}, o)}</a>
+			<PublicReadButton {article} {lang} />
 		</div>
 	{/if}
 </div>

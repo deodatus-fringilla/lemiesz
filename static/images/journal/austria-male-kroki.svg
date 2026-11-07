@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" font-family="Arial, Helvetica, sans-serif">
+  <rect width="900" height="520" fill="#fbf7ee"/>
+  <text x="450" y="40" text-anchor="middle" font-size="26" font-weight="bold" fill="#1f2937">Schodki małych kroków</text>
+  <text x="450" y="66" text-anchor="middle" font-size="16" fill="#4b5563">Austria zachowuje neutralność, ale współpraca z NATO stopniowo rośnie</text>
+
+  <!-- stairs -->
+  <rect x="40" y="380" width="200" height="110" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+  <rect x="240" y="320" width="200" height="170" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+  <rect x="440" y="260" width="200" height="230" fill="#fed7aa" stroke="#ea580c" stroke-width="2"/>
+  <rect x="640" y="200" width="200" height="290" fill="#fecaca" stroke="#dc2626" stroke-width="2"/>
+
+  <text x="140" y="410" text-anchor="middle" font-size="22" font-weight="bold" fill="#065f46">1955</text>
+  <text x="140" y="436" text-anchor="middle" font-size="15" fill="#1f2937">Neutralność</text>
+  <text x="140" y="456" text-anchor="middle" font-size="15" fill="#1f2937">zapisana w prawie</text>
+
+  <text x="340" y="350" text-anchor="middle" font-size="22" font-weight="bold" fill="#854d0e">1995</text>
+  <text x="340" y="376" text-anchor="middle" font-size="15" fill="#1f2937">Partnerstwo</text>
+  <text x="340" y="396" text-anchor="middle" font-size="15" fill="#1f2937">dla Pokoju (PfP)</text>
+
+  <text x="540" y="290" text-anchor="middle" font-size="22" font-weight="bold" fill="#9a3412">PARP</text>
+  <text x="540" y="316" text-anchor="middle" font-size="15" fill="#1f2937">Wspólne planowanie</text>
+  <text x="540" y="336" text-anchor="middle" font-size="15" fill="#1f2937">i ocena wojska</text>
+
+  <text x="740" y="230" text-anchor="middle" font-size="22" font-weight="bold" fill="#991b1b">ITPP</text>
+  <text x="740" y="256" text-anchor="middle" font-size="15" fill="#1f2937">Program wspólnych</text>
+  <text x="740" y="276" text-anchor="middle" font-size="15" fill="#1f2937">celów z NATO</text>
+
+  <!-- walking figure going up -->
+  <circle cx="140" cy="340" r="10" fill="#1f2937"/><path d="M140 350 v26 M140 360 l-12 12 M140 360 l12 10 M140 376 l-9 16 M140 376 l9 16" stroke="#1f2937" stroke-width="3" fill="none"/>
+  <path d="M175 330 q60 -40 120 -22" stroke="#6b7280" stroke-width="2" stroke-dasharray="6 5" fill="none"/>
+
+  <!-- lock safety note -->
+  <rect x="40" y="86" width="400" height="86" rx="12" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+  <text x="240" y="114" text-anchor="middle" font-size="16" font-weight="bold" fill="#065f46">Bezpiecznik: zamek parlamentu 🔒</text>
+  <text x="240" y="138" text-anchor="middle" font-size="14" fill="#1f2937">Wysłanie żołnierza nadal wymaga zgody</text>
+  <text x="240" y="158" text-anchor="middle" font-size="14" fill="#1f2937">rządu i parlamentu Austrii.</text>
+
+  <rect x="480" y="86" width="380" height="86" rx="12" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="670" y="114" text-anchor="middle" font-size="16" font-weight="bold" fill="#9a3412">Ostrzeżenie ⚠</text>
+  <text x="670" y="138" text-anchor="middle" font-size="14" fill="#1f2937">Z każdym stopniem rośnie pokusa, by wojsko</text>
+  <text x="670" y="158" text-anchor="middle" font-size="14" fill="#1f2937">szykować na misje za granicą, a nie do obrony domu.</text>
+</svg>
