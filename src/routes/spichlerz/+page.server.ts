@@ -12,6 +12,7 @@ import {
 	addSpichlerzTask,
 	quickCapture,
 	type ColorTag,
+	type EntryKind,
 	type MeetingCategory
 } from '$lib/server/spichlerz';
 import {
@@ -97,6 +98,7 @@ export const actions: Actions = {
 		try {
 			const created = createSpichlerzEntry({
 				title,
+				entry_kind: (form.get('entry_kind') === 'note' ? 'note' : 'minute') as EntryKind,
 				category: (String(form.get('category') || 'general') as MeetingCategory),
 				meeting_date: String(form.get('meeting_date') || '').trim() || undefined,
 				attendees: String(form.get('attendees') || '').trim() || undefined,
@@ -125,6 +127,7 @@ export const actions: Actions = {
 		try {
 			updateSpichlerzEntry(id, {
 				title: String(form.get('title') || '').trim(),
+				entry_kind: (form.get('entry_kind') === 'note' ? 'note' : 'minute') as EntryKind,
 				category: (String(form.get('category') || 'general') as MeetingCategory),
 				meeting_date: String(form.get('meeting_date') || '').trim(),
 				attendees: String(form.get('attendees') || '').trim(),

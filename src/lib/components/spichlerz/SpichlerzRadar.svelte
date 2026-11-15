@@ -21,7 +21,7 @@
 		tasks: RadarTask[];
 		zenMode: boolean;
 		ontogglezen: () => void;
-		onback: () => void;
+		onback?: () => void;
 		onselectentry: (entryId: number) => void;
 	} = $props();
 
@@ -58,7 +58,9 @@
 		<p class="mt-1 font-mono text-xs text-zinc-300">{m.task_count_summary(counts)}</p>
 	</div>
 	<div class="flex gap-1.5">
-		<button type="button" onclick={onback} class={ghost}><ArrowLeft class="h-3.5 w-3.5" />{m.task_back_to_notes()}</button>
+		{#if onback}
+			<button type="button" onclick={onback} class={ghost}><ArrowLeft class="h-3.5 w-3.5" />{m.task_back_to_notes()}</button>
+		{/if}
 		<button type="button" onclick={ontogglezen} class={ghost}>
 			{#if zenMode}<Minimize2 class="h-3.5 w-3.5" />{:else}<Maximize2 class="h-3.5 w-3.5" />{/if}
 			<span class="hidden sm:inline">{zenMode ? m.spichlerz_zen_exit() : m.spichlerz_zen_enter()}</span>

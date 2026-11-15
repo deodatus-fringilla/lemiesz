@@ -12,6 +12,7 @@ export const MEETING_CATEGORIES = [
 
 export type MeetingCategory = (typeof MEETING_CATEGORIES)[number];
 export type SpichlerzCategory = MeetingCategory;
+export type EntryKind = 'note' | 'minute';
 
 /** Default title of the ToDo inbox. The inbox is identified by `meeting_minutes.is_inbox`, never by this title. */
 export const BACKLOG_TITLE = 'Podręczny rejestr zadań (Backlog)';
@@ -33,6 +34,7 @@ export interface SpichlerzEntry {
 	uid: string;
 	id: number;
 	entry_type: 'minute' | 'letter';
+	entry_kind: EntryKind;
 	meeting_date: string;
 	title: string;
 	category: MeetingCategory;
@@ -94,6 +96,7 @@ function fromRow(r: SpichlerzRow): SpichlerzEntry {
 		...rest,
 		uid: `m-${r.id}`,
 		entry_type: 'minute',
+		entry_kind: rest.entry_kind === 'note' ? 'note' : 'minute',
 		is_backlog: is_inbox === 1,
 		is_pinned: Boolean(is_pinned),
 		color_tag: COLOR_TAGS.includes(rest.color_tag as ColorTag) ? (rest.color_tag as ColorTag) : 'zinc',
@@ -119,6 +122,7 @@ export type MeetingFilter = SpichlerzFilter;
 export interface SpichlerzInput {
 	meeting_date?: string;
 	title: string;
+	entry_kind?: EntryKind;
 	category?: MeetingCategory;
 	thread_id?: number | null;
 	after_letter_id?: number | null;
@@ -218,6 +222,7 @@ function letterToSpichlerzEntry(l: LetterQueryRow): SpichlerzEntry {
 		uid: `l-${l.id}`,
 		id: l.id,
 		entry_type: 'letter',
+		entry_kind: 'minute',
 		meeting_date: LETTER_ISO_DATES[turn] ?? l.created_at?.slice(0, 10) ?? '2026-10-01',
 		title: `${prefix}: ${subtitle}`,
 		category: 'epistolary',
@@ -410,6 +415,7 @@ export function createSpichlerzEntry(input: SpichlerzInput): SpichlerzEntry {
 	const body = rawBody || rawSummary;
 	const summary = rawSummary || rawBody.replace(/^#+\s*/gm, '').slice(0, 180).trim();
 	const attendees = input.attendees?.trim() || input.created_by?.trim() || 'Zespół';
+	const entryKind: EntryKind = input.entry_kind === 'note' ? 'note' : 'minute';
 	const category: MeetingCategory = input.category ?? 'general';
 	const date = input.meeting_date?.trim() || new Date().toISOString().slice(0, 10);
 	const isPinned = input.is_pinned ? 1 : 0;
@@ -421,15 +427,16 @@ export function createSpichlerzEntry(input: SpichlerzInput): SpichlerzEntry {
 		.prepare(
 			`
 		INSERT INTO meeting_minutes (
-			meeting_date, title, category, thread_id, after_letter_id,
+			meeting_date, title, entry_kind, category, thread_id, after_letter_id,
 			media_id, source_id, is_pinned, color_tag,
 			attendees, agenda, summary, body, action_items_json, tags, created_by
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 		)
 		.run(
 			date,
 			title,
+			entryKind,
 			category,
 			input.thread_id ?? null,
 			input.after_letter_id ?? null,
@@ -454,6 +461,8 @@ export function updateSpichlerzEntry(id: number, input: Partial<SpichlerzInput>)
 	if (!current) throw new Error(`Wpis ${id} nie istnieje w Spichlerzu`);
 
 	const title = input.title !== undefined ? input.title.trim() : current.title;
+	const entryKind: EntryKind =
+		input.entry_kind !== undefined ? (input.entry_kind === 'note' ? 'note' : 'minute') : current.entry_kind;
 	const category = input.category ?? current.category;
 	const date = input.meeting_date !== undefined ? input.meeting_date.trim() : current.meeting_date;
 	const attendees = input.attendees !== undefined ? input.attendees.trim() : current.attendees;
@@ -480,6 +489,7 @@ export function updateSpichlerzEntry(id: number, input: Partial<SpichlerzInput>)
 		UPDATE meeting_minutes SET
 			meeting_date = ?,
 			title = ?,
+			entry_kind = ?,
 			category = ?,
 			thread_id = ?,
 			after_letter_id = ?,
@@ -499,6 +509,7 @@ export function updateSpichlerzEntry(id: number, input: Partial<SpichlerzInput>)
 	).run(
 		date,
 		title,
+		entryKind,
 		category,
 		threadId,
 		afterLetterId,
@@ -604,6 +615,7 @@ export function quickCapture(input: {
 		const title = firstLine.length > 72 ? firstLine.slice(0, 69) + '…' : firstLine || 'Szybka notatka';
 		return createSpichlerzEntry({
 			title,
+			entry_kind: 'note',
 			category: input.category ?? 'general',
 			color_tag: 'amber',
 			attendees: input.created_by || 'Notatka własna',

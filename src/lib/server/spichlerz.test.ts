@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { db } from './db';
 import {
 	createSpichlerzEntry,
+	updateSpichlerzEntry,
 	getSpichlerzEntry,
 	listSpichlerzEntries,
 	togglePin,
@@ -205,5 +206,22 @@ describe('Spichlerz — Sovereign Second Brain & Deliberation Granary (Phase 10)
 		// Tag matching for braun / korona
 		const byTag = listSpichlerzEntries({ tag: 'braun' });
 		expect(byTag.some((e) => e.entry_type === 'letter')).toBe(true);
+	});
+
+	it('distinguishes quick notes (entry_kind = note) from protocols (entry_kind = minute)', () => {
+		const note = quickCapture({
+			mode: 'note',
+			text: 'Szybka myśl o retencji wodnej.'
+		});
+		expect(note.entry_kind).toBe('note');
+
+		const minute = createSpichlerzEntry({
+			title: 'Protokół narady strategicznej',
+			body: 'Ustalenia zespołu.'
+		});
+		expect(minute.entry_kind).toBe('minute');
+
+		const reclassified = updateSpichlerzEntry(note.id, { entry_kind: 'minute' });
+		expect(reclassified.entry_kind).toBe('minute');
 	});
 });

@@ -8,6 +8,7 @@
 	let {
 		open,
 		editingEntry,
+		initialTitle = '',
 		threads,
 		letters,
 		mediaList,
@@ -16,6 +17,7 @@
 	}: {
 		open: boolean;
 		editingEntry: SpichlerzEntry | null;
+		initialTitle?: string;
 		threads: { id: number; title: string; interlocutor: string }[];
 		letters: { id: number; thread_id: number; turn_number: number; direction: string; date_label: string }[];
 		mediaList: { id: number; title: string; artist_or_author: string }[];
@@ -40,7 +42,7 @@
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs overflow-y-auto">
 		<div class="my-8 w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl">
 			<div class="flex items-center justify-between border-b border-zinc-800 pb-3">
-				<h2 class="text-lg font-bold text-zinc-100">{editingEntry ? m.meetings_edit() : m.spichlerz_new_btn()}</h2>
+				<h2 class="text-lg font-bold text-zinc-100">{editingEntry ? m.meetings_edit() : m.meetings_new_btn()}</h2>
 				<button type="button" onclick={onclose} class="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100">
 					<X class="h-5 w-5" />
 				</button>
@@ -58,10 +60,17 @@
 				{#if editingEntry}<input type="hidden" name="id" value={editingEntry.id} />{/if}
 				<input type="hidden" name="color_tag" value={selectedColor} />
 
-				<div class="grid gap-3 sm:grid-cols-3">
+				<div class="grid gap-3 sm:grid-cols-4">
 					<div class="sm:col-span-2 space-y-1">
 						<label for="sp-title" class="font-medium text-zinc-300">Tytuł wpisu *</label>
-						<input id="sp-title" name="title" value={editingEntry?.title ?? ''} required class="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-zinc-100 focus:border-amber-500 focus:outline-none" />
+						<input id="sp-title" name="title" value={editingEntry?.title ?? initialTitle} required class="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-zinc-100 focus:border-amber-500 focus:outline-none" />
+					</div>
+					<div class="space-y-1">
+						<label for="sp-kind" class="font-medium text-zinc-300">{m.spichlerz_entry_kind()}</label>
+						<select id="sp-kind" name="entry_kind" value={editingEntry?.entry_kind ?? 'minute'} class="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100">
+							<option value="minute">{m.spichlerz_quick_minute_btn()}</option>
+							<option value="note">{m.spichlerz_quick_note_btn()}</option>
+						</select>
 					</div>
 					<div class="space-y-1">
 						<label for="sp-cat" class="font-medium text-zinc-300">Przegroda</label>

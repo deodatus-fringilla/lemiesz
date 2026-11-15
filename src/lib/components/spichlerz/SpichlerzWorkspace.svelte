@@ -32,7 +32,7 @@
 		ontogglezen: () => void;
 		onedit: (entry: SpichlerzEntry) => void;
 		onopenreader?: () => void;
-		onbacktonotes: () => void;
+		onbacktonotes?: () => void;
 		onselectradarentry: (entryId: number) => void;
 	} = $props();
 

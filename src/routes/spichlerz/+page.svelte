@@ -17,12 +17,15 @@
 	let activeTag = $state<string | null>(null);
 	let searchQuery = $state('');
 	let selectedUidOverride = $state<string | null>(null);
-	let viewMode = $state<'note' | 'radar'>('note');
+	let activeMode = $state<'task' | 'note' | 'minute' | 'letters' | 'all'>('minute');
 	let zenMode = $state(false);
 	let mobileTab = $state<'notebooks' | 'list' | 'workspace'>('workspace');
 	let modalOpen = $state(false);
 	let readerLetters = $state<ReaderLetter[] | null>(null);
 	let editingEntry = $state<SpichlerzEntry | null>(null);
+	let draftTitle = $state('');
+
+	const viewMode = $derived<'note' | 'radar'>(activeMode === 'task' ? 'radar' : 'note');
 
 	$effect(() => {
 		activeCategory = data.activeCategory;
@@ -30,9 +33,22 @@
 		searchQuery = data.searchQuery;
 	});
 
+	const allEntries = $derived(data.entries.filter((e) => !e.is_backlog));
+	const letterEntries = $derived(allEntries.filter((e) => e.entry_type === 'letter'));
+	const nonLetterEntries = $derived(allEntries.filter((e) => e.entry_type !== 'letter'));
+
+	const modeEntries = $derived(
+		nonLetterEntries.filter((e) => (activeMode === 'note' ? e.entry_kind === 'note' : e.entry_kind === 'minute'))
+	);
+
+	const visibleEntries = $derived(
+		activeMode === 'all' ? allEntries : activeMode === 'letters' ? letterEntries : modeEntries
+	);
+
 	const filteredEntries = $derived(
-		data.entries.filter((e) => {
-			if (activeCategory !== 'all' && e.category !== activeCategory) return false;
+		visibleEntries.filter((e) => {
+			if (activeMode !== 'all' && activeMode !== 'letters' && activeCategory !== 'all' && e.category !== activeCategory)
+				return false;
 			if (activeTag && !(e.tags || '').toLowerCase().includes(activeTag.toLowerCase())) return false;
 			if (!searchQuery.trim()) return true;
 			const hay = `${e.title} ${e.summary} ${e.body} ${e.tags || ''} ${JSON.stringify(e.action_items)}`.toLowerCase();
@@ -69,24 +85,50 @@
 		<div class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">{form.error}</div>
 	{/if}
 
-	<SpichlerzQuickCapture />
+	<SpichlerzQuickCapture
+		{activeMode}
+		{openTasksCount}
+		onmodechange={(mode) => {
+			activeMode = mode;
+			activeCategory = 'all';
+			activeTag = null;
+			if (mode === 'task') mobileTab = 'workspace';
+		}}
+		onnewminute={(title) => { editingEntry = null; draftTitle = title; modalOpen = true; }}
+	/>
 
-	<SpichlerzLayout {zenMode} {mobileTab} radarMode={viewMode === 'radar'} entriesCount={filteredEntries.length} onmobiletab={(t) => { mobileTab = t; if (t === 'list') viewMode = 'note'; }}>
+	<SpichlerzLayout {zenMode} {mobileTab} radarMode={viewMode === 'radar'} entriesCount={filteredEntries.length} onmobiletab={(t) => { mobileTab = t; if (t === 'list' && activeMode === 'task') activeMode = 'minute'; }}>
 		{#snippet sidebar()}
 			<SpichlerzSidebar
-				entries={data.entries} tags={data.tags} {activeCategory} {activeTag} {viewMode}
-				{openTasksCount}
-				onselectcategory={(cat) => { activeCategory = cat; activeTag = null; viewMode = 'note'; mobileTab = 'list'; }}
-				onselecttag={(t) => { activeTag = t; activeCategory = 'all'; viewMode = 'note'; mobileTab = 'list'; }}
-				ontodoradar={() => { viewMode = 'radar'; mobileTab = 'workspace'; }}
-				onnew={() => { editingEntry = null; modalOpen = true; }}
+				entries={activeMode === 'note' || activeMode === 'minute' ? modeEntries : nonLetterEntries}
+				allCount={allEntries.length}
+				letterCount={letterEntries.length}
+				tags={data.tags}
+				{activeCategory}
+				{activeTag}
+				{activeMode}
+				onselectcategory={(cat) => {
+					activeTag = null;
+					if (cat === 'all') {
+						activeMode = 'all';
+						activeCategory = 'all';
+					} else if (cat === 'epistolary') {
+						activeMode = 'letters';
+						activeCategory = 'epistolary';
+					} else {
+						activeCategory = cat;
+						if (activeMode === 'task' || activeMode === 'letters' || activeMode === 'all') activeMode = 'minute';
+					}
+					mobileTab = 'list';
+				}}
+				onselecttag={(t) => { activeTag = t; activeCategory = 'all'; activeMode = 'all'; mobileTab = 'list'; }}
 			/>
 		{/snippet}
 		{#snippet list()}
 			<SpichlerzList
 				entries={filteredEntries} selectedUid={activeEntry?.uid ?? null} {searchQuery} {activeTag}
 				onsearchchange={(q) => (searchQuery = q)} oncleartag={() => (activeTag = null)}
-				onselect={(uid) => { selectedUidOverride = uid; viewMode = 'note'; mobileTab = 'workspace'; }}
+				onselect={(uid) => { selectedUidOverride = uid; if (activeMode === 'task') activeMode = 'minute'; mobileTab = 'workspace'; }}
 			/>
 		{/snippet}
 		{#snippet workspace()}
@@ -95,8 +137,12 @@
 				ontogglezen={() => (zenMode = !zenMode)}
 				onedit={(e) => { editingEntry = e; modalOpen = true; }}
 				onopenreader={activeEntry?.entry_type === 'letter' ? openReader : undefined}
-				onbacktonotes={() => (viewMode = 'note')}
-				onselectradarentry={(id) => { selectedUidOverride = `m-${id}`; viewMode = 'note'; mobileTab = 'workspace'; }}
+				onselectradarentry={(id) => {
+					const target = data.entries.find((e) => e.id === id && e.entry_type === 'minute');
+					activeMode = target?.entry_kind === 'note' ? 'note' : 'minute';
+					selectedUidOverride = `m-${id}`;
+					mobileTab = 'workspace';
+				}}
 			/>
 		{/snippet}
 	</SpichlerzLayout>
@@ -106,4 +152,4 @@
 	<LetterReader letters={readerLetters} initialLetterId={activeEntry.id} highlight={searchQuery} title={activeEntry.thread_title ?? ''} onclose={() => (readerLetters = null)} />
 {/if}
 
-<SpichlerzEditorModal open={modalOpen} {editingEntry} threads={data.threads} letters={data.letters} mediaList={data.mediaList} sourcesList={data.sourcesList} onclose={() => (modalOpen = false)} />
+<SpichlerzEditorModal open={modalOpen} {editingEntry} initialTitle={draftTitle} threads={data.threads} letters={data.letters} mediaList={data.mediaList} sourcesList={data.sourcesList} onclose={() => { modalOpen = false; draftTitle = ''; }} />
